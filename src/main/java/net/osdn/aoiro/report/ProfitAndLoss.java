@@ -306,13 +306,20 @@ public class ProfitAndLoss {
 		printData.add("\t\\line " + String.format("95 30.8 95 %.2f", 37 + y + ROW_HEIGHT + 0.4));
 		printData.add("\t\\box 0 37 -0 -0");
 		
-		printData.add("\t\t\\font serif 10 bold");
-		printData.add("\t\t\\box " + String.format("2 %.2f 63 %.2f", y, ROW_HEIGHT));
-		printData.add("\t\t\\align center left");
-		printData.add("\t\t\\text " + list.get(0).getName());
-		printData.add("\t\t\\box " + String.format("63 %.2f 27 %.2f", y, ROW_HEIGHT));
-		printData.add("\t\t\\align center right");
-		printData.add("\t\t\\text " + formatMoney(list.get(0).getValue().getValue()));
+		//合計 (青色申告特別控除前の所得金額)
+		{
+			String displayName = list.get(0).getName();
+			Amount amount = list.get(0).getValue();
+			int amountValue = (amount.getNormalBalance() == Creditor.class) ? amount.getValue() : -amount.getValue();
+
+			printData.add("\t\t\\font serif 10 bold");
+			printData.add("\t\t\\box " + String.format("2 %.2f 63 %.2f", y, ROW_HEIGHT));
+			printData.add("\t\t\\align center left");
+			printData.add("\t\t\\text " + displayName);
+			printData.add("\t\t\\box " + String.format("63 %.2f 27 %.2f", y, ROW_HEIGHT));
+			printData.add("\t\t\\align center right");
+			printData.add("\t\t\\text " + formatMoney(amountValue));
+		}
 		
 		//月別
 		Amount salesTotal = null;
