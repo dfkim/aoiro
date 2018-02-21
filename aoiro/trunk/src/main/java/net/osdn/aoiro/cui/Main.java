@@ -30,12 +30,19 @@ public class Main {
 			Logger.getLogger("org.apache").setLevel(Level.SEVERE);
 
 			boolean skipSettlement = false;
+			Boolean isSoloProprietorship = null;
 			String filename = null;
 			
 			if(args.length >= 1) {
 				for(int i = 0; i < args.length; i++) {
 					if(args[i].equals("-o")) {
 						skipSettlement = true;
+					}
+					if(args[i].equals("-p")) {
+						isSoloProprietorship = Boolean.TRUE;
+					}
+					if(args[i].equals("-c")) {
+						isSoloProprietorship = Boolean.FALSE;
 					}
 				}
 				filename = args[args.length - 1];
@@ -45,6 +52,8 @@ public class Main {
 				System.out.println("Usage: aoiro.exe [-o] <仕訳データファイル>");
 				System.out.println("Options:");
 				System.out.println("  -o    決算処理をせずに仕訳帳と総勘定元帳を出力します。");
+				System.out.println("  -p    個人事業主用のデータファイルを使用します。");
+				System.out.println("  -c    法人用のデータファイルを使用します。");
 				System.out.println();
 				pause();
 				return;
@@ -57,7 +66,9 @@ public class Main {
 				return;
 			}
 			
-			boolean isSoloProprietorship = isSoloProprietorship(journalEntryFile);
+			if(isSoloProprietorship == null) {
+				isSoloProprietorship = isSoloProprietorship(journalEntryFile);
+			}
 			File defaultDir = new File(Util.getApplicationDirectory(), "default");
 			if(isSoloProprietorship) {
 				System.out.println("次のデータファイルを使用して、個人決算処理を実行します。");
