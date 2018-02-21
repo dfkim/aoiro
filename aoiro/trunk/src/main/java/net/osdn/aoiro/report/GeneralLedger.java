@@ -37,7 +37,7 @@ public class GeneralLedger {
 	private List<String> pageData = new ArrayList<String>();
 	private List<String> printData;
 	
-	public GeneralLedger(List<AccountTitle> accountTitles, List<JournalEntry> journalEntries) throws IOException {
+	public GeneralLedger(List<AccountTitle> accountTitles, List<JournalEntry> journalEntries, boolean isSoloProprietorship) throws IOException {
 		this.accountTitles = new ArrayList<AccountTitle>(accountTitles);
 		this.accountTitles.add(AccountTitle.INCOME_SUMMARY);
 		this.accountTitles.add(AccountTitle.RETAINED_EARNINGS);
@@ -53,7 +53,7 @@ public class GeneralLedger {
 		}
 		r.close();
 		
-		Date closing = AccountSettlement.getClosingDate(entries);
+		Date closing = AccountSettlement.getClosingDate(entries, isSoloProprietorship);
 		Calendar calendar = Calendar.getInstance();
 		calendar.setTime(closing);
 		if(calendar.get(Calendar.MONTH) == Calendar.DECEMBER && calendar.get(Calendar.DAY_OF_MONTH) == 31) {

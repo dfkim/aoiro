@@ -53,12 +53,12 @@ public class BalanceSheet {
 	private List<String> pageData = new ArrayList<String>();
 	private List<String> printData;
 
-	public BalanceSheet(Node<List<AccountTitle>, Amount[]> bsRoot, List<JournalEntry> journalEntries) throws IOException {
+	public BalanceSheet(Node<List<AccountTitle>, Amount[]> bsRoot, List<JournalEntry> journalEntries, boolean isSoloProprietorship) throws IOException {
 		this.bsRoot = bsRoot;
 		this.journalEntries = journalEntries;
 		
-		this.openingDate = AccountSettlement.getOpeningDate(journalEntries);
-		this.closingDate = AccountSettlement.getClosingDate(journalEntries);
+		this.openingDate = AccountSettlement.getOpeningDate(journalEntries, isSoloProprietorship);
+		this.closingDate = AccountSettlement.getClosingDate(journalEntries, isSoloProprietorship);
 		
 		InputStream in = getClass().getResourceAsStream("/templates/貸借対照表.pb");
 		BufferedReader r = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));

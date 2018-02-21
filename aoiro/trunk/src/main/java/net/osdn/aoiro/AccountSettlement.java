@@ -33,8 +33,9 @@ public class AccountSettlement {
 	/** メッセージ出力先 */
 	private PrintStream out;
 	
-	public AccountSettlement(List<AccountTitle> accountTitles) {
+	public AccountSettlement(List<AccountTitle> accountTitles, boolean isSoloproprietorship) {
 		this.accountTitles = accountTitles;
+		this.isSoloProprietorship = isSoloproprietorship;
 	}
 	
 	public void setPrintStream(PrintStream out) {
@@ -47,10 +48,8 @@ public class AccountSettlement {
 	 * @param proportionalDivisions 家事按分リスト
 	 */
 	public void addClosingEntries(List<JournalEntry> journalEntries, List<ProportionalDivision> proportionalDivisions) {
-		isSoloProprietorship = isSoloProprietorship(journalEntries);
-		
 		if(date == null) {
-			date = getClosingDate(journalEntries);
+			date = getClosingDate(journalEntries, isSoloProprietorship);
 		}
 		if(date == null) {
 			throw new IllegalStateException("決算日が指定されていません。");
@@ -84,10 +83,14 @@ public class AccountSettlement {
 				}
 				if(debtorTotal > creditorTotal) {
 					double total = (debtorTotal - creditorTotal) * (1.0 - proportionalDivision.getBusinessRatio());
-					creditors.add(new Creditor(proportionalDivision.getAccountTitle(), (int)Math.floor(total)));
+					if(!(-1.0 < total && total < +1.0)) {
+						creditors.add(new Creditor(proportionalDivision.getAccountTitle(), (int)Math.floor(total)));
+					}
 				} else if(creditorTotal > debtorTotal) {
 					double total = (creditorTotal - debtorTotal) * (1.0 - proportionalDivision.getBusinessRatio());
-					debtors.add(new Debtor(proportionalDivision.getAccountTitle(), (int)Math.floor(total)));
+					if(!(-1.0 < total && total < +1.0)) {
+						debtors.add(new Debtor(proportionalDivision.getAccountTitle(), (int)Math.floor(total)));
+					}
 				}
 			}
 			if(debtors.size() > 0) {
@@ -508,29 +511,12 @@ public class AccountSettlement {
 		}
 	}
 	
-	/** 仕訳リストから個人事業主かどうかを判定します。
-	 * 仕訳リストに元入金が含まれていれば個人事業主と判定します。
-	 * 
-	 * @param journalEntries 仕訳リスト
-	 * @return 仕訳リストに元入金がある場合は true、そうでなければ false を返します。
-	 */
-	public static boolean isSoloProprietorship(List<JournalEntry> journalEntries) {
-		for(JournalEntry entry : journalEntries) {
-			for(Creditor creditor : entry.getCreditors()) {
-				if(creditor.getAccountTitle().getDisplayName().equals("元入金")) {
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-	
 	/** 仕訳リストから開始日を求めます。
 	 * 
 	 * @param journalEntries 仕訳リスト
 	 * @return 開始日
 	 */
-	public static Date getOpeningDate(List<JournalEntry> journalEntries) {
+	public static Date getOpeningDate(List<JournalEntry> journalEntries, boolean isSoloProprietorship) {
 		Date date = null;
 		
 		for(JournalEntry entry : journalEntries) {
@@ -549,10 +535,10 @@ public class AccountSettlement {
 	 * @param journalEntries 仕訳リスト
 	 * @return 決算日
 	 */
-	public static Date getClosingDate(List<JournalEntry> journalEntries) {
+	public static Date getClosingDate(List<JournalEntry> journalEntries, boolean isSoloProprietorship) {
 		Date date = null;
 		
-		if(isSoloProprietorship(journalEntries)) {
+		if(isSoloProprietorship) {
 			//個人事業主の場合、仕訳から年を求めて、その年の12/31を決算日とします。
 			if(journalEntries.size() > 0) {
 				JournalEntry entry = journalEntries.get(0);

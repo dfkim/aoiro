@@ -47,12 +47,12 @@ public class ProfitAndLoss {
 	private List<String> pageData = new ArrayList<String>();
 	private List<String> printData;
 	
-	public ProfitAndLoss(Node<List<AccountTitle>, Amount> plRoot, List<JournalEntry> journalEntries) throws IOException {
+	public ProfitAndLoss(Node<List<AccountTitle>, Amount> plRoot, List<JournalEntry> journalEntries, boolean isSoloProprietorship) throws IOException {
 		this.plRoot = plRoot;
 		this.journalEntries = journalEntries;
 		
-		this.openingDate = AccountSettlement.getOpeningDate(journalEntries);
-		this.closingDate = AccountSettlement.getClosingDate(journalEntries);
+		this.openingDate = AccountSettlement.getOpeningDate(journalEntries, isSoloProprietorship);
+		this.closingDate = AccountSettlement.getClosingDate(journalEntries, isSoloProprietorship);
 
 		for(JournalEntry entry : journalEntries) {
 			if(entry.isIncomeSummary()) {
