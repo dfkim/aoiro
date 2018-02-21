@@ -83,13 +83,15 @@ public class AccountSettlement {
 				}
 				if(debtorTotal > creditorTotal) {
 					double total = (debtorTotal - creditorTotal) * (1.0 - proportionalDivision.getBusinessRatio());
-					if(!(-1.0 < total && total < +1.0)) {
-						creditors.add(new Creditor(proportionalDivision.getAccountTitle(), (int)Math.floor(total)));
+					int intTotal = (int)Math.floor(total);
+					if(intTotal != 0) {
+						creditors.add(new Creditor(proportionalDivision.getAccountTitle(), intTotal));
 					}
 				} else if(creditorTotal > debtorTotal) {
 					double total = (creditorTotal - debtorTotal) * (1.0 - proportionalDivision.getBusinessRatio());
-					if(!(-1.0 < total && total < +1.0)) {
-						debtors.add(new Debtor(proportionalDivision.getAccountTitle(), (int)Math.floor(total)));
+					int intTotal = (int)Math.floor(total);
+					if(intTotal != 0) {
+						debtors.add(new Debtor(proportionalDivision.getAccountTitle(), intTotal));
 					}
 				}
 			}
@@ -351,7 +353,16 @@ public class AccountSettlement {
 					}
 				}
 				if(total == 0) {
-					//
+					//残高は0でも振替仕訳を出力します。(ノーマルバランスの逆貸借で作成します。)
+					if(accountTitle.getType().getNormalBalance() == Debtor.class) {
+						//貸方
+						Creditor creditor = new Creditor(accountTitle, +total);
+						creditors.add(creditor);
+					} else {
+						//借方
+						Debtor debtor = new Debtor(accountTitle, -total);
+						debtors.add(debtor);
+					}
 				} else if(total > 0) {
 					//貸方
 					Creditor creditor = new Creditor(accountTitle, +total);
