@@ -325,7 +325,7 @@ public class GeneralLedger {
 			}
 			
 			//期末締切線
-			if(entries.size() > 0) {
+			if(entries.size() > 0 && entries.get(entries.size() - 1).isClosing()) {
 				printData.add("\t\t\\box " + String.format("0 %.2f -0 %.2f", currentRow * ROW_HEIGHT, ROW_HEIGHT + 0.4));
 				printData.add("\t\t\\line-style medium solid");
 				//合計線
