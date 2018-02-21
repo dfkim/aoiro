@@ -110,7 +110,7 @@ public class Main {
 			if(!skipSettlement) {
 				//決算
 				System.out.println("決算処理を実行しています . . .");
-				AccountSettlement accountSettlement = new AccountSettlement(accountTitles);
+				AccountSettlement accountSettlement = new AccountSettlement(accountTitles, isSoloProprietorship);
 				accountSettlement.setPrintStream(System.out);
 				accountSettlement.addClosingEntries(journalEntries, proportionalDivisions);
 				System.out.println("");
@@ -118,8 +118,8 @@ public class Main {
 			
 			System.out.println("帳簿を作成しています . . .");
 			
-			GeneralJournal generalJournal = new GeneralJournal(journalEntries);
-			GeneralLedger generalLedger = new GeneralLedger(accountTitles, journalEntries);
+			GeneralJournal generalJournal = new GeneralJournal(journalEntries, isSoloProprietorship);
+			GeneralLedger generalLedger = new GeneralLedger(accountTitles, journalEntries, isSoloProprietorship);
 
 			generalJournal.writeTo(new File("仕訳帳.pdf"));
 			System.out.println("  仕訳帳.pdf を出力しました。");
@@ -130,13 +130,13 @@ public class Main {
 			if(!skipSettlement) {
 				//損益計算書
 				Node<List<AccountTitle>, Amount> plRoot = accountTitlesLoader.getProfitAndLossRoot();
-				ProfitAndLoss pl = new ProfitAndLoss(plRoot, journalEntries);
+				ProfitAndLoss pl = new ProfitAndLoss(plRoot, journalEntries, isSoloProprietorship);
 				pl.writeTo(new File("損益計算書.pdf"));
 				System.out.println("  損益計算書.pdf を出力しました。");
 				
 				//貸借対照表
 				Node<List<AccountTitle>, Amount[]> bsRoot = accountTitlesLoader.getBalanceSheetRoot();
-				BalanceSheet bs = new BalanceSheet(bsRoot, journalEntries);
+				BalanceSheet bs = new BalanceSheet(bsRoot, journalEntries, isSoloProprietorship);
 				bs.writeTo(new File("貸借対照表.pdf"));
 				System.out.println("  貸借対照表.pdf を出力しました。");
 

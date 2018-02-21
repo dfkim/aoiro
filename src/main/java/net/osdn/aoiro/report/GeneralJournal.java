@@ -33,7 +33,7 @@ public class GeneralJournal {
 	private List<String> pageData = new ArrayList<String>();
 	private List<String> printData;
 	
-	public GeneralJournal(List<JournalEntry> journalEntries) throws IOException {
+	public GeneralJournal(List<JournalEntry> journalEntries, boolean isSoloProprietorship) throws IOException {
 		this.entries = journalEntries;
 		
 		InputStream in = getClass().getResourceAsStream("/templates/仕訳帳.pb");
@@ -44,7 +44,7 @@ public class GeneralJournal {
 		}
 		r.close();
 		
-		Date closing = AccountSettlement.getClosingDate(entries);
+		Date closing = AccountSettlement.getClosingDate(entries, isSoloProprietorship);
 		Calendar calendar = Calendar.getInstance();
 		calendar.setTime(closing);
 		if(calendar.get(Calendar.MONTH) == Calendar.DECEMBER && calendar.get(Calendar.DAY_OF_MONTH) == 31) {
