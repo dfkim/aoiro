@@ -28,14 +28,28 @@ public class Main {
 	public static void main(String[] args) {
 		try {
 			Logger.getLogger("org.apache").setLevel(Level.SEVERE);
+
+			boolean skipSettlement = false;
+			String filename = null;
 			
-			if(args.length == 0) {
-				System.out.println("Usage: aoiro.exe <仕訳データファイル>");
+			if(args.length >= 1) {
+				for(int i = 0; i < args.length; i++) {
+					if(args[i].equals("-o")) {
+						skipSettlement = true;
+					}
+				}
+				filename = args[args.length - 1];
+			}
+			
+			if(filename == null) {
+				System.out.println("Usage: aoiro.exe [-o] <仕訳データファイル>");
+				System.out.println("Options:");
+				System.out.println("  -o    決算処理をせずに仕訳帳と総勘定元帳を出力します。");
+				System.out.println();
 				pause();
 				return;
 			}
-			
-			String filename = args[0];
+
 			File journalEntryFile = new File(filename);
 			if(!journalEntryFile.exists() || journalEntryFile.isDirectory()) {
 				System.err.println("ファイルが見つかりません: " + journalEntryFile.getAbsolutePath());
@@ -82,13 +96,15 @@ public class Main {
 
 			System.out.println("");
 			
-			//決算
-			System.out.println("決算処理を実行しています . . .");
-			AccountSettlement accountSettlement = new AccountSettlement(accountTitles);
-			accountSettlement.setPrintStream(System.out);
-			accountSettlement.addClosingEntries(journalEntries, proportionalDivisions);
+			if(!skipSettlement) {
+				//決算
+				System.out.println("決算処理を実行しています . . .");
+				AccountSettlement accountSettlement = new AccountSettlement(accountTitles);
+				accountSettlement.setPrintStream(System.out);
+				accountSettlement.addClosingEntries(journalEntries, proportionalDivisions);
+				System.out.println("");
+			}
 			
-			System.out.println("");
 			System.out.println("帳簿を作成しています . . .");
 			
 			GeneralJournal generalJournal = new GeneralJournal(journalEntries);
@@ -100,25 +116,27 @@ public class Main {
 			generalLedger.writeTo(new File("総勘定元帳.pdf"));
 			System.out.println("  総勘定元帳.pdf を出力しました。");
 			
-			//損益計算書
-			Node<List<AccountTitle>, Amount> plRoot = accountTitlesLoader.getProfitAndLossRoot();
-			ProfitAndLoss pl = new ProfitAndLoss(plRoot, journalEntries);
-			pl.writeTo(new File("損益計算書.pdf"));
-			System.out.println("  損益計算書.pdf を出力しました。");
-			
-			//貸借対照表
-			Node<List<AccountTitle>, Amount[]> bsRoot = accountTitlesLoader.getBalanceSheetRoot();
-			BalanceSheet bs = new BalanceSheet(bsRoot, journalEntries);
-			bs.writeTo(new File("貸借対照表.pdf"));
-			System.out.println("  貸借対照表.pdf を出力しました。");
+			if(!skipSettlement) {
+				//損益計算書
+				Node<List<AccountTitle>, Amount> plRoot = accountTitlesLoader.getProfitAndLossRoot();
+				ProfitAndLoss pl = new ProfitAndLoss(plRoot, journalEntries);
+				pl.writeTo(new File("損益計算書.pdf"));
+				System.out.println("  損益計算書.pdf を出力しました。");
+				
+				//貸借対照表
+				Node<List<AccountTitle>, Amount[]> bsRoot = accountTitlesLoader.getBalanceSheetRoot();
+				BalanceSheet bs = new BalanceSheet(bsRoot, journalEntries);
+				bs.writeTo(new File("貸借対照表.pdf"));
+				System.out.println("  貸借対照表.pdf を出力しました。");
 
-			//繰越処理
-			System.out.println("");
-			System.out.println("繰越処理を実行しています . . .");
-			
-			//開始仕訳
-			bs.createOpeningJournalEntries(new File("次年度の開始仕訳.yml"));
-			System.out.println("  次年度の開始仕訳.yml を出力しました。");
+				//繰越処理
+				System.out.println("");
+				System.out.println("繰越処理を実行しています . . .");
+				
+				//開始仕訳
+				bs.createOpeningJournalEntries(new File("次年度の開始仕訳.yml"));
+				System.out.println("  次年度の開始仕訳.yml を出力しました。");
+			}
 
 			//終了
 			System.out.println("");
