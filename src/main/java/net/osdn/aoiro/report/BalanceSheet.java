@@ -465,7 +465,9 @@ public class BalanceSheet {
 				continue;
 			}
 			if(accountTitle.getType() == AccountType.Assets) {
-				if(amount.getValue() > 0) {
+				if(amount.getValue() == 0) {
+					continue;
+				} else if(amount.getValue() > 0) {
 					debtors.add(e);
 					debtorsTotal += amount.getValue();
 				} else {
@@ -473,7 +475,9 @@ public class BalanceSheet {
 					creditorsTotal -= amount.getValue();
 				}
 			} else if(accountTitle.getType() == AccountType.Liabilities) {
-				if(amount.getValue() > 0) {
+				if(amount.getValue() == 0) {
+					continue;
+				} else if(amount.getValue() > 0) {
 					creditors.add(e);
 					creditorsTotal += amount.getValue();
 				} else {

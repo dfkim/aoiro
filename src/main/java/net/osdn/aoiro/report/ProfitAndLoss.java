@@ -309,8 +309,11 @@ public class ProfitAndLoss {
 		//合計 (青色申告特別控除前の所得金額)
 		{
 			String displayName = list.get(0).getName();
+			int amountValue = 0;
 			Amount amount = list.get(0).getValue();
-			int amountValue = (amount.getNormalBalance() == Creditor.class) ? amount.getValue() : -amount.getValue();
+			if(amount != null) {
+				amountValue = (amount.getNormalBalance() == Creditor.class) ? amount.getValue() : -amount.getValue();
+			}
 
 			printData.add("\t\t\\font serif 10 bold");
 			printData.add("\t\t\\box " + String.format("2 %.2f 63 %.2f", y, ROW_HEIGHT));

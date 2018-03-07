@@ -49,7 +49,7 @@ public class Main {
 			}
 			
 			if(filename == null) {
-				System.out.println("Usage: aoiro.exe [-o] <仕訳データファイル>");
+				System.out.println("Usage: aoiro.exe <options> <仕訳データファイル>");
 				System.out.println("Options:");
 				System.out.println("  -o    決算処理をせずに仕訳帳と総勘定元帳を出力します。");
 				System.out.println("  -p    個人事業主用のデータファイルを使用します。");
