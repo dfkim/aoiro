@@ -578,6 +578,7 @@ public class AccountSettlement {
 			Calendar calendar = Calendar.getInstance(Util.getLocale());
 			calendar.setTime(opening);
 			calendar.set(Calendar.DAY_OF_MONTH, 1);
+			calendar.add(Calendar.YEAR, 1);
 			calendar.add(Calendar.DATE, -1);
 			date = calendar.getTime();
 		}
