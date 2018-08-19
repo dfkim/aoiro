@@ -105,7 +105,6 @@ public class JournalEntry {
 			return false;
 		}
 		//個人事業主の場合は貸方に元入金を含む仕訳を開始仕訳として扱います。
-		//FIXME: 法人の場合の開始仕訳への対応を追加する必要があります。
 		for(Debtor debtor : debtors) {
 			String displayName = debtor.getAccountTitle().getDisplayName();
 			if(displayName.equals("元入金")) {
@@ -118,6 +117,13 @@ public class JournalEntry {
 				return true;
 			}
 		}
+		
+		//摘要が「前期繰越」となっている場合は開始仕訳として扱います。
+		//個人事業主、法人いずれの場合も開始仕訳として認識されます。
+		if(description.equals("前期繰越")) {
+			return true;
+		}
+
 		return false;
 	}
 	

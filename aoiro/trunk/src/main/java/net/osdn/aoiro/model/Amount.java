@@ -5,7 +5,7 @@ package net.osdn.aoiro.model;
  * 金額がマイナスに転じても借方、貸方が変わることはありません。
  * 
  */
-public class Amount {
+public class Amount implements Cloneable {
 	
 	private Class<? extends Account> normalBalance;
 	private int value;
@@ -83,6 +83,10 @@ public class Amount {
 	 */
 	public void decrease(int amount) {
 		this.value -= amount;
+	}
+	
+	public Amount clone() {
+		return new Amount(normalBalance, value);
 	}
 	
 	@Override

@@ -22,7 +22,7 @@
 		\box 0 0 87.5 -0
 		\text 資　　産　　の　　部
 		\box 87.5 0 87.5 -0
-		\text 負　債　・　資　本　の　部
+		\text 負　債　・　純　資　産　の　部
 	\box 0 31 -0 6
 		\font sans-serif 9
 		\align center

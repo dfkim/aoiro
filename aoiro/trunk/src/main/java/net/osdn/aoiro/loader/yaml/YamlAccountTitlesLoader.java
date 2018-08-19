@@ -26,6 +26,7 @@ public class YamlAccountTitlesLoader {
 		settlementAccountTitleByDisplayName.put(AccountTitle.INCOME_SUMMARY.getDisplayName(), AccountTitle.INCOME_SUMMARY);
 		settlementAccountTitleByDisplayName.put(AccountTitle.BALANCE.getDisplayName(), AccountTitle.BALANCE);
 		settlementAccountTitleByDisplayName.put(AccountTitle.RETAINED_EARNINGS.getDisplayName(), AccountTitle.RETAINED_EARNINGS);
+		settlementAccountTitleByDisplayName.put(AccountTitle.PRETAX_INCOME.getDisplayName(), AccountTitle.PRETAX_INCOME);
 	}
 	
 	/** 勘定科目リスト */
@@ -65,9 +66,9 @@ public class YamlAccountTitlesLoader {
 				accountTitleByDisplayName.put(displayName, accountTitle);
 			}
 			@SuppressWarnings("unchecked")
-			List<String> equity = (List<String>)map.get("資本");
-			for(String displayName : equity) {
-				AccountTitle accountTitle = new AccountTitle(AccountType.Equity, displayName);
+			List<String> netAssets = (List<String>)map.get("純資産");
+			for(String displayName : netAssets) {
+				AccountTitle accountTitle = new AccountTitle(AccountType.NetAssets, displayName);
 				accountTitles.add(accountTitle);
 				accountTitleByDisplayName.put(displayName, accountTitle);
 			}
@@ -94,11 +95,8 @@ public class YamlAccountTitlesLoader {
 			Node<List<AccountTitle>, Amount> plRoot = new Node<List<AccountTitle>, Amount>(-1, "損益計算書");
 			retrieve(plRoot, map);
 			
-			if(plRoot.getChildren().size() == 1) {
-				this.plRoot = plRoot.getChildren().get(0);
-			} else {
-				throw new IllegalArgumentException("損益計算書の直下に複数の要素があります。");
-			}
+			this.plRoot = plRoot;
+
 			//dump(0, plRoot);
 		}
 		

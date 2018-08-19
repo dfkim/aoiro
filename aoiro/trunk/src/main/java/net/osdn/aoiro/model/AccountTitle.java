@@ -16,10 +16,11 @@ public class AccountTitle {
 	/** 決算勘定「残高」です。資産と負債がこの損益勘定に振り替えられます。*/
 	public static AccountTitle BALANCE = new AccountTitle(AccountType.Assets, "残高", true);
 	
-	/** 決算勘定「控除前の所得金額」です。*/
-	public static AccountTitle RETAINED_EARNINGS = new AccountTitle(AccountType.Equity, "控除前の所得金額", true);
-	//public static AccountTitle RETAINED_EARNINGS = new AccountTitle(AccountType.Equity, new ArrayList<String>(), "繰越利益剰余金");
-
+	/** 決算勘定「繰越利益剰余金」です。収益-費用で算出されます。法人で使用する勘定科目です。*/
+	public static AccountTitle RETAINED_EARNINGS = new AccountTitle(AccountType.NetAssets, "繰越利益剰余金", true);
+	
+	/** 決算勘定「控除前の所得金額」です。収益-費用で算出されます。個人事業主で使用する勘定科目です。*/
+	public static AccountTitle PRETAX_INCOME = new AccountTitle(AccountType.NetAssets, "控除前の所得金額", true);
 	
 	/** 種類 */
 	private AccountType type;

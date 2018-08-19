@@ -91,7 +91,8 @@ public class ProfitAndLoss {
 		retrieve(plRoot, journalEntries);
 		
 		//リスト作成
-		list = getList(plRoot);
+		list = createList(plRoot);
+		//list = getList(plRoot);
 		
 		//月別集計
 		monthlyTotals = getMonthlyTotals(journalEntries);
@@ -133,11 +134,27 @@ public class ProfitAndLoss {
 		return amount;
 	}
 	
-	protected List<Node<List<AccountTitle>, Amount>> getList(Node<List<AccountTitle>, Amount> node) {
+	protected List<Node<List<AccountTitle>, Amount>> createList(Node<List<AccountTitle>, Amount> plRoot) {
+		List<Node<List<AccountTitle>, Amount>> list = new ArrayList<Node<List<AccountTitle>, Amount>>();
+		
+		Amount cumulativeAmount = new Amount(Creditor.class, 0);
+		for(Node<List<AccountTitle>, Amount> topLevelNode : plRoot.getChildren()) {
+			cumulativeAmount.increase(topLevelNode.getValue());
+			topLevelNode.setValue(cumulativeAmount.clone());
+			topLevelNode.setSubTotal(true);
+			for(Node<List<AccountTitle>, Amount> childNode : topLevelNode.getChildren()) {
+				list.addAll(getSubList(childNode));
+			}
+			list.add(topLevelNode);
+		}
+		return list;
+	}
+	
+	protected List<Node<List<AccountTitle>, Amount>> getSubList(Node<List<AccountTitle>, Amount> node) {
 		List<Node<List<AccountTitle>, Amount>> list = new ArrayList<Node<List<AccountTitle>, Amount>>();
 		list.add(node);
 		for(Node<List<AccountTitle>, Amount> child : node.getChildren()) {
-			list.addAll(getList(child));
+			list.addAll(getSubList(child));
 		}
 		return list;
 	}
@@ -257,7 +274,7 @@ public class ProfitAndLoss {
 		printData.add("\t\\line-style thin dot");
 		
 		double y = 0.0;
-		for(int i = 1; i < list.size(); i++) {
+		for(int i = 0; i < list.size(); i++) {
 			Node<List<AccountTitle>, Amount> node = list.get(i);
 			
 			Amount amount = node.getValue();
@@ -268,11 +285,16 @@ public class ProfitAndLoss {
 			}
 			*/
 			
-			if(i >= 2) {
+			if(i >= 1) {
+				if(node.isSubTotal()) {
+					printData.add("\t\\line-style thin solid");
+				} else {
+					printData.add("\t\\line-style thin dot");
+				}
 				printData.add("\t\\line " + String.format("0 %.2f 95 %.2f", y, y));
 			}
 			
-			if(node.getLevel() == 1) {
+			if(node.getLevel() == 0 || (plRoot.getChildren().size() == 1 && node.getLevel() == 1)) {
 				printData.add("\t\t\\font serif 10 bold");
 			} else {
 				printData.add("\t\t\\font serif 10");
@@ -295,17 +317,18 @@ public class ProfitAndLoss {
 		}
 		printData.add("\t\\line-style thin solid");
 		if(y > 0) {
+			printData.add("\t\\line " + String.format("0 %.2f 95 %.2f", y - ROW_HEIGHT, y - ROW_HEIGHT));
 			printData.add("\t\\line " + String.format("0 %.2f 95 %.2f", y, y));
-			printData.add("\t\\line " + String.format("0 %.2f 95 %.2f", y + ROW_HEIGHT, y + ROW_HEIGHT));
-			printData.add("\t\\line " + String.format("0 %.2f 95 %.2f", y + ROW_HEIGHT + 0.4, y + ROW_HEIGHT + 0.4));
+			printData.add("\t\\line " + String.format("0 %.2f 95 %.2f", y + 0.4, y + 0.4));
 		}
 		printData.add("\t\\box 0 0 -0 -0");
-		printData.add("\t\\line " + String.format("63 31.2 63 %.2f", 37 + y + ROW_HEIGHT));
+		printData.add("\t\\line " + String.format("63 31.2 63 %.2f", 37 + y));
 		printData.add("\t\\line-style thin dot");
-		printData.add("\t\\line " + String.format(" 0 30.8  0 %.2f", 37 + y + ROW_HEIGHT + 0.4));
-		printData.add("\t\\line " + String.format("95 30.8 95 %.2f", 37 + y + ROW_HEIGHT + 0.4));
+		printData.add("\t\\line " + String.format(" 0 30.8  0 %.2f", 37 + y + 0.4));
+		printData.add("\t\\line " + String.format("95 30.8 95 %.2f", 37 + y + 0.4));
 		printData.add("\t\\box 0 37 -0 -0");
 		
+		/*
 		//合計 (青色申告特別控除前の所得金額)
 		{
 			String displayName = list.get(0).getName();
@@ -323,6 +346,7 @@ public class ProfitAndLoss {
 			printData.add("\t\t\\align center right");
 			printData.add("\t\t\\text " + formatMoney(amountValue));
 		}
+		*/
 		
 		//月別
 		Amount salesTotal = null;
