@@ -5,6 +5,7 @@ import java.util.List;
 
 public class Node<K, V> {
 	
+	private boolean isSubTotal;
 	private int level;
 	private String name;
 	private K key;
@@ -24,6 +25,14 @@ public class Node<K, V> {
 		this.name = name;
 		this.key = key;
 		this.value = value;
+	}
+	
+	public boolean isSubTotal() {
+		return isSubTotal;
+	}
+	
+	public void setSubTotal(boolean b) {
+		this.isSubTotal = b;
 	}
 	
 	public int getLevel() {

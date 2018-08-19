@@ -42,6 +42,7 @@ public class BalanceSheet {
 	
 	private Node<List<AccountTitle>, Amount[]> bsRoot;
 	private List<JournalEntry> journalEntries;
+	private boolean isSoloProprietorship;
 	private Date openingDate;
 	private Date closingDate;
 	private Map<AccountTitle, Amount> openingBalances = new HashMap<AccountTitle, Amount>();
@@ -56,6 +57,7 @@ public class BalanceSheet {
 	public BalanceSheet(Node<List<AccountTitle>, Amount[]> bsRoot, List<JournalEntry> journalEntries, boolean isSoloProprietorship) throws IOException {
 		this.bsRoot = bsRoot;
 		this.journalEntries = journalEntries;
+		this.isSoloProprietorship = isSoloProprietorship;
 		
 		this.openingDate = AccountSettlement.getOpeningDate(journalEntries, isSoloProprietorship);
 		this.closingDate = AccountSettlement.getClosingDate(journalEntries, isSoloProprietorship);
@@ -156,7 +158,7 @@ public class BalanceSheet {
 				assetsList = getList(child);
 			} else if(child.getName().equals("負債")) {
 				liabilitiesList = getList(child);
-			} else if(child.getName().equals("資本")) {
+			} else if(child.getName().equals("純資産")) {
 				equityList = getList(child);
 			}
 		}
@@ -344,7 +346,7 @@ public class BalanceSheet {
 			}
 			y += ROW_HEIGHT;
 		}
-		//資本(純資産)
+		//純資産(資本)
 		y = (rows - equityList.size()) * ROW_HEIGHT;
 		printData.add("\t\\line " + String.format("87.7 %.2f -0 %.2f", y, y));
 		for(int i = 1; i < equityList.size(); i++) {
@@ -390,7 +392,7 @@ public class BalanceSheet {
 			}
 		}
 		if(liabilitiesList.size() > 0 || equityList.size() > 0) {
-			//合計(負債、資本)
+			//合計(負債、純資産)
 			String displayName = "合計";
 			int openingAmount = 0;
 			int closingAmount = 0;
@@ -458,76 +460,125 @@ public class BalanceSheet {
 		List<Entry<AccountTitle, Amount>> creditors = new ArrayList<Entry<AccountTitle, Amount>>();
 		int creditorsTotal = 0;
 		
-		for(Entry<AccountTitle, Amount> e : closingBalances.entrySet()) {
-			AccountTitle accountTitle = e.getKey();
-			Amount amount = e.getValue();
-			if(accountTitle.getDisplayName().equals("事業主貸") || accountTitle.getDisplayName().equals("事業主借")) {
-				continue;
-			}
-			if(accountTitle.getType() == AccountType.Assets) {
-				if(amount.getValue() == 0) {
-					continue;
-				} else if(amount.getValue() > 0) {
-					debtors.add(e);
-					debtorsTotal += amount.getValue();
-				} else {
-					creditors.add(e);
-					creditorsTotal -= amount.getValue();
-				}
-			} else if(accountTitle.getType() == AccountType.Liabilities) {
-				if(amount.getValue() == 0) {
-					continue;
-				} else if(amount.getValue() > 0) {
-					creditors.add(e);
-					creditorsTotal += amount.getValue();
-				} else {
-					debtors.add(e);
-					debtorsTotal -= amount.getValue();
-				}
-			}
-		}
-		
-		if(debtors.size() == 0 && creditors.size() == 0) {
-			return "";
-		}
-
 		StringBuilder sb = new StringBuilder();
 		DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
 		Calendar calendar = Calendar.getInstance();
 		calendar.setTime(this.closingDate);
 		calendar.add(Calendar.DATE, 1);
 		
-		if(debtors.size() > 0) {
-			sb.append("- 日付: " + df.format(calendar.getTime()) + "\r\n");
-			sb.append("  摘要: 元入金\r\n");
-			sb.append("  借方: [ ");
-			for(int i = 0; i < debtors.size(); i++) {
-				AccountTitle accountTitle = debtors.get(i).getKey();
-				Amount amount = debtors.get(i).getValue();
-				sb.append("{勘定科目: " + accountTitle.getDisplayName() + ", 金額: " + amount.getValue() + "}");
-				if(i + 1 < debtors.size()) {
-					sb.append(", ");
+		if(isSoloProprietorship) {
+			//個人事業主の場合は、事業主貸(資産)、事業主借(負債)、所得金額(純資産)が次期の元入金に加算されます。
+			//事業主貸、事業主借を除く資産と負債を集計して次期開始仕訳を作成します。
+			//相手勘定科目はすべて元入金になります。
+			for(Entry<AccountTitle, Amount> e : closingBalances.entrySet()) {
+				AccountTitle accountTitle = e.getKey();
+				Amount amount = e.getValue();
+				if(accountTitle.getDisplayName().equals("事業主貸") || accountTitle.getDisplayName().equals("事業主借")) {
+					continue;
+				}
+				if(accountTitle.getType() == AccountType.Assets) {
+					if(amount.getValue() == 0) {
+						continue;
+					} else if(amount.getValue() > 0) {
+						debtors.add(e);
+						debtorsTotal += amount.getValue();
+					} else {
+						creditors.add(e);
+						creditorsTotal -= amount.getValue();
+					}
+				} else if(accountTitle.getType() == AccountType.Liabilities) {
+					if(amount.getValue() == 0) {
+						continue;
+					} else if(amount.getValue() > 0) {
+						creditors.add(e);
+						creditorsTotal += amount.getValue();
+					} else {
+						debtors.add(e);
+						debtorsTotal -= amount.getValue();
+					}
 				}
 			}
-			sb.append(" ]\r\n");
-			sb.append("  貸方: [ {勘定科目: 元入金, 金額: " + debtorsTotal + "} ]\r\n");
-			sb.append("\r\n");
-		}
-		if(creditors.size() > 0) {
-			sb.append("- 日付: " + df.format(calendar.getTime()) + "\r\n");
-			sb.append("  摘要: 元入金\r\n");
-			sb.append("  借方: [ {勘定科目: 元入金, 金額: " + creditorsTotal + "} ]\r\n");
-			sb.append("  貸方: [ ");
-			for(int i = 0; i < creditors.size(); i++) {
-				AccountTitle accountTitle = creditors.get(i).getKey();
-				Amount amount = creditors.get(i).getValue();
-				sb.append("{勘定科目: " + accountTitle.getDisplayName() + ", 金額: " + amount.getValue() + "}");
-				if(i + 1 < creditors.size()) {
-					sb.append(", ");
+			if(debtors.size() > 0) {
+				sb.append("- 日付: " + df.format(calendar.getTime()) + "\r\n");
+				sb.append("  摘要: 元入金\r\n");
+				sb.append("  借方: [ ");
+				for(int i = 0; i < debtors.size(); i++) {
+					AccountTitle accountTitle = debtors.get(i).getKey();
+					Amount amount = debtors.get(i).getValue();
+					sb.append("{勘定科目: " + accountTitle.getDisplayName() + ", 金額: " + Math.abs(amount.getValue()) + "}");
+					if(i + 1 < debtors.size()) {
+						sb.append(", ");
+					}
+				}
+				sb.append(" ]\r\n");
+				sb.append("  貸方: [ {勘定科目: 元入金, 金額: " + debtorsTotal + "} ]\r\n");
+				sb.append("\r\n");
+			}
+			if(creditors.size() > 0) {
+				sb.append("- 日付: " + df.format(calendar.getTime()) + "\r\n");
+				sb.append("  摘要: 元入金\r\n");
+				sb.append("  借方: [ {勘定科目: 元入金, 金額: " + creditorsTotal + "} ]\r\n");
+				sb.append("  貸方: [ ");
+				for(int i = 0; i < creditors.size(); i++) {
+					AccountTitle accountTitle = creditors.get(i).getKey();
+					Amount amount = creditors.get(i).getValue();
+					sb.append("{勘定科目: " + accountTitle.getDisplayName() + ", 金額: " + Math.abs(amount.getValue()) + "}");
+					if(i + 1 < creditors.size()) {
+						sb.append(", ");
+					}
+				}
+				sb.append(" ]\r\n");
+				sb.append("\r\n");
+			}
+		} else {
+			//法人の場合は資産、負債、純資産をすべて繰り越します。
+			for(Entry<AccountTitle, Amount> e : closingBalances.entrySet()) {
+				AccountTitle accountTitle = e.getKey();
+				Amount amount = e.getValue();
+				if(accountTitle.getType() == AccountType.Assets) {
+					if(amount.getValue() == 0) {
+						continue;
+					} else if(amount.getValue() > 0) {
+						debtors.add(e);
+					} else {
+						creditors.add(e);
+					}
+				} else if(accountTitle.getType() == AccountType.Liabilities || accountTitle.getType() == AccountType.NetAssets) {
+					if(amount.getValue() == 0) {
+						continue;
+					} else if(amount.getValue() > 0) {
+						creditors.add(e);
+					} else {
+						debtors.add(e);
+					}
 				}
 			}
-			sb.append(" ]\r\n");
-			sb.append("\r\n");
+			
+			if(debtors.size() > 0 && creditors.size() > 0) {
+				sb.append("- 日付: " + df.format(calendar.getTime()) + "\r\n");
+				sb.append("  摘要: 前期繰越\r\n");
+				sb.append("  借方: [ ");
+				for(int i = 0; i < debtors.size(); i++) {
+					AccountTitle accountTitle = debtors.get(i).getKey();
+					Amount amount = debtors.get(i).getValue();
+					sb.append("{勘定科目: " + accountTitle.getDisplayName() + ", 金額: " + Math.abs(amount.getValue()) + "}");
+					if(i + 1 < debtors.size()) {
+						sb.append(", ");
+					}
+				}
+				sb.append(" ]\r\n");
+				sb.append("  貸方: [ ");
+				for(int i = 0; i < creditors.size(); i++) {
+					AccountTitle accountTitle = creditors.get(i).getKey();
+					Amount amount = creditors.get(i).getValue();
+					sb.append("{勘定科目: " + accountTitle.getDisplayName() + ", 金額: " + Math.abs(amount.getValue()) + "}");
+					if(i + 1 < creditors.size()) {
+						sb.append(", ");
+					}
+				}
+				sb.append(" ]\r\n");
+				sb.append("\r\n");
+			}
 		}
 		
 		//期末商品棚卸高 を 期首商品棚卸高として開始仕訳に追加します。

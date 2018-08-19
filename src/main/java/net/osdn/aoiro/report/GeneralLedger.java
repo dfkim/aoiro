@@ -41,6 +41,7 @@ public class GeneralLedger {
 		this.accountTitles = new ArrayList<AccountTitle>(accountTitles);
 		this.accountTitles.add(AccountTitle.INCOME_SUMMARY);
 		this.accountTitles.add(AccountTitle.RETAINED_EARNINGS);
+		this.accountTitles.add(AccountTitle.PRETAX_INCOME);
 		this.accountTitles.add(AccountTitle.BALANCE);
 		
 		this.entries = journalEntries;
@@ -198,7 +199,7 @@ public class GeneralLedger {
 								printData.add("\t\t\\font serif 10");
 								printData.add("\t\t\\align center right");
 								printData.add("\t\t\\text 前頁繰越");
-								//仮または貸
+								//借または貸
 								printData.add("\t\t\\box " + String.format("135 %.2f 8 %.2f", currentRow * ROW_HEIGHT, ROW_HEIGHT));
 								printData.add("\t\t\\font serif 10");
 								printData.add("\t\t\\align center");
@@ -235,13 +236,18 @@ public class GeneralLedger {
 						printData.add("\t\t\\box " + String.format("17.5 %.2f 49.5 %.2f", currentRow * ROW_HEIGHT, ROW_HEIGHT));
 						printData.add("\t\t\\font serif 9");
 						printData.add("\t\t\\align center left");
-						printData.add("\t\t\\text " + counterpartAccount.getAccountTitle().getDisplayName());
-						//摘要欄に勘定科目だけではなく仕訳摘要も印字します。ただし、締切仕訳や仕訳摘要と勘定科目が同じ場合は印字しません。
-						if(!entry.isClosing()
-								&& !entry.getDescription().equals(account.getAccountTitle().getDisplayName())
-								&& !entry.getDescription().equals(counterpartAccount.getAccountTitle().getDisplayName())) {
-							printData.add("\t\t\\font serif 6");
-							printData.add("\t\t\\text  / " + entry.getDescription());
+						if(entry.isOpening() && entry.getDescription().equals("前期繰越")) {
+							//開始仕訳の摘要が「前期繰越」となっている場合は相手勘定科目ではなく摘要を印字します。
+							printData.add("\t\t\\text " + entry.getDescription());
+						} else {
+							printData.add("\t\t\\text " + counterpartAccount.getAccountTitle().getDisplayName());
+							//摘要欄に勘定科目だけではなく仕訳摘要も印字します。ただし、締切仕訳や仕訳摘要と勘定科目が同じ場合は印字しません。
+							if(!entry.isClosing()
+									&& !entry.getDescription().equals(account.getAccountTitle().getDisplayName())
+									&& !entry.getDescription().equals(counterpartAccount.getAccountTitle().getDisplayName())) {
+								printData.add("\t\t\\font serif 6");
+								printData.add("\t\t\\text  / " + entry.getDescription());
+							}
 						}
 						
 						//仕丁
@@ -258,7 +264,7 @@ public class GeneralLedger {
 							printData.add("\t\t\\font serif 10");
 							printData.add("\t\t\\align center right");
 							printData.add("\t\t\\text " + String.format("%,d", counterpartAccount.getAmount()));
-							//資産、費用の場合は増加、負債、資本、収益の場合は減少
+							//資産、費用の場合は増加、負債、純資産、収益の場合は減少
 							if(account.getAccountTitle().getType().getNormalBalance() == Debtor.class) {
 								accountTitleTotal += counterpartAccount.getAmount();
 							} else {
@@ -273,7 +279,7 @@ public class GeneralLedger {
 							printData.add("\t\t\\font serif 10");
 							printData.add("\t\t\\align center right");
 							printData.add("\t\t\\text " + String.format("%,d", counterpartAccount.getAmount()));
-							//負債、資本、収益の場合は増加、資産、費用の場合は減少
+							//負債、純資産、収益の場合は増加、資産、費用の場合は減少
 							if(account.getAccountTitle().getType().getNormalBalance() == Creditor.class) {
 								accountTitleTotal += counterpartAccount.getAmount();
 							} else {
@@ -282,7 +288,7 @@ public class GeneralLedger {
 							creditorTotal += counterpartAccount.getAmount();
 						}
 						
-						//仮または貸
+						//借または貸
 						AccountType type = account.getAccountTitle().getType();
 						if(type.getNormalBalance() == Debtor.class) {
 							sign = (accountTitleTotal >= 0) ? "借" : "貸";
@@ -383,7 +389,21 @@ public class GeneralLedger {
 	public List<Account> getCounterpartAccounts(JournalEntry entry, Account account) {
 		List<Account> counterpartAccounts = new ArrayList<Account>(); //相手勘定科目
 
-		if(account.getAccountTitle().isClosing()) {
+		if(account.getAccountTitle().getDisplayName().equals("元入金")) {
+			if(account instanceof Debtor) {
+				if(entry.getCreditors().size() == 1) {
+					counterpartAccounts.add(new Creditor(entry.getCreditors().get(0).getAccountTitle(), account.getAmount()));
+				} else {
+					counterpartAccounts.addAll(entry.getCreditors());
+				}
+			} else if(account instanceof Creditor) {
+				if(entry.getDebtors().size() == 1) {
+					counterpartAccounts.add(new Debtor(entry.getDebtors().get(0).getAccountTitle(), account.getAmount()));
+				} else {
+					counterpartAccounts.addAll(entry.getDebtors());
+				}
+			}
+		} else if(account.getAccountTitle().isClosing()) {
 			//決算勘定の場合は相手勘定科目を諸口としてまとめずにすべて出力します。
 			if(account instanceof Debtor) {
 				if(entry.getCreditors().size() == 1) {

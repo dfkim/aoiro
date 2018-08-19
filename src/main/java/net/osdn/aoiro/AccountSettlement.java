@@ -58,63 +58,61 @@ public class AccountSettlement {
 		//家事按分
 		if(proportionalDivisions != null) {
 			AccountTitle ownersDrawing = AccountTitle.getByDisplayName(accountTitles, "事業主貸");
-			if(ownersDrawing == null) {
-				throw new IllegalArgumentException("勘定科目に事業主貸が定義されていないため家事按分ができませんでした。");
-			}
-			
-			List<Debtor> debtors = new ArrayList<Debtor>();
-			List<Creditor> creditors = new ArrayList<Creditor>();
-			
-			for(ProportionalDivision proportionalDivision : proportionalDivisions) {
-				int debtorTotal = 0;
-				int creditorTotal = 0;
-				for(int i = 0; i < journalEntries.size(); i++) {
-					JournalEntry entry = journalEntries.get(i);
-					for(Debtor debtor : entry.getDebtors()) {
-						if(debtor.getAccountTitle().equals(proportionalDivision.getAccountTitle())) {
-							debtorTotal += debtor.getAmount();
+			if(ownersDrawing != null) {
+				List<Debtor> debtors = new ArrayList<Debtor>();
+				List<Creditor> creditors = new ArrayList<Creditor>();
+				
+				for(ProportionalDivision proportionalDivision : proportionalDivisions) {
+					int debtorTotal = 0;
+					int creditorTotal = 0;
+					for(int i = 0; i < journalEntries.size(); i++) {
+						JournalEntry entry = journalEntries.get(i);
+						for(Debtor debtor : entry.getDebtors()) {
+							if(debtor.getAccountTitle().equals(proportionalDivision.getAccountTitle())) {
+								debtorTotal += debtor.getAmount();
+							}
+						}
+						for(Creditor creditor : entry.getCreditors()) {
+							if(creditor.getAccountTitle().equals(proportionalDivision.getAccountTitle())) {
+								creditorTotal += creditor.getAmount();
+							}
 						}
 					}
-					for(Creditor creditor : entry.getCreditors()) {
-						if(creditor.getAccountTitle().equals(proportionalDivision.getAccountTitle())) {
-							creditorTotal += creditor.getAmount();
+					if(debtorTotal > creditorTotal) {
+						double total = (debtorTotal - creditorTotal) * (1.0 - proportionalDivision.getBusinessRatio());
+						int intTotal = (int)Math.floor(total);
+						if(intTotal != 0) {
+							creditors.add(new Creditor(proportionalDivision.getAccountTitle(), intTotal));
+						}
+					} else if(creditorTotal > debtorTotal) {
+						double total = (creditorTotal - debtorTotal) * (1.0 - proportionalDivision.getBusinessRatio());
+						int intTotal = (int)Math.floor(total);
+						if(intTotal != 0) {
+							debtors.add(new Debtor(proportionalDivision.getAccountTitle(), intTotal));
 						}
 					}
 				}
-				if(debtorTotal > creditorTotal) {
-					double total = (debtorTotal - creditorTotal) * (1.0 - proportionalDivision.getBusinessRatio());
-					int intTotal = (int)Math.floor(total);
-					if(intTotal != 0) {
-						creditors.add(new Creditor(proportionalDivision.getAccountTitle(), intTotal));
+				if(debtors.size() > 0) {
+					int creditorTotal = 0;
+					for(Debtor debtor : debtors) {
+						creditorTotal += debtor.getAmount();
 					}
-				} else if(creditorTotal > debtorTotal) {
-					double total = (creditorTotal - debtorTotal) * (1.0 - proportionalDivision.getBusinessRatio());
-					int intTotal = (int)Math.floor(total);
-					if(intTotal != 0) {
-						debtors.add(new Debtor(proportionalDivision.getAccountTitle(), intTotal));
+					Creditor creditor = new Creditor(ownersDrawing, creditorTotal);
+					JournalEntry entry = new JournalEntry(date, "家事按分", debtors, Arrays.asList(creditor));
+					journalEntries.add(entry);
+				}
+				if(creditors.size() > 0) {
+					int debtorTotal = 0;
+					for(Creditor creditor : creditors) {
+						debtorTotal += creditor.getAmount();
 					}
+					Debtor debtor = new Debtor(ownersDrawing, debtorTotal);
+					JournalEntry entry = new JournalEntry(date, "家事按分", Arrays.asList(debtor), creditors);
+					journalEntries.add(entry);
 				}
-			}
-			if(debtors.size() > 0) {
-				int creditorTotal = 0;
-				for(Debtor debtor : debtors) {
-					creditorTotal += debtor.getAmount();
+				if(out != null && (debtors.size() > 0 || creditors.size() > 0)) {
+					out.println("  家事按分の振替が完了しました。");
 				}
-				Creditor creditor = new Creditor(ownersDrawing, creditorTotal);
-				JournalEntry entry = new JournalEntry(date, "家事按分", debtors, Arrays.asList(creditor));
-				journalEntries.add(entry);
-			}
-			if(creditors.size() > 0) {
-				int debtorTotal = 0;
-				for(Creditor creditor : creditors) {
-					debtorTotal += creditor.getAmount();
-				}
-				Debtor debtor = new Debtor(ownersDrawing, debtorTotal);
-				JournalEntry entry = new JournalEntry(date, "家事按分", Arrays.asList(debtor), creditors);
-				journalEntries.add(entry);
-			}
-			if(out != null && (debtors.size() > 0 || creditors.size() > 0)) {
-				out.println("  家事按分の振替が完了しました。");
 			}
 		}
 		
@@ -130,8 +128,8 @@ public class AccountSettlement {
 		//負債勘定科目
 		Set<AccountTitle> liabilitiesAccountTitles = new LinkedHashSet<AccountTitle>();
 		
-		//資本勘定科目
-		Set<AccountTitle> equityAccountTitles = new LinkedHashSet<AccountTitle>();
+		//純資産勘定科目
+		Set<AccountTitle> netAssetsAccountTitles = new LinkedHashSet<AccountTitle>();
 		
 		//使用されている収益勘定科目と費用勘定科目を抽出します。
 		for(JournalEntry entry : journalEntries) {
@@ -167,8 +165,8 @@ public class AccountSettlement {
 		
 		//int incomeSummaryCreditorGrandTotal = 0;
 		//int incomeSummaryDebtorGrandTotal = 0;
-		//利益剰余金
-		int retainedEarnings = 0;
+		//損益
+		int incomeSummary = 0;
 		
 		//全ての収益勘定残高を損益勘定へ振替します。
 		{
@@ -203,7 +201,7 @@ public class AccountSettlement {
 					creditors.add(creditor);
 					creditorsTotal += (-total);
 				}
-				retainedEarnings += total;
+				incomeSummary += total;
 			}
 			//損益勘定仕訳
 			if(debtors.size() > 0) {
@@ -258,7 +256,7 @@ public class AccountSettlement {
 					debtors.add(debtor);
 					debtorsTotal += (-total);
 				}
-				retainedEarnings -= total;
+				incomeSummary -= total;
 			}
 			//損益勘定仕訳
 			if(creditors.size() > 0) {
@@ -303,23 +301,31 @@ public class AccountSettlement {
 		
 		//損益勘定の差額を資本振替します。
 		{
-			//FIXME: 個人事業主と法人で資本の勘定科目が違うよ。個人は所得、法人は利益剰余金かな？
-
-			if(retainedEarnings == 0) {
+			if(incomeSummary == 0) {
 				//損益勘定の差額が 0 のときは振替仕訳を作成しません。
-			} else if(retainedEarnings > 0) {
+			} else if(incomeSummary > 0) {
 				//借方
-				Debtor debtor = new Debtor(AccountTitle.INCOME_SUMMARY, +retainedEarnings);
+				Debtor debtor = new Debtor(AccountTitle.INCOME_SUMMARY, +incomeSummary);
 				//貸方
-				Creditor creditor = new Creditor(AccountTitle.RETAINED_EARNINGS, +retainedEarnings);
+				Creditor creditor;
+				if(isSoloProprietorship) {
+					creditor = new Creditor(AccountTitle.PRETAX_INCOME, +incomeSummary);
+				} else {
+					creditor = new Creditor(AccountTitle.RETAINED_EARNINGS, +incomeSummary);
+				}
 				//仕訳
 				JournalEntry entry = new JournalEntry(date, "損益の資本振替", Arrays.asList(debtor), Arrays.asList(creditor));
 				journalEntries.add(entry);
-			} else if(retainedEarnings < 0) {
+			} else if(incomeSummary < 0) {
 				//借方
-				Debtor debtor = new Debtor(AccountTitle.RETAINED_EARNINGS, -retainedEarnings);
+				Debtor debtor;
+				if(isSoloProprietorship) {
+					debtor = new Debtor(AccountTitle.PRETAX_INCOME, -incomeSummary);
+				} else {
+					debtor = new Debtor(AccountTitle.RETAINED_EARNINGS, -incomeSummary);
+				}
 				//貸方
-				Creditor creditor = new Creditor(AccountTitle.INCOME_SUMMARY, -retainedEarnings);
+				Creditor creditor = new Creditor(AccountTitle.INCOME_SUMMARY, -incomeSummary);
 				//仕訳
 				JournalEntry entry = new JournalEntry(date, "損益の資本振替", Arrays.asList(debtor), Arrays.asList(creditor));
 				journalEntries.add(entry);
@@ -451,28 +457,28 @@ public class AccountSettlement {
 			}
 		}
 		
-		//使用されている資本勘定科目を抽出します。
+		//使用されている純資産勘定科目を抽出します。
 		for(JournalEntry entry : journalEntries) {
 			for(Creditor creditor : entry.getCreditors()) {
-				if(creditor.getAccountTitle().getType() == AccountType.Equity) {
-					equityAccountTitles.add(creditor.getAccountTitle());
+				if(creditor.getAccountTitle().getType() == AccountType.NetAssets) {
+					netAssetsAccountTitles.add(creditor.getAccountTitle());
 				}
 			}
 			for(Debtor debtor : entry.getDebtors()) {
-				if(debtor.getAccountTitle().getType() == AccountType.Equity) {
-					equityAccountTitles.add(debtor.getAccountTitle());
+				if(debtor.getAccountTitle().getType() == AccountType.NetAssets) {
+					netAssetsAccountTitles.add(debtor.getAccountTitle());
 				}
 			}
 		}
 		
-		//資本の残高振替
+		//純資産の残高振替
 		{
 			List<Debtor> debtors = new ArrayList<Debtor>();
 			int debtorsTotal = 0;
 			List<Creditor> creditors = new ArrayList<Creditor>();
 			int creditorsTotal = 0;
 			
-			for(AccountTitle accountTitle : equityAccountTitles) {
+			for(AccountTitle accountTitle : netAssetsAccountTitles) {
 				int total = 0;
 				List<JournalEntry> entries = getJournalEntriesByAccount(journalEntries, accountTitle);
 				for(JournalEntry entry : entries) {
@@ -506,18 +512,18 @@ public class AccountSettlement {
 				//貸方
 				Creditor creditor = new Creditor(AccountTitle.BALANCE, debtorsTotal);
 				//仕訳
-				JournalEntry incomeSummaryEntry = new JournalEntry(date, "資本の残高振替", debtors, Arrays.asList(creditor));
+				JournalEntry incomeSummaryEntry = new JournalEntry(date, "純資産の残高振替", debtors, Arrays.asList(creditor));
 				journalEntries.add(incomeSummaryEntry);
 			}
 			if(creditors.size() > 0) {
 				//借方
 				Debtor debtor = new Debtor(AccountTitle.BALANCE, creditorsTotal);
 				//仕訳
-				JournalEntry incomeSummaryEntry = new JournalEntry(date, "資本の残高振替", Arrays.asList(debtor), creditors);
+				JournalEntry incomeSummaryEntry = new JournalEntry(date, "純資産の残高振替", Arrays.asList(debtor), creditors);
 				journalEntries.add(incomeSummaryEntry);
 			}
 			if(out != null) {
-				out.println("  資本の残高振替が完了しました。");
+				out.println("  純資産の残高振替が完了しました。");
 			}
 		}
 	}
