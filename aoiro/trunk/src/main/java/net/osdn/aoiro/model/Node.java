@@ -3,27 +3,21 @@ package net.osdn.aoiro.model;
 import java.util.LinkedList;
 import java.util.List;
 
-public class Node<K, V> {
+public class Node<T> {
 	
 	private boolean isSubTotal;
 	private int level;
 	private String name;
-	private K key;
-	private V value;
-	private List<Node<K, V>> children = new LinkedList<Node<K, V>>();
+	private T value;
+	private List<Node<T>> children = new LinkedList<Node<T>>();
 
 	public Node(int level, String name) {
-		this(level, name, null, null);
+		this(level, name, null);
 	}
 	
-	public Node(int level, String name, K key) {
-		this(level, name, key, null);
-	}
-	
-	public Node(int level, String name, K key, V value) {
+	public Node(int level, String name, T value) {
 		this.level = level;
 		this.name = name;
-		this.key = key;
 		this.value = value;
 	}
 	
@@ -47,23 +41,15 @@ public class Node<K, V> {
 		return name;
 	}
 	
-	public K getKey() {
-		return key;
-	}
-	
-	public void setKey(K key) {
-		this.key = key;
-	}
-	
-	public V getValue() {
+	public T getValue() {
 		return value;
 	}
 	
-	public void setValue(V value) {
+	public void setValue(T value) {
 		this.value = value;
 	}
 	
-	public List<Node<K, V>> getChildren() {
+	public List<Node<T>> getChildren() {
 		return children;
 	}
 }

@@ -2,11 +2,15 @@ package net.osdn.aoiro.loader.yaml;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import net.osdn.aoiro.model.AccountTitle;
 import net.osdn.aoiro.model.AccountType;
@@ -29,17 +33,23 @@ public class YamlAccountTitlesLoader {
 		settlementAccountTitleByDisplayName.put(AccountTitle.PRETAX_INCOME.getDisplayName(), AccountTitle.PRETAX_INCOME);
 	}
 	
-	/** 勘定科目リスト */
-	private List<AccountTitle> accountTitles = new ArrayList<AccountTitle>();
+	/** 勘定科目セット */
+	private Set<AccountTitle> accountTitles = new LinkedHashSet<AccountTitle>();
 	
 	/** 勘定科目名から勘定科目を取得するためのマップ */
 	private Map<String, AccountTitle> accountTitleByDisplayName = new HashMap<String, AccountTitle>();
 
 	/** 損益計算書(P/L)を集計するためのツリーを構成するルートノード */
-	private Node<List<AccountTitle>, Amount> plRoot;
+	private Node<Entry<List<AccountTitle>, Amount>> plRoot;
 	
 	/** 貸借対照表(B/S)を集計するためのツリーを構成するルートノード */
-	private Node<List<AccountTitle>, Amount[]> bsRoot;
+	private Node<Entry<List<AccountTitle>, Amount[]>> bsRoot;
+	
+	/** 社員資本等変動計算書の縦軸(変動事由)を構成するマップ (LinkedHashMapが設定されるため順序が維持されます。 */
+	private Map<String, List<String>> ceReasons;
+	
+	/** 社員資本等変動計算書を集計するためのツリーを構成するルートノード */
+	private Node<List<AccountTitle>> ceRoot;
 	
 	public YamlAccountTitlesLoader(File file) throws IOException {
 		Yaml yaml = new Yaml(file);
@@ -92,34 +102,74 @@ public class YamlAccountTitlesLoader {
 		if(obj instanceof Map) {
 			@SuppressWarnings("unchecked")
 			Map<String, Object> map = (Map<String, Object>)obj;
-			Node<List<AccountTitle>, Amount> plRoot = new Node<List<AccountTitle>, Amount>(-1, "損益計算書");
-			retrieve(plRoot, map);
-			
+			Node<Entry<List<AccountTitle>, Amount>> plRoot = new Node<Entry<List<AccountTitle>, Amount>>(-1, "損益計算書");
+			plRoot.setValue(new AbstractMap.SimpleEntry<List<AccountTitle>, Amount>(new ArrayList<AccountTitle>(), null));
+			retrieve(plRoot, map, new NodeCallback<Entry<List<AccountTitle>, Amount>>() {
+				@Override
+				public void initialize(Node<Entry<List<AccountTitle>, Amount>> node) {
+					node.setValue(new AbstractMap.SimpleEntry<List<AccountTitle>, Amount>(new ArrayList<AccountTitle>(), null));
+				}
+				@Override
+				public void setAccountTitles(Node<Entry<List<AccountTitle>, Amount>> node, List<AccountTitle> list) {
+					node.getValue().getKey().addAll(list);
+				}
+			});
 			this.plRoot = plRoot;
-
-			//dump(0, plRoot);
 		}
 		
 		obj = root.get("貸借対照表");
 		if(obj instanceof Map) {
 			@SuppressWarnings("unchecked")
 			Map<String, Object> map = (Map<String, Object>)obj;
-			Node<List<AccountTitle>, Amount[]> bsRoot = new Node<List<AccountTitle>, Amount[]>(0, "貸借対照表");
-			retrieve(bsRoot, map);
-			
+			Node<Entry<List<AccountTitle>, Amount[]>> bsRoot = new Node<Entry<List<AccountTitle>, Amount[]>>(0, "貸借対照表");
+			bsRoot.setValue(new AbstractMap.SimpleEntry<List<AccountTitle>, Amount[]>(new ArrayList<AccountTitle>(), null));
+			retrieve(bsRoot, map, new NodeCallback<Entry<List<AccountTitle>, Amount[]>>() {
+				@Override
+				public void initialize(Node<Entry<List<AccountTitle>, Amount[]>> node) {
+					node.setValue(new AbstractMap.SimpleEntry<List<AccountTitle>, Amount[]>(new ArrayList<AccountTitle>(), null));
+				}
+				@Override
+				public void setAccountTitles(Node<Entry<List<AccountTitle>, Amount[]>> node, List<AccountTitle> list) {
+					node.getValue().getKey().addAll(list);
+				}
+			});
 			this.bsRoot = bsRoot;
-			
-			//dump(0, bsRoot);
+		}
+		
+		obj = root.get("社員資本等変動計算書");
+		if(obj instanceof Map) {
+			@SuppressWarnings("unchecked")
+			Map<String, Object> map = (Map<String, Object>)obj;
+			Object obj2 = map.remove("変動事由");
+			if(obj2 instanceof Map) {
+				@SuppressWarnings("unchecked")
+				Map<String, List<String>> map2 = (Map<String, List<String>>)obj2;
+				this.ceReasons = map2;
+			}
+			Node<List<AccountTitle>> ceRoot = new Node<List<AccountTitle>>(0, "社員資本等変動計算書");
+			ceRoot.setValue(new ArrayList<AccountTitle>());
+			retrieve(ceRoot, map, new NodeCallback<List<AccountTitle>>() {
+				@Override
+				public void initialize(Node<List<AccountTitle>> node) {
+					node.setValue(new ArrayList<AccountTitle>());
+				}
+				@Override
+				public void setAccountTitles(Node<List<AccountTitle>> node, List<AccountTitle> list) {
+					node.getValue().addAll(list);
+				}
+			});
+			this.ceRoot = ceRoot;
 		}
 	}
 	
 	
-	private <T> void retrieve(Node<List<AccountTitle>, T> parent, Map<String, Object> map) {
+	private <T> void retrieve(Node<T> parent, Map<String, Object> map, NodeCallback<T> callback) {
 		for(Map.Entry<String, Object> entry : map.entrySet()) {
 			String key = entry.getKey();
 			Object value = entry.getValue();
 
-			Node<List<AccountTitle>, T> node = new Node<List<AccountTitle>, T>(parent.getLevel() + 1, key);
+			Node<T> node = new Node<T>(parent.getLevel() + 1, key);
+			callback.initialize(node);
 			parent.getChildren().add(node);
 			
 			if(value == null) {
@@ -133,12 +183,12 @@ public class YamlAccountTitlesLoader {
 					}
 					List<AccountTitle> list = new LinkedList<AccountTitle>();
 					list.add(accountTitle);
-					node.setKey(list);
+					callback.setAccountTitles(node, list);
 				}
 			} else if(value instanceof Map) {
 				@SuppressWarnings("unchecked")
 				Map<String, Object> m = (Map<String, Object>)value;
-				retrieve(node, m);
+				retrieve(node, m, callback);
 			} else if(value instanceof List) {
 				List<AccountTitle> list = new LinkedList<AccountTitle>();
 				@SuppressWarnings("unchecked")
@@ -151,13 +201,13 @@ public class YamlAccountTitlesLoader {
 					}
 					list.add(accountTitle);
 				}
-				node.setKey(list);
+				callback.setAccountTitles(node, list);
 			}
 		}
 	}
 	
 	
-	public List<AccountTitle> getAccountTitles() {
+	public Set<AccountTitle> getAccountTitles() {
 		return accountTitles;
 	}
 	
@@ -179,7 +229,7 @@ public class YamlAccountTitlesLoader {
 	 * 
 	 * @return 損益計算書のルートノード
 	 */
-	public Node<List<AccountTitle>, Amount> getProfitAndLossRoot() {
+	public Node<Entry<List<AccountTitle>, Amount>> getProfitAndLossRoot() {
 		return plRoot;
 	}
 
@@ -187,12 +237,29 @@ public class YamlAccountTitlesLoader {
 	 * 
 	 * @return 貸借対照表のルートノード
 	 */
-	public Node<List<AccountTitle>, Amount[]> getBalanceSheetRoot() {
+	public Node<Entry<List<AccountTitle>, Amount[]>> getBalanceSheetRoot() {
 		return bsRoot;
 	}
 	
+	/** 社員資本等変動計算書の縦軸(変動事由)を構成するマップを返します。
+	 * このマップの実装クラスはLinkedHashMapであり要素の順序が維持されます。
+	 * 
+	 * @return 社員資本等変動計算書の縦軸(変動事由)を構成するマップ
+	 */
+	public Map<String, List<String>> getStateOfChangesInEquityReasons() {
+		return ceReasons;
+	}
+
+	/** 社員資本等変動計算書の横軸(勘定科目)のツリールートノードを返します。
+	 * 
+	 * @return 社員資本等変動計算書を集計するためのツリーを構成するルートノード
+	 */
+	public Node<List<AccountTitle>> getStateOfChangesInEquityRoot() {
+		return ceRoot;
+	}
+	
 	/*
-	private void dump(int indent, Node<List<AccountTitle>, Amount> node) {
+	private <T> void dump(int indent, Node<List<AccountTitle>, T> node) {
 		StringBuilder sb = new StringBuilder();
 		for(int i = 0; i < indent; i++) {
 			sb.append(" - ");
@@ -209,9 +276,14 @@ public class YamlAccountTitlesLoader {
 			sb.append("]");
 		}
 		System.out.println(sb.toString());
-		for(Node<List<AccountTitle>, Amount> child : node.getChildren()) {
+		for(Node<List<AccountTitle>, T> child : node.getChildren()) {
 			dump(indent + 1, child);
 		}
 	}
 	*/
+	
+	private interface NodeCallback<T> {
+		void initialize(Node<T> node);
+		void setAccountTitles(Node<T> node, List<AccountTitle> list);
+	}
 }

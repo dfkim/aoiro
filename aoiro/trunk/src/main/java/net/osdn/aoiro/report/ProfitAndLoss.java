@@ -37,17 +37,17 @@ public class ProfitAndLoss {
 	private static final int ROWS = 40;
 	private static final double ROW_HEIGHT = 6.0;
 	
-	private Node<List<AccountTitle>, Amount> plRoot;
+	private Node<Entry<List<AccountTitle>, Amount>> plRoot;
 	private List<JournalEntry> journalEntries;
 	private Date openingDate;
 	private Date closingDate;
 	private Map<AccountTitle, Amount> incomeSummaries = new HashMap<AccountTitle, Amount>(); 
-	private List<Node<List<AccountTitle>, Amount>> list;
+	private List<Node<Entry<List<AccountTitle>, Amount>>> list;
 	private List<Entry<String, Amount[]>> monthlyTotals;
 	private List<String> pageData = new ArrayList<String>();
 	private List<String> printData;
 	
-	public ProfitAndLoss(Node<List<AccountTitle>, Amount> plRoot, List<JournalEntry> journalEntries, boolean isSoloProprietorship) throws IOException {
+	public ProfitAndLoss(Node<Entry<List<AccountTitle>, Amount>> plRoot, List<JournalEntry> journalEntries, boolean isSoloProprietorship) throws IOException {
 		this.plRoot = plRoot;
 		this.journalEntries = journalEntries;
 		
@@ -106,9 +106,9 @@ public class ProfitAndLoss {
 		r.close();
 	}
 	
-	private Amount retrieve(Node<List<AccountTitle>, Amount> node, List<JournalEntry> journalEntries) {
+	private Amount retrieve(Node<Entry<List<AccountTitle>, Amount>> node, List<JournalEntry> journalEntries) {
 		Amount amount = null;
-		for(Node<List<AccountTitle>, Amount> child : node.getChildren()) {
+		for(Node<Entry<List<AccountTitle>, Amount>> child : node.getChildren()) {
 			Amount a = retrieve(child, journalEntries);
 			if(a != null) {
 				if(amount == null) {
@@ -118,8 +118,8 @@ public class ProfitAndLoss {
 				}
 			}
 		}
-		if(node.getKey() != null) {
-			for(AccountTitle accountTitle : node.getKey()) {
+		if(node.getValue().getKey() != null) {
+			for(AccountTitle accountTitle : node.getValue().getKey()) {
 				Amount a = incomeSummaries.get(accountTitle);
 				if(a != null) {
 					if(amount == null) {
@@ -130,19 +130,19 @@ public class ProfitAndLoss {
 				}
 			}
 		}
-		node.setValue(amount);
+		node.getValue().setValue(amount);
 		return amount;
 	}
 	
-	protected List<Node<List<AccountTitle>, Amount>> createList(Node<List<AccountTitle>, Amount> plRoot) {
-		List<Node<List<AccountTitle>, Amount>> list = new ArrayList<Node<List<AccountTitle>, Amount>>();
+	protected List<Node<Entry<List<AccountTitle>, Amount>>> createList(Node<Entry<List<AccountTitle>, Amount>> plRoot) {
+		List<Node<Entry<List<AccountTitle>, Amount>>> list = new ArrayList<Node<Entry<List<AccountTitle>, Amount>>>();
 		
 		Amount cumulativeAmount = new Amount(Creditor.class, 0);
-		for(Node<List<AccountTitle>, Amount> topLevelNode : plRoot.getChildren()) {
-			cumulativeAmount.increase(topLevelNode.getValue());
-			topLevelNode.setValue(cumulativeAmount.clone());
+		for(Node<Entry<List<AccountTitle>, Amount>> topLevelNode : plRoot.getChildren()) {
+			cumulativeAmount.increase(topLevelNode.getValue().getValue());
+			topLevelNode.getValue().setValue(cumulativeAmount.clone());
 			topLevelNode.setSubTotal(true);
-			for(Node<List<AccountTitle>, Amount> childNode : topLevelNode.getChildren()) {
+			for(Node<Entry<List<AccountTitle>, Amount>> childNode : topLevelNode.getChildren()) {
 				list.addAll(getSubList(childNode));
 			}
 			list.add(topLevelNode);
@@ -150,10 +150,10 @@ public class ProfitAndLoss {
 		return list;
 	}
 	
-	protected List<Node<List<AccountTitle>, Amount>> getSubList(Node<List<AccountTitle>, Amount> node) {
-		List<Node<List<AccountTitle>, Amount>> list = new ArrayList<Node<List<AccountTitle>, Amount>>();
+	protected List<Node<Entry<List<AccountTitle>, Amount>>> getSubList(Node<Entry<List<AccountTitle>, Amount>> node) {
+		List<Node<Entry<List<AccountTitle>, Amount>>> list = new ArrayList<Node<Entry<List<AccountTitle>, Amount>>>();
 		list.add(node);
-		for(Node<List<AccountTitle>, Amount> child : node.getChildren()) {
+		for(Node<Entry<List<AccountTitle>, Amount>> child : node.getChildren()) {
 			list.addAll(getSubList(child));
 		}
 		return list;
@@ -275,9 +275,9 @@ public class ProfitAndLoss {
 		
 		double y = 0.0;
 		for(int i = 0; i < list.size(); i++) {
-			Node<List<AccountTitle>, Amount> node = list.get(i);
+			Node<Entry<List<AccountTitle>, Amount>> node = list.get(i);
 			
-			Amount amount = node.getValue();
+			Amount amount = node.getValue().getValue();
 			//対象の仕訳が存在しない科目は印字をスキップします。
 			/*
 			if(amount == null) {

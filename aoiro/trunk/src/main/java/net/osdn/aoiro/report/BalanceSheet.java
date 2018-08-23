@@ -40,21 +40,21 @@ public class BalanceSheet {
 	private static final int ROWS = 40;
 	private static final double ROW_HEIGHT = 6.0;
 	
-	private Node<List<AccountTitle>, Amount[]> bsRoot;
+	private Node<Entry<List<AccountTitle>, Amount[]>> bsRoot;
 	private List<JournalEntry> journalEntries;
 	private boolean isSoloProprietorship;
 	private Date openingDate;
 	private Date closingDate;
 	private Map<AccountTitle, Amount> openingBalances = new HashMap<AccountTitle, Amount>();
 	private Map<AccountTitle, Amount> closingBalances = new HashMap<AccountTitle, Amount>();
-	private List<Node<List<AccountTitle>, Amount[]>> assetsList;
-	private List<Node<List<AccountTitle>, Amount[]>> liabilitiesList;
-	private List<Node<List<AccountTitle>, Amount[]>> equityList;
+	private List<Node<Entry<List<AccountTitle>, Amount[]>>> assetsList;
+	private List<Node<Entry<List<AccountTitle>, Amount[]>>> liabilitiesList;
+	private List<Node<Entry<List<AccountTitle>, Amount[]>>> equityList;
 	
 	private List<String> pageData = new ArrayList<String>();
 	private List<String> printData;
 
-	public BalanceSheet(Node<List<AccountTitle>, Amount[]> bsRoot, List<JournalEntry> journalEntries, boolean isSoloProprietorship) throws IOException {
+	public BalanceSheet(Node<Entry<List<AccountTitle>, Amount[]>> bsRoot, List<JournalEntry> journalEntries, boolean isSoloProprietorship) throws IOException {
 		this.bsRoot = bsRoot;
 		this.journalEntries = journalEntries;
 		this.isSoloProprietorship = isSoloProprietorship;
@@ -153,7 +153,7 @@ public class BalanceSheet {
 		//dump(bsRoot);
 		
 		//リスト
-		for(Node<List<AccountTitle>, Amount[]> child : bsRoot.getChildren()) {
+		for(Node<Entry<List<AccountTitle>, Amount[]>> child : bsRoot.getChildren()) {
 			if(child.getName().equals("資産")) {
 				assetsList = getList(child);
 			} else if(child.getName().equals("負債")) {
@@ -163,20 +163,20 @@ public class BalanceSheet {
 			}
 		}
 		if(assetsList == null) {
-			assetsList = new ArrayList<Node<List<AccountTitle>, Amount[]>>();
+			assetsList = new ArrayList<Node<Entry<List<AccountTitle>, Amount[]>>>();
 		}
 		if(liabilitiesList == null) {
-			liabilitiesList = new ArrayList<Node<List<AccountTitle>, Amount[]>>();
+			liabilitiesList = new ArrayList<Node<Entry<List<AccountTitle>, Amount[]>>>();
 		}
 		if(equityList == null) {
-			equityList = new ArrayList<Node<List<AccountTitle>, Amount[]>>();
+			equityList = new ArrayList<Node<Entry<List<AccountTitle>, Amount[]>>>();
 		}
 	}
 
-	private Amount[] retrieve(Node<List<AccountTitle>, Amount[]> node, List<JournalEntry> journalEntries) {
+	private Amount[] retrieve(Node<Entry<List<AccountTitle>, Amount[]>> node, List<JournalEntry> journalEntries) {
 		Amount openingBalance = null;
 		Amount closingBalance = null;
-		for(Node<List<AccountTitle>, Amount[]> child : node.getChildren()) {
+		for(Node<Entry<List<AccountTitle>, Amount[]>> child : node.getChildren()) {
 			Amount[] a = retrieve(child, journalEntries);
 			if(a[0] != null) {
 				if(openingBalance == null) {
@@ -193,8 +193,8 @@ public class BalanceSheet {
 				}
 			}
 		}
-		if(node.getKey() != null) {
-			for(AccountTitle accountTitle : node.getKey()) {
+		if(node.getValue().getKey() != null) {
+			for(AccountTitle accountTitle : node.getValue().getKey()) {
 				Amount o = openingBalances.get(accountTitle);
 				if(o != null) {
 					if(openingBalance == null) {
@@ -216,14 +216,14 @@ public class BalanceSheet {
 		Amount[] amounts = new Amount[2];
 		amounts[0] = openingBalance;
 		amounts[1] = closingBalance;
-		node.setValue(amounts);
+		node.getValue().setValue(amounts);
 		return amounts;
 	}
 	
-	protected List<Node<List<AccountTitle>, Amount[]>> getList(Node<List<AccountTitle>, Amount[]> node) {
-		List<Node<List<AccountTitle>, Amount[]>> list = new ArrayList<Node<List<AccountTitle>, Amount[]>>();
+	protected List<Node<Entry<List<AccountTitle>, Amount[]>>> getList(Node<Entry<List<AccountTitle>, Amount[]>> node) {
+		List<Node<Entry<List<AccountTitle>, Amount[]>>> list = new ArrayList<Node<Entry<List<AccountTitle>, Amount[]>>>();
 		list.add(node);
-		for(Node<List<AccountTitle>, Amount[]> child : node.getChildren()) {
+		for(Node<Entry<List<AccountTitle>, Amount[]>> child : node.getChildren()) {
 			list.addAll(getList(child));
 		}
 		return list;
@@ -234,11 +234,11 @@ public class BalanceSheet {
 		Calendar calendar = Calendar.getInstance();
 		calendar.setTime(this.openingDate);
 		String openingDate = df.format(this.openingDate).replace(" 1 年", "元年");
-		String openingMonth = Integer.toString(calendar.get(Calendar.MONDAY) + 1);
+		String openingMonth = Integer.toString(calendar.get(Calendar.MONTH) + 1);
 		String openingDay = Integer.toString(calendar.get(Calendar.DAY_OF_MONTH));
 		calendar.setTime(this.closingDate);
 		String closingDate = df.format(this.closingDate).replace(" 1 年", "元年");
-		String closingMonth = Integer.toString(calendar.get(Calendar.MONDAY) + 1);
+		String closingMonth = Integer.toString(calendar.get(Calendar.MONTH) + 1);
 		String closingDay = Integer.toString(calendar.get(Calendar.DAY_OF_MONTH));
 		
 		printData = new ArrayList<String>();
@@ -307,10 +307,10 @@ public class BalanceSheet {
 		//資産
 		y = 0.0;
 		for(int i = 1; i < assetsList.size(); i++) {
-			Node<List<AccountTitle>, Amount[]> node = assetsList.get(i);
+			Node<Entry<List<AccountTitle>, Amount[]>> node = assetsList.get(i);
 			String displayName = node.getName();
-			Amount openingAmount = node.getValue()[0];
-			Amount closingAmount = node.getValue()[1];
+			Amount openingAmount = node.getValue().getValue()[0];
+			Amount closingAmount = node.getValue().getValue()[1];
 			printData.add("\t\t\\box " + String.format("2 %.2f 35.5 %.2f", y, ROW_HEIGHT));
 			printData.add("\t\t\\align center left");
 			printData.add("\t\t\\text " + displayName);
@@ -328,10 +328,10 @@ public class BalanceSheet {
 		//負債
 		y = 0.0;
 		for(int i = 1; i < liabilitiesList.size(); i++) {
-			Node<List<AccountTitle>, Amount[]> node = liabilitiesList.get(i);
+			Node<Entry<List<AccountTitle>, Amount[]>> node = liabilitiesList.get(i);
 			String displayName = node.getName();
-			Amount openingAmount = node.getValue()[0];
-			Amount closingAmount = node.getValue()[1];
+			Amount openingAmount = node.getValue().getValue()[0];
+			Amount closingAmount = node.getValue().getValue()[1];
 			printData.add("\t\t\\box " + String.format("89.5 %.2f 35.5 %.2f", y, ROW_HEIGHT));
 			printData.add("\t\t\\align center left");
 			printData.add("\t\t\\text " + displayName);
@@ -350,10 +350,10 @@ public class BalanceSheet {
 		y = (rows - equityList.size()) * ROW_HEIGHT;
 		printData.add("\t\\line " + String.format("87.7 %.2f -0 %.2f", y, y));
 		for(int i = 1; i < equityList.size(); i++) {
-			Node<List<AccountTitle>, Amount[]> node = equityList.get(i);
+			Node<Entry<List<AccountTitle>, Amount[]>> node = equityList.get(i);
 			String displayName = node.getName();
-			Amount openingAmount = node.getValue()[0];
-			Amount closingAmount = node.getValue()[1];
+			Amount openingAmount = node.getValue().getValue()[0];
+			Amount closingAmount = node.getValue().getValue()[1];
 			printData.add("\t\t\\box " + String.format("89.5 %.2f 35.5 %.2f", y, ROW_HEIGHT));
 			printData.add("\t\t\\align center left");
 			printData.add("\t\t\\text " + displayName);
@@ -373,10 +373,10 @@ public class BalanceSheet {
 		y = (rows - 1) * ROW_HEIGHT;
 		if(assetsList.size() > 0) {
 			//合計(資産)
-			Node<List<AccountTitle>, Amount[]> node = assetsList.get(0);
+			Node<Entry<List<AccountTitle>, Amount[]>> node = assetsList.get(0);
 			String displayName = "合計";
-			Amount openingAmount = node.getValue()[0];
-			Amount closingAmount = node.getValue()[1];
+			Amount openingAmount = node.getValue().getValue()[0];
+			Amount closingAmount = node.getValue().getValue()[1];
 			printData.add("\t\t\\font serif 10 bold");
 			printData.add("\t\t\\box " + String.format("2 %.2f 35.5 %.2f", y, ROW_HEIGHT));
 			printData.add("\t\t\\align center left");
@@ -397,21 +397,21 @@ public class BalanceSheet {
 			int openingAmount = 0;
 			int closingAmount = 0;
 			if(liabilitiesList.size() > 0) {
-				Amount o = liabilitiesList.get(0).getValue()[0];
+				Amount o = liabilitiesList.get(0).getValue().getValue()[0];
 				if(o != null) {
 					openingAmount += o.getValue();
 				}
-				Amount c = liabilitiesList.get(0).getValue()[1];
+				Amount c = liabilitiesList.get(0).getValue().getValue()[1];
 				if(c != null) {
 					closingAmount += c.getValue();
 				}
 			}
 			if(equityList.size() > 0) {
-				Amount o = equityList.get(0).getValue()[0];
+				Amount o = equityList.get(0).getValue().getValue()[0];
 				if(o != null) {
 					openingAmount += o.getValue();
 				}
-				Amount c = equityList.get(0).getValue()[1];
+				Amount c = equityList.get(0).getValue().getValue()[1];
 				if(c != null) {
 					closingAmount += c.getValue();
 				}
@@ -642,28 +642,27 @@ public class BalanceSheet {
 		return String.format("%,d", amount);
 	}
 	
-	private void dump(Node<List<AccountTitle>, Amount[]> node) {
+	private void dump(Node<Entry<List<AccountTitle>, Amount[]>> node) {
 		StringBuilder sb = new StringBuilder();
 		for(int i = 0; i < node.getLevel(); i++) {
 			sb.append(" - ");
 		}
 		sb.append(node.getName());
-		Amount[] amounts = node.getValue();
+		Amount[] amounts = node.getValue().getValue();
 		sb.append("{ " + amounts[0] + ", " + amounts[1] + " } ");
-		if(node.getKey() != null) {
+		if(node.getValue().getKey() != null) {
 			sb.append(": [");
-			for(int i = 0; i < node.getKey().size(); i++) {
-				sb.append(node.getKey().get(i).getDisplayName());
-				if(i + 1 < node.getKey().size()) {
+			for(int i = 0; i < node.getValue().getKey().size(); i++) {
+				sb.append(node.getValue().getKey().get(i).getDisplayName());
+				if(i + 1 < node.getValue().getKey().size()) {
 					sb.append(", ");
 				}
 			}
 			sb.append("]");
 		}
 		System.out.println(sb.toString());
-		for(Node<List<AccountTitle>, Amount[]> child : node.getChildren()) {
+		for(Node<Entry<List<AccountTitle>, Amount[]>> child : node.getChildren()) {
 			dump(child);
 		}
 	}
-
 }

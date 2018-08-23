@@ -9,7 +9,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import net.osdn.aoiro.AccountSettlement;
 import net.osdn.aoiro.model.Account;
@@ -29,7 +31,7 @@ public class GeneralLedger {
 	private static final int ROWS = 50;
 	private static final double ROW_HEIGHT = 5.0;
 	
-	private List<AccountTitle> accountTitles;
+	private Set<AccountTitle> accountTitles;
 	private List<JournalEntry> entries;
 	int financialYear;
 	boolean isFromNewYearsDay;
@@ -37,8 +39,8 @@ public class GeneralLedger {
 	private List<String> pageData = new ArrayList<String>();
 	private List<String> printData;
 	
-	public GeneralLedger(List<AccountTitle> accountTitles, List<JournalEntry> journalEntries, boolean isSoloProprietorship) throws IOException {
-		this.accountTitles = new ArrayList<AccountTitle>(accountTitles);
+	public GeneralLedger(Set<AccountTitle> accountTitles, List<JournalEntry> journalEntries, boolean isSoloProprietorship) throws IOException {
+		this.accountTitles = new LinkedHashSet<AccountTitle>(accountTitles);
 		this.accountTitles.add(AccountTitle.INCOME_SUMMARY);
 		this.accountTitles.add(AccountTitle.RETAINED_EARNINGS);
 		this.accountTitles.add(AccountTitle.PRETAX_INCOME);
@@ -67,6 +69,8 @@ public class GeneralLedger {
 			isFromNewYearsDay = false;
 		}
 		
+		//仕訳帳と相互にページ番号を印字するために
+		//writeToを呼び出してPDFを作成する前にprepareを呼び出しておく必要があります。
 		prepare();
 	}
 	
@@ -81,8 +85,7 @@ public class GeneralLedger {
 		printData.add("\\line-style thin dot");
 		printData.add("\\line 0 148.5 5 148.5");
 		
-		for(int i = 0; i < accountTitles.size(); i++) {
-			AccountTitle accountTitle = accountTitles.get(i);
+		for(AccountTitle accountTitle : accountTitles) {
 			int restOfRows = 0;
 			int currentRow = 0;
 			String sign = "";

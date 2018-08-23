@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import net.osdn.aoiro.model.AccountTitle;
 import net.osdn.aoiro.model.ProportionalDivision;
@@ -19,7 +20,7 @@ public class YamlProportionalDivisionsLoader {
 	private Map<String, AccountTitle> accountTitleByDisplayName;
 	private List<ProportionalDivision> proportionalDivisions = new ArrayList<ProportionalDivision>();
 
-	public YamlProportionalDivisionsLoader(File file, List<AccountTitle> accountTitles) throws IOException {
+	public YamlProportionalDivisionsLoader(File file, Set<AccountTitle> accountTitles) throws IOException {
 		this.accountTitleByDisplayName = new HashMap<String, AccountTitle>();
 		for(AccountTitle accountTitle : accountTitles) {
 			accountTitleByDisplayName.put(accountTitle.getDisplayName(), accountTitle);
