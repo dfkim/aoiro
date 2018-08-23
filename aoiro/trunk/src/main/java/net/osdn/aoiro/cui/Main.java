@@ -89,24 +89,31 @@ public class Main {
 				return;
 			}
 			
-			File proportionalDivisionsFile = getProportionalDivisionsFile(inputDir, defaultDir);
-			if(proportionalDivisionsFile == null) {
-				System.err.println("ファイルが見つかりません: 家事按分.yml");
-				pause();
-				return;
+			File proportionalDivisionsFile = null;
+			if(isSoloProprietorship) {
+				proportionalDivisionsFile = getProportionalDivisionsFile(inputDir, defaultDir);
+				if(proportionalDivisionsFile == null) {
+					System.err.println("ファイルが見つかりません: 家事按分.yml");
+					pause();
+					return;
+				}
 			}
 			
-			System.out.println(" (1) 勘定科目 | " + accountTitlesFile.getAbsolutePath());
+			int processNumber = 0;
+			System.out.println(" (" + (++processNumber) + ") 勘定科目 | " + accountTitlesFile.getAbsolutePath());
 			YamlAccountTitlesLoader accountTitlesLoader = new YamlAccountTitlesLoader(accountTitlesFile);
 			Set<AccountTitle> accountTitles = accountTitlesLoader.getAccountTitles();
 			
-			System.out.println(" (2) 家事按分 | " + proportionalDivisionsFile.getAbsolutePath());
-			YamlProportionalDivisionsLoader proportionalDivisionsLoader = new YamlProportionalDivisionsLoader(proportionalDivisionsFile, accountTitles);
-			List<ProportionalDivision> proportionalDivisions = proportionalDivisionsLoader.getProportionalDivisions();
+			List<ProportionalDivision> proportionalDivisions = null;
+			if(proportionalDivisionsFile != null) {
+				System.out.println(" (" + (++processNumber) + ") 家事按分 | " + proportionalDivisionsFile.getAbsolutePath());
+				YamlProportionalDivisionsLoader proportionalDivisionsLoader = new YamlProportionalDivisionsLoader(proportionalDivisionsFile, accountTitles);
+				proportionalDivisions = proportionalDivisionsLoader.getProportionalDivisions();
+			}
 			
 			YamlJournalsLoader journalsLoader = new YamlJournalsLoader(journalEntryFile, accountTitles);
 			List<JournalEntry> journalEntries = journalsLoader.getJournalEntries();
-			System.out.println(" (3) 仕訳　　 | " + journalEntryFile.getAbsolutePath() + " (" + journalEntries.size() + "件)");
+			System.out.println(" (" + (++processNumber) + ") 仕訳　　 | " + journalEntryFile.getAbsolutePath() + " (" + journalEntries.size() + "件)");
 
 			System.out.println("");
 			
