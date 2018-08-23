@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -21,6 +23,7 @@ import net.osdn.aoiro.report.BalanceSheet;
 import net.osdn.aoiro.report.GeneralJournal;
 import net.osdn.aoiro.report.GeneralLedger;
 import net.osdn.aoiro.report.ProfitAndLoss;
+import net.osdn.aoiro.report.StatementOfChangesInEquity;
 import net.osdn.util.yaml.Yaml;
 
 public class Main {
@@ -95,7 +98,7 @@ public class Main {
 			
 			System.out.println(" (1) 勘定科目 | " + accountTitlesFile.getAbsolutePath());
 			YamlAccountTitlesLoader accountTitlesLoader = new YamlAccountTitlesLoader(accountTitlesFile);
-			List<AccountTitle> accountTitles = accountTitlesLoader.getAccountTitles();
+			Set<AccountTitle> accountTitles = accountTitlesLoader.getAccountTitles();
 			
 			System.out.println(" (2) 家事按分 | " + proportionalDivisionsFile.getAbsolutePath());
 			YamlProportionalDivisionsLoader proportionalDivisionsLoader = new YamlProportionalDivisionsLoader(proportionalDivisionsFile, accountTitles);
@@ -129,16 +132,25 @@ public class Main {
 			
 			if(!skipSettlement) {
 				//損益計算書
-				Node<List<AccountTitle>, Amount> plRoot = accountTitlesLoader.getProfitAndLossRoot();
+				Node<Entry<List<AccountTitle>, Amount>> plRoot = accountTitlesLoader.getProfitAndLossRoot();
 				ProfitAndLoss pl = new ProfitAndLoss(plRoot, journalEntries, isSoloProprietorship);
 				pl.writeTo(new File("損益計算書.pdf"));
 				System.out.println("  損益計算書.pdf を出力しました。");
 				
 				//貸借対照表
-				Node<List<AccountTitle>, Amount[]> bsRoot = accountTitlesLoader.getBalanceSheetRoot();
+				Node<Entry<List<AccountTitle>, Amount[]>> bsRoot = accountTitlesLoader.getBalanceSheetRoot();
 				BalanceSheet bs = new BalanceSheet(bsRoot, journalEntries, isSoloProprietorship);
 				bs.writeTo(new File("貸借対照表.pdf"));
 				System.out.println("  貸借対照表.pdf を出力しました。");
+				
+				//社員資本等変動計算書
+				if(!isSoloProprietorship) {
+					Map<String, List<String>> ceReasons = accountTitlesLoader.getStateOfChangesInEquityReasons();
+					Node<List<AccountTitle>> ceRoot = accountTitlesLoader.getStateOfChangesInEquityRoot();
+					StatementOfChangesInEquity ce = new StatementOfChangesInEquity(ceReasons, ceRoot, journalEntries);
+					ce.writeTo(new File("社員資本等変動計算書.pdf"));
+					System.out.println("  社員資本等変動計算書.pdf を出力しました。");
+				}
 
 				//繰越処理
 				System.out.println("");

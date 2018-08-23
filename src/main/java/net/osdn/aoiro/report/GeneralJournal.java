@@ -57,6 +57,8 @@ public class GeneralJournal {
 			isFromNewYearsDay = false;
 		}
 		
+		//総勘定元帳と相互にページ番号を印字するために
+		//writeToを呼び出してPDFを作成する前にprepareを呼び出しておく必要があります。
 		prepare();
 	}
 	

@@ -27,13 +27,13 @@ public class AccountSettlement {
 	/** 決算日 */
 	private Date date;
 	
-	/** 勘定科目リスト */
-	private List<AccountTitle> accountTitles;
+	/** 勘定科目セット */
+	private Set<AccountTitle> accountTitles;
 	
 	/** メッセージ出力先 */
 	private PrintStream out;
 	
-	public AccountSettlement(List<AccountTitle> accountTitles, boolean isSoloproprietorship) {
+	public AccountSettlement(Set<AccountTitle> accountTitles, boolean isSoloproprietorship) {
 		this.accountTitles = accountTitles;
 		this.isSoloProprietorship = isSoloproprietorship;
 	}

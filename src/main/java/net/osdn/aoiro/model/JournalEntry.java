@@ -118,9 +118,9 @@ public class JournalEntry {
 			}
 		}
 		
-		//摘要が「前期繰越」となっている場合は開始仕訳として扱います。
+		//摘要が「前期繰越」「資本金」となっている場合は開始仕訳として扱います。
 		//個人事業主、法人いずれの場合も開始仕訳として認識されます。
-		if(description.equals("前期繰越")) {
+		if(description.equals("前期繰越") || description.equals("資本金")) {
 			return true;
 		}
 

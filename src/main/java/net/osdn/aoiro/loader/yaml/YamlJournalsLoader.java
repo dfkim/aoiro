@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import net.osdn.aoiro.model.AccountTitle;
 import net.osdn.aoiro.model.Creditor;
@@ -28,7 +29,7 @@ public class YamlJournalsLoader {
 	private DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 	private List<JournalEntry> journals = new ArrayList<JournalEntry>();
 	
-	public YamlJournalsLoader(File file, List<AccountTitle> accountTitles) throws IOException, ParseException {
+	public YamlJournalsLoader(File file, Set<AccountTitle> accountTitles) throws IOException, ParseException {
 		this.accountTitleByDisplayName = new HashMap<String, AccountTitle>();
 		for(AccountTitle accountTitle : accountTitles) {
 			accountTitleByDisplayName.put(accountTitle.getDisplayName(), accountTitle);
@@ -213,16 +214,4 @@ public class YamlJournalsLoader {
 		Entry<AccountTitle, Integer> entry = new SimpleEntry<AccountTitle, Integer>(account, amount);
 		return entry;
 	}
-	
-	public static void main(String[] args) throws Exception {
-		YamlAccountTitlesLoader accountsLoader = new YamlAccountTitlesLoader(new File("勘定科目.yml"));
-		List<AccountTitle> accounts = accountsLoader.getAccountTitles();
-		
-		File file = new File("D:/GoogleDrive/個人事業主/確定申告/2017年仕訳データ.yml");
-		YamlJournalsLoader loader = new YamlJournalsLoader(file, accounts);
-		for(JournalEntry entry : loader.getJournalEntries()) {
-			System.out.println(entry);
-		}
-	}
-	
 }

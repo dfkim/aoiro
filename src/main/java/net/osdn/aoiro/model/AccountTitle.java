@@ -1,6 +1,7 @@
 package net.osdn.aoiro.model;
 
 import java.util.List;
+import java.util.Set;
 
 /** 勘定科目
  *
@@ -111,7 +112,7 @@ public class AccountTitle {
 	 * @param displayName 勘定科目名
 	 * @return 勘定科目名が見つかればその勘定科目を返します。そうでなければ null を返します。
 	 */
-	public static AccountTitle getByDisplayName(List<AccountTitle> accountTitles, String displayName) {
+	public static AccountTitle getByDisplayName(Set<AccountTitle> accountTitles, String displayName) {
 		if(displayName != null) {
 			for(AccountTitle accountTitle : accountTitles) {
 				if(displayName.equalsIgnoreCase(accountTitle.getDisplayName())) {
