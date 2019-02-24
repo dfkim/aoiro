@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -52,6 +53,12 @@ public class YamlAccountTitlesLoader {
 	
 	/** 社員資本等変動計算書を集計するためのツリーを構成するルートノード */
 	private Node<List<AccountTitle>> ceRoot;
+	
+	/** 損益計算書(P/L)に常に表示する見出しのリスト */
+	private Set<String> plAlwaysShownNames = new HashSet<String>();
+	
+	/** 貸借対照表(B/S)に常に表示する見出しのリスト */
+	private Set<String> bsAlwaysShownNames = new HashSet<String>();
 	
 	public YamlAccountTitlesLoader(File file) throws IOException {
 		String yaml = AutoDetectReader.readAll(file.toPath());
@@ -163,6 +170,32 @@ public class YamlAccountTitlesLoader {
 			});
 			this.ceRoot = ceRoot;
 		}
+		
+		obj = root.get("常に表示する見出し");
+		if(obj instanceof Map) {
+			@SuppressWarnings("unchecked")
+			Map<String, Object> map = (Map<String, Object>)obj;
+			Object obj2 = map.get("損益計算書");
+			if(obj2 instanceof List) {
+				@SuppressWarnings("unchecked")
+				List<Object> list = (List<Object>)obj2;
+				for(Object o : list) {
+					if(o != null) {
+						plAlwaysShownNames.add(o.toString().trim());
+					}
+				}
+			}
+			Object obj3 = map.get("貸借対照表");
+			if(obj3 instanceof List) {
+				@SuppressWarnings("unchecked")
+				List<Object> list = (List<Object>)obj3;
+				for(Object o : list) {
+					if(o != null) {
+						bsAlwaysShownNames.add(o.toString().trim());
+					}
+				}
+			}
+		}
 	}
 	
 	
@@ -260,6 +293,26 @@ public class YamlAccountTitlesLoader {
 	public Node<List<AccountTitle>> getStateOfChangesInEquityRoot() {
 		return ceRoot;
 	}
+	
+	/** 損益計算書に常に表示する見出しのセットを返します。
+	 * このリストに含まれる見出しは、対象となる仕訳が存在しない場合でも常に表示されます。
+	 * 
+	 * @return 損益計算書に常に表示する見出しのリスト
+	 */
+	public Set<String> getAlwaysShownNamesForProfitAndLoss() {
+		return plAlwaysShownNames;
+	}
+
+	/** 貸借対照表に常に表示する見出しのセットを返します。
+	 * このリストに含まれる見出しは、対象となる仕訳が存在しない場合でも常に表示されます。
+	 * 
+	 * @return 貸借対照表のルートノード
+	 */
+	public Set<String> getAlwaysShownNamesForBalanceSheet() {
+		return bsAlwaysShownNames;
+	}
+	
+	
 	
 	/*
 	private <T> void dump(int indent, Node<List<AccountTitle>, T> node) {

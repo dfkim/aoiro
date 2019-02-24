@@ -12,10 +12,12 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import net.osdn.aoiro.AccountSettlement;
 import net.osdn.aoiro.Util;
@@ -39,6 +41,7 @@ public class ProfitAndLoss {
 	
 	private Node<Entry<List<AccountTitle>, Amount>> plRoot;
 	private List<JournalEntry> journalEntries;
+	private Set<String> alwaysShownNames;
 	private Date openingDate;
 	private Date closingDate;
 	private Map<AccountTitle, Amount> incomeSummaries = new HashMap<AccountTitle, Amount>(); 
@@ -47,9 +50,10 @@ public class ProfitAndLoss {
 	private List<String> pageData = new ArrayList<String>();
 	private List<String> printData;
 	
-	public ProfitAndLoss(Node<Entry<List<AccountTitle>, Amount>> plRoot, List<JournalEntry> journalEntries, boolean isSoloProprietorship) throws IOException {
+	public ProfitAndLoss(Node<Entry<List<AccountTitle>, Amount>> plRoot, List<JournalEntry> journalEntries, boolean isSoloProprietorship, Set<String> alwaysShownNames) throws IOException {
 		this.plRoot = plRoot;
 		this.journalEntries = journalEntries;
+		this.alwaysShownNames = alwaysShownNames != null ? alwaysShownNames : new HashSet<String>();
 		
 		this.openingDate = AccountSettlement.getOpeningDate(journalEntries, isSoloProprietorship);
 		this.closingDate = AccountSettlement.getClosingDate(journalEntries, isSoloProprietorship);
@@ -249,6 +253,11 @@ public class ProfitAndLoss {
 		String openingDate = df.format(this.openingDate).replace(" 1 年", "元年");
 		String closingDate = df.format(this.closingDate).replace(" 1 年", "元年");
 		
+		//FIXME:
+		openingDate = Util.replaceWareki(openingDate);
+		closingDate = Util.replaceWareki(closingDate);
+		
+		
 		printData = new ArrayList<String>();
 		printData.add("\\media A4");
 
@@ -278,12 +287,10 @@ public class ProfitAndLoss {
 			Node<Entry<List<AccountTitle>, Amount>> node = list.get(i);
 			
 			Amount amount = node.getValue().getValue();
-			//対象の仕訳が存在しない科目は印字をスキップします。
-			/*
-			if(amount == null) {
+			//対象の仕訳が存在しない科目は印字をスキップします。（ただし、常に表示する見出しに含まれていない場合に限る。）
+			if(amount == null && !alwaysShownNames.contains(node.getName())) {
 				continue;
 			}
-			*/
 			
 			if(i >= 1) {
 				if(node.isSubTotal()) {

@@ -140,13 +140,15 @@ public class Main {
 			if(!skipSettlement) {
 				//損益計算書
 				Node<Entry<List<AccountTitle>, Amount>> plRoot = accountTitlesLoader.getProfitAndLossRoot();
-				ProfitAndLoss pl = new ProfitAndLoss(plRoot, journalEntries, isSoloProprietorship);
+				Set<String> plAlwaysShownNames = accountTitlesLoader.getAlwaysShownNamesForProfitAndLoss();
+				ProfitAndLoss pl = new ProfitAndLoss(plRoot, journalEntries, isSoloProprietorship, plAlwaysShownNames);
 				pl.writeTo(new File("損益計算書.pdf"));
 				System.out.println("  損益計算書.pdf を出力しました。");
 				
 				//貸借対照表
 				Node<Entry<List<AccountTitle>, Amount[]>> bsRoot = accountTitlesLoader.getBalanceSheetRoot();
-				BalanceSheet bs = new BalanceSheet(bsRoot, journalEntries, isSoloProprietorship);
+				Set<String> bsAlwaysShownNames = accountTitlesLoader.getAlwaysShownNamesForBalanceSheet();
+				BalanceSheet bs = new BalanceSheet(bsRoot, journalEntries, isSoloProprietorship, bsAlwaysShownNames);
 				bs.writeTo(new File("貸借対照表.pdf"));
 				System.out.println("  貸借対照表.pdf を出力しました。");
 				
