@@ -12,11 +12,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.esotericsoftware.yamlbeans.YamlReader;
+
 import net.osdn.aoiro.model.AccountTitle;
 import net.osdn.aoiro.model.AccountType;
 import net.osdn.aoiro.model.Amount;
 import net.osdn.aoiro.model.Node;
-import net.osdn.util.yaml.Yaml;
+import net.osdn.util.io.AutoDetectReader;
 
 /** YAMLファイルから勘定科目をロードします。
  *
@@ -52,8 +54,9 @@ public class YamlAccountTitlesLoader {
 	private Node<List<AccountTitle>> ceRoot;
 	
 	public YamlAccountTitlesLoader(File file) throws IOException {
-		Yaml yaml = new Yaml(file);
-		Map<String, Object> root = yaml.getMap();
+		String yaml = AutoDetectReader.readAll(file.toPath());
+		@SuppressWarnings("unchecked")
+		Map<String, Object> root = (Map<String, Object>)new YamlReader(yaml).read();
 
 		Object obj;
 		

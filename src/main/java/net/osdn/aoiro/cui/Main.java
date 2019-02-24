@@ -6,8 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
+import com.esotericsoftware.yamlbeans.YamlReader;
 
 import net.osdn.aoiro.AccountSettlement;
 import net.osdn.aoiro.Util;
@@ -24,13 +24,13 @@ import net.osdn.aoiro.report.GeneralJournal;
 import net.osdn.aoiro.report.GeneralLedger;
 import net.osdn.aoiro.report.ProfitAndLoss;
 import net.osdn.aoiro.report.StatementOfChangesInEquity;
-import net.osdn.util.yaml.Yaml;
+import net.osdn.util.io.AutoDetectReader;
 
 public class Main {
 	
 	public static void main(String[] args) {
 		try {
-			Logger.getLogger("org.apache").setLevel(Level.SEVERE);
+			System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.NoOpLog");
 
 			boolean skipSettlement = false;
 			Boolean isSoloProprietorship = null;
@@ -216,17 +216,20 @@ public class Main {
 	 * @throws IOException
 	 */
 	public static boolean isSoloProprietorship(File journalEntryFile) throws IOException {
-		Yaml yaml = new Yaml(journalEntryFile);
-		for(Object obj : yaml.getList()) {
+		String yaml = AutoDetectReader.readAll(journalEntryFile.toPath());
+		@SuppressWarnings("unchecked")
+		List<Object> list = (List<Object>)new YamlReader(yaml).read();
+
+		for(Object obj : list) {
 			if(obj instanceof Map) {
 				@SuppressWarnings("unchecked")
 				Map<String, Object> map = (Map<String, Object>)obj;
 				Object debtor = map.get("借方");
 				if(debtor instanceof List) {
 					@SuppressWarnings("unchecked")
-					List<Object> list = (List<Object>)debtor;
-					for(int i = 0; i < list.size(); i++) {
-						obj = list.get(i);
+					List<Object> debtorList = (List<Object>)debtor;
+					for(int i = 0; i < debtorList.size(); i++) {
+						obj = debtorList.get(i);
 						if(obj instanceof Map) {
 							@SuppressWarnings("unchecked")
 							Map<String, Object> m = (Map<String, Object>)obj;
@@ -253,9 +256,9 @@ public class Main {
 				Object creditor = map.get("貸方");
 				if(creditor instanceof List) {
 					@SuppressWarnings("unchecked")
-					List<Object> list = (List<Object>)creditor;
-					for(int i = 0; i < list.size(); i++) {
-						obj = list.get(i);
+					List<Object> creditorList = (List<Object>)creditor;
+					for(int i = 0; i < creditorList.size(); i++) {
+						obj = creditorList.get(i);
 						if(obj instanceof Map) {
 							@SuppressWarnings("unchecked")
 							Map<String, Object> m = (Map<String, Object>)obj;

@@ -8,9 +8,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.esotericsoftware.yamlbeans.YamlReader;
+
 import net.osdn.aoiro.model.AccountTitle;
 import net.osdn.aoiro.model.ProportionalDivision;
-import net.osdn.util.yaml.Yaml;
+import net.osdn.util.io.AutoDetectReader;
 
 /** YAMLファイルから家事按分をロードします。
  * 
@@ -26,8 +28,10 @@ public class YamlProportionalDivisionsLoader {
 			accountTitleByDisplayName.put(accountTitle.getDisplayName(), accountTitle);
 		}
 		
-		Yaml yaml = new Yaml(file);
-		List<Object> list = yaml.getList();
+		String yaml = AutoDetectReader.readAll(file.toPath());
+		@SuppressWarnings("unchecked")
+		List<Object> list = (List<Object>)new YamlReader(yaml).read();
+		
 		for(Object obj : list) {
 			if(obj instanceof Map) {
 				@SuppressWarnings("unchecked")
