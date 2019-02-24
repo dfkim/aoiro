@@ -11,13 +11,18 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.chrono.JapaneseChronology;
+import java.time.chrono.JapaneseDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import net.osdn.aoiro.AccountSettlement;
 import net.osdn.aoiro.Util;
@@ -43,6 +48,7 @@ public class BalanceSheet {
 	private Node<Entry<List<AccountTitle>, Amount[]>> bsRoot;
 	private List<JournalEntry> journalEntries;
 	private boolean isSoloProprietorship;
+	private Set<String> alwaysShownNames;
 	private Date openingDate;
 	private Date closingDate;
 	private Map<AccountTitle, Amount> openingBalances = new HashMap<AccountTitle, Amount>();
@@ -54,10 +60,11 @@ public class BalanceSheet {
 	private List<String> pageData = new ArrayList<String>();
 	private List<String> printData;
 
-	public BalanceSheet(Node<Entry<List<AccountTitle>, Amount[]>> bsRoot, List<JournalEntry> journalEntries, boolean isSoloProprietorship) throws IOException {
+	public BalanceSheet(Node<Entry<List<AccountTitle>, Amount[]>> bsRoot, List<JournalEntry> journalEntries, boolean isSoloProprietorship, Set<String> alwaysShownNames) throws IOException {
 		this.bsRoot = bsRoot;
 		this.journalEntries = journalEntries;
 		this.isSoloProprietorship = isSoloProprietorship;
+		this.alwaysShownNames = alwaysShownNames != null ? alwaysShownNames : new HashSet<String>();
 		
 		this.openingDate = AccountSettlement.getOpeningDate(journalEntries, isSoloProprietorship);
 		this.closingDate = AccountSettlement.getClosingDate(journalEntries, isSoloProprietorship);
@@ -241,6 +248,11 @@ public class BalanceSheet {
 		String closingMonth = Integer.toString(calendar.get(Calendar.MONTH) + 1);
 		String closingDay = Integer.toString(calendar.get(Calendar.DAY_OF_MONTH));
 		
+		//FIXME:
+		openingDate = Util.replaceWareki(openingDate);
+		closingDate = Util.replaceWareki(closingDate);
+
+		
 		printData = new ArrayList<String>();
 		printData.add("\\media A4");
 
@@ -279,7 +291,43 @@ public class BalanceSheet {
 		printData.add("\t\t\\text " + closingDay);
 
 		//印字領域の設定
-		int rows = Math.max(assetsList.size(), liabilitiesList.size() + equityList.size());
+		int assetsRows = 1;
+		for(int i = 1; i < assetsList.size(); i++) {
+			Node<Entry<List<AccountTitle>, Amount[]>> node = assetsList.get(i);
+			String displayName = node.getName();
+			Amount openingAmount = node.getValue().getValue()[0];
+			Amount closingAmount = node.getValue().getValue()[1];
+			//対象の仕訳が存在しない科目は印字をスキップします。（ただし、常に表示する見出しに含まれていない場合に限る。）
+			if(openingAmount == null && closingAmount == null && !alwaysShownNames.contains(displayName)) {
+				continue;
+			}
+			assetsRows++;
+		}
+		int liabilitiesRows = 1;
+		for(int i = 1; i < liabilitiesList.size(); i++) {
+			Node<Entry<List<AccountTitle>, Amount[]>> node = liabilitiesList.get(i);
+			String displayName = node.getName();
+			Amount openingAmount = node.getValue().getValue()[0];
+			Amount closingAmount = node.getValue().getValue()[1];
+			//対象の仕訳が存在しない科目は印字をスキップします。（ただし、常に表示する見出しに含まれていない場合に限る。）
+			if(openingAmount == null && closingAmount == null && !alwaysShownNames.contains(displayName)) {
+				continue;
+			}
+			liabilitiesRows++;
+		}
+		int equityRows = 1;
+		for(int i = 1; i < equityList.size(); i++) {
+			Node<Entry<List<AccountTitle>, Amount[]>> node = equityList.get(i);
+			String displayName = node.getName();
+			Amount openingAmount = node.getValue().getValue()[0];
+			Amount closingAmount = node.getValue().getValue()[1];
+			//対象の仕訳が存在しない科目は印字をスキップします。（ただし、常に表示する見出しに含まれていない場合に限る。）
+			if(openingAmount == null && closingAmount == null && !alwaysShownNames.contains(displayName)) {
+				continue;
+			}
+			equityRows++;
+		}
+		int rows = Math.max(assetsRows, liabilitiesRows + equityRows);
 		printData.add("\t\\box 0 0 -0 -0");
 		printData.add("\t\\line-style thin solid");
 		printData.add("\t\\line " + String.format("87.3 %.2f 87.3 %.2f", 25.2, 37.0 + rows * ROW_HEIGHT));
@@ -311,6 +359,11 @@ public class BalanceSheet {
 			String displayName = node.getName();
 			Amount openingAmount = node.getValue().getValue()[0];
 			Amount closingAmount = node.getValue().getValue()[1];
+			
+			//対象の仕訳が存在しない科目は印字をスキップします。（ただし、常に表示する見出しに含まれていない場合に限る。）
+			if(openingAmount == null && closingAmount == null && !alwaysShownNames.contains(displayName)) {
+				continue;
+			}
 			printData.add("\t\t\\box " + String.format("2 %.2f 35.5 %.2f", y, ROW_HEIGHT));
 			printData.add("\t\t\\align center left");
 			printData.add("\t\t\\text " + displayName);
@@ -332,6 +385,11 @@ public class BalanceSheet {
 			String displayName = node.getName();
 			Amount openingAmount = node.getValue().getValue()[0];
 			Amount closingAmount = node.getValue().getValue()[1];
+			
+			//対象の仕訳が存在しない科目は印字をスキップします。（ただし、常に表示する見出しに含まれていない場合に限る。）
+			if(openingAmount == null && closingAmount == null && !alwaysShownNames.contains(displayName)) {
+				continue;
+			}
 			printData.add("\t\t\\box " + String.format("89.5 %.2f 35.5 %.2f", y, ROW_HEIGHT));
 			printData.add("\t\t\\align center left");
 			printData.add("\t\t\\text " + displayName);
@@ -354,6 +412,11 @@ public class BalanceSheet {
 			String displayName = node.getName();
 			Amount openingAmount = node.getValue().getValue()[0];
 			Amount closingAmount = node.getValue().getValue()[1];
+			
+			//対象の仕訳が存在しない科目は印字をスキップします。（ただし、常に表示する見出しに含まれていない場合に限る。）
+			if(openingAmount == null && closingAmount == null && !alwaysShownNames.contains(displayName)) {
+				continue;
+			}
 			printData.add("\t\t\\box " + String.format("89.5 %.2f 35.5 %.2f", y, ROW_HEIGHT));
 			printData.add("\t\t\\align center left");
 			printData.add("\t\t\\text " + displayName);
