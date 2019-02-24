@@ -14,11 +14,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.esotericsoftware.yamlbeans.YamlReader;
+
 import net.osdn.aoiro.model.AccountTitle;
 import net.osdn.aoiro.model.Creditor;
 import net.osdn.aoiro.model.Debtor;
 import net.osdn.aoiro.model.JournalEntry;
-import net.osdn.util.yaml.Yaml;
+import net.osdn.util.io.AutoDetectReader;
 
 /** YAMLファイルから仕訳をロードします。
  *
@@ -35,8 +37,10 @@ public class YamlJournalsLoader {
 			accountTitleByDisplayName.put(accountTitle.getDisplayName(), accountTitle);
 		}
 		
-		Yaml yaml = new Yaml(file);
-		List<Object> list = yaml.getList();
+		String yaml = AutoDetectReader.readAll(file.toPath());
+		@SuppressWarnings("unchecked")
+		List<Object> list = (List<Object>)new YamlReader(yaml).read();
+
 		for(Object obj : list) {
 			if(obj instanceof Map) {
 				@SuppressWarnings("unchecked")
