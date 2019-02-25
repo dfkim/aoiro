@@ -65,20 +65,4 @@ public class Util {
 	public static Locale getLocale() {
 		return locale;
 	}
-
-	/** アルファベット表記の元号を漢字に置換します。
-	 * Java11のjlinkを使ってjreを作成すると、元号が漢字ではなくアルファベットになってしまうため。
-	 * 原因を調べないと・・・。
-	 * 
-	 * @param s 元号を含む文字列
-	 * @return 元号を漢字に置換した文字列
-	 */
-	public static String replaceWareki(String s) {
-		//FIXME:
-		return s
-			.replace("Meiji",  "明治")
-			.replace("Taisho", "大正")
-			.replace("Showa",  "昭和")
-			.replace("Heisei", "平成");
-	}
 }

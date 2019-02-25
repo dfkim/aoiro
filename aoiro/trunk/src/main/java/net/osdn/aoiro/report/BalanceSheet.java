@@ -11,9 +11,6 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.time.chrono.JapaneseChronology;
-import java.time.chrono.JapaneseDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -247,11 +244,6 @@ public class BalanceSheet {
 		String closingDate = df.format(this.closingDate).replace(" 1 年", "元年");
 		String closingMonth = Integer.toString(calendar.get(Calendar.MONTH) + 1);
 		String closingDay = Integer.toString(calendar.get(Calendar.DAY_OF_MONTH));
-		
-		//FIXME:
-		openingDate = Util.replaceWareki(openingDate);
-		closingDate = Util.replaceWareki(closingDate);
-
 		
 		printData = new ArrayList<String>();
 		printData.add("\\media A4");

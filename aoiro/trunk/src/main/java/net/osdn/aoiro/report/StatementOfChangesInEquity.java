@@ -376,10 +376,6 @@ public class StatementOfChangesInEquity {
 		String openingDate = df.format(this.openingDate).replace(" 1 年", "元年");
 		String closingDate = df.format(this.closingDate).replace(" 1 年", "元年");
 		
-		//FIXME:
-		openingDate = Util.replaceWareki(openingDate);
-		closingDate = Util.replaceWareki(closingDate);
-		
 		printData = new ArrayList<String>();
 		printData.add("\\media A4");
 		
