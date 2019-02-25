@@ -29,8 +29,13 @@ import net.osdn.util.io.AutoDetectReader;
 public class Main {
 	
 	public static void main(String[] args) {
+		
+		if(System.getProperty("java.locale.providers") == null) {
+			System.setProperty("java.locale.providers", "HOST,SPI,CLDR,COMPAT");
+		}
+		System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.NoOpLog");
+		
 		try {
-			System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.NoOpLog");
 
 			boolean skipSettlement = false;
 			Boolean isSoloProprietorship = null;
