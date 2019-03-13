@@ -1,7 +1,6 @@
 apply plugin: 'java'
 apply plugin: 'eclipse'
 
-archivesBaseName = 'aoiro'
 version = '0.3.2'
 
 def defaultEncoding = 'UTF-8'
@@ -31,13 +30,13 @@ dependencies {
 	compile 'net.osdn.util.io:auto-detect-reader:0.1.1'
 }
 
-defaultTasks 'clean', 'exewrap'
+defaultTasks 'clean', 'build', 'exewrap'
 
 jar {
-	archiveName = "${archivesBaseName}.jar"
 	manifest {
 		attributes "Specification-Version": "${version}"
 		attributes "Main-Class" : "net.osdn.aoiro.cui.Main"
+		attributes "Class-Path": configurations.runtime.collect { "lib/$it.name" }.join(' ')
 	}
 	from('src/main/java') {
 		include '**/*.fxml'
@@ -64,9 +63,9 @@ task exewrap(type: Exec, dependsOn: 'jar') {
 		"-a", "-XX:+TieredCompilation -XX:TieredStopAtLevel=1 -XX:+UseSerialGC -XX:CICompilerCount=1 -Xverify:none -Xms128m",
 		"-L", "lib",
 		"-e", "NOLOG",
-		"-j", "${libsDir}/${jar.archiveName}",
+		"-j", "${jar.archiveFile.get()}",
 		"-i", "src/main/resources/ico/app.ico",
-		"-o", "${buildDir}/package/${archivesBaseName}.exe",
+		"-o", "${buildDir}/package/${jar.baseName}.exe",
 		"-p", "aoiro",
 		"-d", "aoiro",
 		"-c", "(C) 2017-2019 HIRUKAWA Ryo",
@@ -79,7 +78,7 @@ task createJavaRuntime(type: Exec, dependsOn: ['jar', 'copyLibraries']) {
 	setGroup("build")
 	setDescription("Create Java Runtime.")
 	workingDir "${buildDir}/package/"
-	commandLine 'cmd', '/c', 'CreateJRE.bat', "${libsDir}\\${jar.archiveName}", "lib"
+	commandLine 'cmd', '/c', 'CreateJRE.bat', "${jar.archiveFile.get()}", "lib"
 }
 
 task initializeProjectFiles {
