@@ -1,0 +1,65 @@
+(C) 2017-2019 HIRUKAWA Ryo
+
+本ソフトウェアおよび関連するドキュメント（以下「本ソフトウェア」）のコピーを取
+得するすべての人に、本ソフトウェアを無制限に扱うことを無償で許可します。これに
+は、使用、複製、変更、マージ、掲載、頒布、サブライセンス供与、販売、および、本
+ソフトウェアを提供する相手に対して許可する権利が含まれますが、これに限定されま
+せん。ただし、以下の条件に従うものとします。
+
+上記の著作権表示および本許諾表示を、本ソフトウェアのすべての複製または重要な部
+分に記載するものとします。
+
+本ソフトウェアは「現状のまま」提供され、明示黙示を問わず、商業的な使用可能性の
+保証、特定の目的に対する適合性の保証、権利の非侵害性の保証を含むいかなる保証も
+ありません。事由のいかんを問わず、作者、著作権者は、契約行為、不法行為、または
+それ以外であろうと、本ソフトウェアの使用、その他の扱い、またはこれに関連して生
+じる損害、その他について一切責任を負わないものとします。
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+本ソフトウェアの配布物には以下の著作物が含まれています。
+これらのソフトウェアに貢献されたすべての方々に心から感謝します。
+
+* Apache PDFBox - A Java PDF Library
+  https://pdfbox.apache.org/
+  
+  Copyright © 2009–2019 The Apache Software Foundation.
+
+  Apache PDFBox is published under the Apache License v2.0.
+  https://www.apache.org/licenses/LICENSE-2.0
+
+
+* freemarker
+  https://freemarker.apache.org/
+
+  Apache FreeMarker is Free software
+  licensed under the Apache License, Version 2.0.
+  https://freemarker.apache.org/docs/app_license.html
+
+
+* Java Native Access (JNA)
+  https://github.com/java-native-access/jna
+
+  Java Native Access project (JNA) is dual-licensed under 2 
+  alternative Open Source/Free licenses:
+  LGPL 2.1 or later and Apache License 2.0. 
+  https://github.com/java-native-access/jna/blob/master/LICENSE
+
+
+* yamlbeans
+  https://github.com/EsotericSoftware/yamlbeans
+  
+  Copyright (c) 2008 Nathan Sweet,
+  Copyright (c) 2006 Ola Bini
+
+  EsotericSoftware/yamlbeans is licensed under the MIT License
+  https://github.com/EsotericSoftware/yamlbeans/blob/master/LICENSE
+
+
+* juniversalchardet
+  https://code.google.com/archive/p/juniversalchardet/
+
+  Contributor: Kohei TAKETA <k-tak@void.in> (Java port)
+
+  juniversalchardet is licensed under the Mozilla Public License 1.1
+  https://www.mozilla.org/en-US/MPL/
