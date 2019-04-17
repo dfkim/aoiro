@@ -29,10 +29,16 @@ import net.osdn.util.io.AutoDetectReader;
 public class Main {
 	
 	public static void main(String[] args) {
-		
+
+		/* HOSTを先頭にしてもJava 12.0.1 では明治、大正、昭和、平成、Reiwa と
+		 * なぜかReiwaだけ令和とならずにアルファベット表記になってしまいます。
+		 * 対策として、自前でアルファベット表記から漢字表記への置換をおこなうことにしました。
+		 * 
 		if(System.getProperty("java.locale.providers") == null) {
 			System.setProperty("java.locale.providers", "HOST,SPI,CLDR,COMPAT");
 		}
+		*/
+		
 		System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.NoOpLog");
 		
 		try {

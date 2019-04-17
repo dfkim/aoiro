@@ -374,7 +374,9 @@ public class StatementOfChangesInEquity {
 		Calendar calendar = Calendar.getInstance();
 		calendar.setTime(this.openingDate);
 		String openingDate = df.format(this.openingDate).replace(" 1 年", "元年");
+		openingDate = Util.toKanjiEra(openingDate);
 		String closingDate = df.format(this.closingDate).replace(" 1 年", "元年");
+		closingDate = Util.toKanjiEra(closingDate);
 		
 		printData = new ArrayList<String>();
 		printData.add("\\media A4");

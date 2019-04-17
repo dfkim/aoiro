@@ -251,7 +251,9 @@ public class ProfitAndLoss {
 		
 		DateFormat df = new SimpleDateFormat("GGGG y 年 M 月 d 日", Util.getLocale());
 		String openingDate = df.format(this.openingDate).replace(" 1 年", "元年");
+		openingDate = Util.toKanjiEra(openingDate);
 		String closingDate = df.format(this.closingDate).replace(" 1 年", "元年");
+		closingDate = Util.toKanjiEra(closingDate);
 		
 		printData = new ArrayList<String>();
 		printData.add("\\media A4");
