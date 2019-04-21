@@ -60,26 +60,6 @@ public class Util {
 		return version;
 	}
 	
-	/** アルファベット表記の元号を漢字に置換して返します。
-	 * 環境によってはSimpleDateFormatのGGGGで和暦にしたときに元号が漢字ではなくアルファベットになってしまう問題への対処です。
-	 * アルファベット表記の元号とは "Meiji"、"Taisho"、"Showa"、"Heisei"、"Reiwa"　のことです。
-	 * "M"、"T"、"S"、"H"、"R" という短縮表記が漢字表記の元号に置換されるわけではありません。
-	 * 
-	 * @param s アルファベットの元号を含む文字列
-	 * @return アルファベットの元号を漢字に置換した文字列
-	 */
-	public static String toKanjiEra(String s) {
-		if(s == null) {
-			return null;
-		}
-		return s
-				.replace("Meiji",  "明治")
-				.replace("Taisho", "大正")
-				.replace("Showa",  "昭和")
-				.replace("Heisei", "平成")
-				.replace("Reiwa",  "令和");
-	}
-	
 	public static Locale getLocale() {
 		return locale;
 	}

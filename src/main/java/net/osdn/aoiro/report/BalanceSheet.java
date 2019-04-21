@@ -238,12 +238,10 @@ public class BalanceSheet {
 		Calendar calendar = Calendar.getInstance();
 		calendar.setTime(this.openingDate);
 		String openingDate = df.format(this.openingDate).replace(" 1 年", "元年");
-		openingDate = Util.toKanjiEra(openingDate);
 		String openingMonth = Integer.toString(calendar.get(Calendar.MONTH) + 1);
 		String openingDay = Integer.toString(calendar.get(Calendar.DAY_OF_MONTH));
 		calendar.setTime(this.closingDate);
 		String closingDate = df.format(this.closingDate).replace(" 1 年", "元年");
-		closingDate = Util.toKanjiEra(closingDate);
 		String closingMonth = Integer.toString(calendar.get(Calendar.MONTH) + 1);
 		String closingDay = Integer.toString(calendar.get(Calendar.DAY_OF_MONTH));
 		
