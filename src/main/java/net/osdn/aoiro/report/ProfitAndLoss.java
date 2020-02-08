@@ -174,8 +174,8 @@ public class ProfitAndLoss {
 			String month = (calendar.get(Calendar.MONTH) + 1) + "月";
 			map.put(month, new Amount[2]);
 		}
-		map.put("雑収入", new Amount[2]);
 		map.put("家事消費等", new Amount[2]);
+		map.put("雑収入", new Amount[2]);
 
 		for(JournalEntry entry : journalEntries) {
 			//開始仕訳と締切仕訳は集計に含めません。
@@ -406,9 +406,9 @@ public class ProfitAndLoss {
 	
 	public void writeTo(File file) throws IOException {
 		prepare();
-		
-		BrewerData pb = new BrewerData(printData);
+
 		PdfBrewer brewer = new PdfBrewer();
+		BrewerData pb = new BrewerData(printData, brewer.getFontLoader());
 		brewer.setTitle("損益計算書");
 		brewer.process(pb);
 		brewer.save(file);

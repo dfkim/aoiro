@@ -282,6 +282,21 @@ public class BalanceSheet {
 		printData.add("\t\t\\box 155.7 0 6 -0");
 		printData.add("\t\t\\text " + closingDay);
 
+		//負債・資本の部のタイトル変更
+		//2006年の新会社法で貸借対照表の「資本の部」が「純資産の部」に変更になりました。
+		//しかし、国税庁が用意している個人の確定申告用の決算書（貸借対照表）では「資本の部」という表示のままとなっています。
+		//国税庁が用意している決算書（貸借対照表）への転記しやすさを考え、
+		//aoiroでは会社の場合は「純資産の部」、個人事業主の場合は「資本の部」と表記を切り替えるようにしています。
+		printData.add("\t\\box 0 25 -0 6");
+		printData.add("\t\t\\font sans-serif 9");
+		printData.add("\t\t\\align center");
+		printData.add("\t\t\\box 87.5 0 87.5 -0");
+		if(isSoloProprietorship) {
+			printData.add("\t\t\\text 負　債　・　資　本　の　部");
+		} else {
+			printData.add("\t\t\\text 負　債　・　純　資　産　の　部");
+		}
+
 		//印字領域の設定
 		int assetsRows = 1;
 		for(int i = 1; i < assetsList.size(); i++) {
@@ -485,9 +500,9 @@ public class BalanceSheet {
 
 	public void writeTo(File file) throws IOException {
 		prepare();
-		
-		BrewerData pb = new BrewerData(printData);
+
 		PdfBrewer brewer = new PdfBrewer();
+		BrewerData pb = new BrewerData(printData, brewer.getFontLoader());
 		brewer.setTitle("貸借対照表");
 		brewer.process(pb);
 		brewer.save(file);

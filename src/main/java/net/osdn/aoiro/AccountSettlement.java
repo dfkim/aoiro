@@ -300,6 +300,8 @@ public class AccountSettlement {
 		
 		
 		//損益勘定の差額を資本振替します。
+		//貸借対照表の「資本の部」は「純資産の部」に変わりましたが、
+		//損益勘定を繰越利益剰余金に振り替えることは「資本振替」といいます。（純資産振替とはいいません）
 		{
 			if(incomeSummary == 0) {
 				//損益勘定の差額が 0 のときは振替仕訳を作成しません。
@@ -471,7 +473,7 @@ public class AccountSettlement {
 			}
 		}
 		
-		//純資産の残高振替
+		//純資産（資本）の残高振替
 		{
 			List<Debtor> debtors = new ArrayList<Debtor>();
 			int debtorsTotal = 0;
@@ -508,22 +510,26 @@ public class AccountSettlement {
 				}
 			}
 			//残高勘定仕訳
-			if(debtors.size() > 0) {
-				//貸方
-				Creditor creditor = new Creditor(AccountTitle.BALANCE, debtorsTotal);
-				//仕訳
-				JournalEntry incomeSummaryEntry = new JournalEntry(date, "純資産の残高振替", debtors, Arrays.asList(creditor));
-				journalEntries.add(incomeSummaryEntry);
-			}
-			if(creditors.size() > 0) {
-				//借方
-				Debtor debtor = new Debtor(AccountTitle.BALANCE, creditorsTotal);
-				//仕訳
-				JournalEntry incomeSummaryEntry = new JournalEntry(date, "純資産の残高振替", Arrays.asList(debtor), creditors);
-				journalEntries.add(incomeSummaryEntry);
-			}
-			if(out != null) {
-				out.println("  純資産の残高振替が完了しました。");
+			{
+				// 個人の場合は資本の残高振替、会社の場合は純資産の残高振替と表示します。
+				String description = isSoloProprietorship ? "資本の残高振替" : "純資産の残高振替";
+				if(debtors.size() > 0) {
+					//貸方
+					Creditor creditor = new Creditor(AccountTitle.BALANCE, debtorsTotal);
+					//仕訳
+					JournalEntry incomeSummaryEntry = new JournalEntry(date, description, debtors, Arrays.asList(creditor));
+					journalEntries.add(incomeSummaryEntry);
+				}
+				if(creditors.size() > 0) {
+					//借方
+					Debtor debtor = new Debtor(AccountTitle.BALANCE, creditorsTotal);
+					//仕訳
+					JournalEntry incomeSummaryEntry = new JournalEntry(date, description, Arrays.asList(debtor), creditors);
+					journalEntries.add(incomeSummaryEntry);
+				}
+				if(out != null) {
+					out.println("  " + description + "が完了しました。");
+				}
 			}
 		}
 	}
