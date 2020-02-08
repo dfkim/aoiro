@@ -462,9 +462,9 @@ public class StatementOfChangesInEquity {
 	
 	public void writeTo(File file) throws IOException {
 		prepare();
-		
-		BrewerData pb = new BrewerData(printData);
+
 		PdfBrewer brewer = new PdfBrewer();
+		BrewerData pb = new BrewerData(printData, brewer.getFontLoader());
 		brewer.setTitle("社員資本等変動計算書");
 		brewer.process(pb);
 		brewer.save(file);

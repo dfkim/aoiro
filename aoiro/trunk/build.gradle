@@ -1,17 +1,12 @@
 apply plugin: 'java'
 apply plugin: 'eclipse'
 
-version = '0.3.4'
+version = '0.3.5'
 
-def defaultEncoding = 'UTF-8'
-tasks.withType(AbstractCompile).each { it.options.encoding = defaultEncoding }
-tasks.withType(GroovyCompile).each { it.groovyOptions.encoding = defaultEncoding }
-
-javadoc {
-	options.charSet = defaultEncoding
-	options.encoding = defaultEncoding
-	options.memberLevel = JavadocMemberLevel.PUBLIC
-	options.stylesheetFile = new File(rootDir, 'javadoc.css')
+tasks.withType(JavaCompile) {
+	sourceCompatibility = 11
+	targetCompatibility = 11
+	options.compilerArgs << '-Xlint:all'
 }
 
 repositories {
@@ -24,25 +19,31 @@ dependencies {
 		excludes: ['**/*-sources.jar', '**/*-javadoc.jar'])
 		
 	compile 'org.freemarker:freemarker:2.3.28'
-	compile 'org.apache.pdfbox:pdfbox:2.0.13'
-	compile 'org.apache.pdfbox:fontbox:2.0.13'
-	
+	compile 'org.apache.pdfbox:pdfbox:2.0.18'
+	compile 'org.apache.pdfbox:fontbox:2.0.18'
+
+	compile 'net.java.dev.jna:jna:5.5.0'
+	compile 'net.java.dev.jna:jna-platform:5.5.0'
+
 	compile 'net.osdn.util.io:auto-detect-reader:0.1.1'
 }
+
+sourceSets.main.resources {
+	srcDirs = ['src/main/resources', 'src/main/java' ]
+}
+
+def defaultEncoding = 'UTF-8'
+tasks.withType(AbstractCompile).each { it.options.encoding = defaultEncoding }
+tasks.withType(GroovyCompile).each { it.groovyOptions.encoding = defaultEncoding }
 
 defaultTasks 'clean', 'build', 'exewrap'
 
 jar {
 	manifest {
-		attributes "Specification-Version": "${version}"
+		attributes "Specification-Version": "${project.version}"
 		attributes "Main-Class" : "net.osdn.aoiro.cui.Main"
-		attributes "Class-Path": configurations.runtime.collect { "lib/$it.name" }.join(' ')
+		attributes "Class-Path": sourceSets.main.runtimeClasspath.collect { "lib/$it.name" }.join(' ')
 	}
-	from('src/main/java') {
-		include '**/*.fxml'
-		include '**/*.css'
-	}
-	exclude('img/*.psd', 'ico/**', 'psd/**')
 }
 
 task copyLibraries(type: Copy) {
@@ -51,7 +52,17 @@ task copyLibraries(type: Copy) {
 	from (sourceSets.main.runtimeClasspath) {
 		include '*.jar'
 	}
+	from('lib') {
+		include '*.dll'
+	}
 	into "${buildDir}/package/lib/"
+}
+
+task createJavaRuntime(type: Exec, dependsOn: ['jar', 'copyLibraries']) {
+	setGroup("build")
+	setDescription("Create Java Runtime.")
+	workingDir "${buildDir}/package/"
+	commandLine 'cmd', '/c', 'CreateJRE.bat', "${jar.archiveFile.get()}", "lib", "-client"
 }
 
 task exewrap(type: Exec, dependsOn: 'jar') {
@@ -60,36 +71,14 @@ task exewrap(type: Exec, dependsOn: 'jar') {
 	executable "${projectDir}/exewrap.exe"
 	args "-A", "x64",
 		"-t", "11",
-		"-a", "-XX:+TieredCompilation -XX:TieredStopAtLevel=1 -XX:+UseSerialGC -XX:CICompilerCount=1 -Xverify:none -Xms128m",
-		"-L", "lib",
+		"-a", "-XX:TieredStopAtLevel=1 -XX:+UseSerialGC -XX:CICompilerCount=1 -Xverify:none -Xms128m",
 		"-e", "NOLOG",
 		"-j", "${jar.archiveFile.get()}",
-		"-i", "src/main/resources/ico/app.ico",
-		"-o", "${buildDir}/package/${jar.baseName}.exe",
+		"-i", "etc/ico/app.ico",
+		"-o", "${buildDir}/package/${archivesBaseName}.exe",
 		"-p", "aoiro",
 		"-d", "aoiro",
 		"-c", "(C) 2017-2019 HIRUKAWA Ryo",
 		"-V", "${version}",
 		"-v", "${version}"
 }
-
-
-task createJavaRuntime(type: Exec, dependsOn: ['jar', 'copyLibraries']) {
-	setGroup("build")
-	setDescription("Create Java Runtime.")
-	workingDir "${buildDir}/package/"
-	commandLine 'cmd', '/c', 'CreateJRE.bat', "${jar.archiveFile.get()}", "lib"
-}
-
-task initializeProjectFiles {
-	doLast {
-		if(file('src/main/java/Library.java').exists()) {
-			file('lib').mkdir()
-			delete "src/test"
-			delete "src/main/java/Library.java"
-		}
-	}
-}
-tasks.eclipseClasspath.dependsOn(cleanEclipseClasspath)
-tasks.eclipseClasspath.dependsOn(initializeProjectFiles)
-tasks.cleanEclipseClasspath.mustRunAfter(initializeProjectFiles)

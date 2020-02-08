@@ -443,9 +443,9 @@ public class GeneralLedger {
 	
 	public void writeTo(File file) throws IOException {
 		prepare();
-		
-		BrewerData pb = new BrewerData(printData);
+
 		PdfBrewer brewer = new PdfBrewer();
+		BrewerData pb = new BrewerData(printData, brewer.getFontLoader());
 		brewer.setTitle("総勘定元帳");
 		brewer.process(pb);
 		brewer.save(file);
