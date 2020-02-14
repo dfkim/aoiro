@@ -115,7 +115,87 @@ public class AccountSettlement {
 				}
 			}
 		}
-		
+
+		//未払消費税等・未収消費税等
+		//  仮受消費税等・仮払消費税等の片方または両方が 0 ではない場合、
+		//  仮受消費税等・仮払消費税等が 0 になるように未払消費税等または未収消費税等に振り替えます。
+		//  ただし、既に未払消費税等または未収消費税等が仕訳に含まている場合は手動で決算仕訳を入力したものと見なして何もおこないません。
+		AccountTitle karibarai = AccountTitle.getByDisplayName(accountTitles, "仮払消費税等");
+		AccountTitle kariuke = AccountTitle.getByDisplayName(accountTitles, "仮受消費税等");
+		AccountTitle misyuu = AccountTitle.getByDisplayName(accountTitles, "未収消費税等");
+		AccountTitle mibarai = AccountTitle.getByDisplayName(accountTitles, "未払消費税等");
+		if(karibarai != null && kariuke != null) {
+			boolean existsSettlement = false;
+			int karibaraiTotal = 0;
+			int kariukeTotal = 0;
+			for(int i = 0; i < journalEntries.size(); i++) {
+				JournalEntry entry = journalEntries.get(i);
+				for(Debtor debtor : entry.getDebtors()) {
+					if(debtor.getAccountTitle().equals(karibarai)) {
+						karibaraiTotal += debtor.getAmount();
+					}
+					if(debtor.getAccountTitle().equals(kariuke)) {
+						kariukeTotal -= debtor.getAmount();
+					}
+					if(misyuu != null && debtor.getAccountTitle().equals(misyuu)) {
+						existsSettlement = true;
+					}
+					if(mibarai != null && debtor.getAccountTitle().equals(mibarai)) {
+						existsSettlement = true;
+					}
+				}
+				for(Creditor creditor : entry.getCreditors()) {
+					if(creditor.getAccountTitle().equals(kariuke)) {
+						kariukeTotal += creditor.getAmount();
+					}
+					if(creditor.getAccountTitle().equals(karibarai)) {
+						karibaraiTotal -= creditor.getAmount();
+					}
+					if(mibarai != null && creditor.getAccountTitle().equals(mibarai)) {
+						existsSettlement = true;
+					}
+					if(misyuu != null && creditor.getAccountTitle().equals(misyuu)) {
+						existsSettlement = true;
+					}
+				}
+			}
+			if(!existsSettlement && (karibaraiTotal != 0 || kariukeTotal != 0)) {
+				List<Debtor> debtors = new ArrayList<Debtor>();
+				List<Creditor> creditors = new ArrayList<Creditor>();
+
+				if(kariukeTotal > 0) {
+					debtors.add(new Debtor(kariuke, kariukeTotal));
+				} else if(kariukeTotal < 0) {
+					creditors.add(new Creditor(kariuke, -kariukeTotal));
+				}
+				if(karibaraiTotal > 0) {
+					creditors.add(new Creditor(karibarai, karibaraiTotal));
+				} else if(karibaraiTotal < 0) {
+					debtors.add(new Debtor(karibarai, -karibaraiTotal));
+				}
+
+				if(kariukeTotal - karibaraiTotal >= 0) {
+					if(mibarai != null) {
+						creditors.add(new Creditor(mibarai, kariukeTotal - karibaraiTotal));
+						JournalEntry e = new JournalEntry(date, "未払消費税等への振替", debtors, creditors);
+						journalEntries.add(e);
+						if(out != null && (debtors.size() > 0 || creditors.size() > 0)) {
+							out.println("  消費税等の振替が完了しました。");
+						}
+					}
+				} else {
+					if(misyuu != null) {
+						debtors.add(new Debtor(misyuu, karibaraiTotal - kariukeTotal));
+						JournalEntry e = new JournalEntry(date, "未収消費税等への振替", debtors, creditors);
+						journalEntries.add(e);
+						if(out != null && (debtors.size() > 0 || creditors.size() > 0)) {
+							out.println("  消費税等の振替が完了しました。");
+						}
+					}
+				}
+			}
+		}
+
 		//収益勘定科目
 		Set<AccountTitle> revenueAccountTitles = new LinkedHashSet<AccountTitle>();
 		
