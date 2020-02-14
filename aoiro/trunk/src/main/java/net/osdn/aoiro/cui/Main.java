@@ -116,9 +116,10 @@ public class Main {
 			YamlJournalsLoader journalsLoader = new YamlJournalsLoader(journalEntryFile, accountTitles);
 			List<JournalEntry> journalEntries = journalsLoader.getJournalEntries();
 			System.out.println(" (" + (++processNumber) + ") 仕訳　　 | " + journalEntryFile.getAbsolutePath() + " (" + journalEntries.size() + "件)");
+			System.out.println();
 
-			System.out.println("");
-			
+			accountTitlesLoader.validate();
+
 			if(!skipSettlement) {
 				//決算
 				System.out.println("決算処理を実行しています . . .");

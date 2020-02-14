@@ -15,6 +15,7 @@ import java.util.Set;
 
 import com.esotericsoftware.yamlbeans.YamlReader;
 
+import net.osdn.aoiro.model.Account;
 import net.osdn.aoiro.model.AccountTitle;
 import net.osdn.aoiro.model.AccountType;
 import net.osdn.aoiro.model.Amount;
@@ -282,6 +283,60 @@ public class YamlAccountTitlesLoader {
 				callback.setAccountTitles(node, list);
 			}
 		}
+	}
+
+	/** 指定したノードの勘定科目を再帰的に収集して返します。
+	 *
+	 * @param node 損益計算書または貸借対照表のツリーノード
+	 * @return 収集した勘定科目のセット
+	 */
+	private <V> Set<AccountTitle> retrieve(Node<Map.Entry<List<AccountTitle>, V>> node) {
+		Set<AccountTitle> accountTitles = new HashSet<AccountTitle>();
+		for(AccountTitle accountTitle : node.getValue().getKey()) {
+			accountTitles.add(accountTitle);
+		}
+		for(Node<Map.Entry<List<AccountTitle>, V>> child : node.getChildren()) {
+			accountTitles.addAll(retrieve(child));
+		}
+		return accountTitles;
+	}
+
+	public boolean validate() {
+		boolean valid = true;
+
+		Set<AccountTitle> plAccountTitles = retrieve(plRoot);
+		for(AccountTitle accountTitle : accountTitles) {
+			if(accountTitle.getType() == AccountType.Revenue && !plAccountTitles.contains(accountTitle)) {
+				System.out.println(" [警告] 損益計算書に「" + accountTitle.getDisplayName() + "」が含まれていません。");
+				valid = false;
+			}
+			if(accountTitle.getType() == AccountType.Expense && !plAccountTitles.contains(accountTitle)) {
+				System.out.println(" [警告] 損益計算書に「" + accountTitle.getDisplayName() + "」が含まれていません。");
+				valid = false;
+			}
+		}
+
+		Set<AccountTitle> bsAccountTitles = retrieve(bsRoot);
+		for(AccountTitle accountTitle : accountTitles) {
+			if(accountTitle.getType() == AccountType.Assets && !bsAccountTitles.contains(accountTitle)) {
+				System.out.println(" [警告] 貸借対照表に「" + accountTitle.getDisplayName() + "」が含まれていません。");
+				valid = false;
+			}
+			if(accountTitle.getType() == AccountType.Liabilities && !bsAccountTitles.contains(accountTitle)) {
+				System.out.println(" [警告] 貸借対照表に「" + accountTitle.getDisplayName() + "」が含まれていません。");
+				valid = false;
+			}
+			if(accountTitle.getType() == AccountType.NetAssets && !bsAccountTitles.contains(accountTitle)) {
+				System.out.println(" [警告] 貸借対照表に「" + accountTitle.getDisplayName() + "」が含まれていません。");
+				valid = false;
+			}
+		}
+
+		if(!valid) {
+			System.out.println();
+		}
+
+		return valid;
 	}
 	
 	
