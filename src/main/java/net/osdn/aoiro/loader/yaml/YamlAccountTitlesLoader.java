@@ -59,6 +59,12 @@ public class YamlAccountTitlesLoader {
 	
 	/** 貸借対照表(B/S)に常に表示する見出しのリスト */
 	private Set<String> bsAlwaysShownNames = new HashSet<String>();
+
+	/** ゼロの場合は損益計算書(P/L)に表示しない見出しのリスト */
+	private Set<String> plHiddenNamesIfZero = new HashSet<String>();
+
+	/** ゼロの場合は貸借対照表(B/S)に表示しない見出しのリスト */
+	private Set<String> bsHiddenNamesIfZero = new HashSet<String>();
 	
 	public YamlAccountTitlesLoader(File file) throws IOException {
 		String yaml = AutoDetectReader.readAll(file.toPath());
@@ -87,10 +93,21 @@ public class YamlAccountTitlesLoader {
 			}
 			@SuppressWarnings("unchecked")
 			List<String> netAssets = (List<String>)map.get("純資産");
-			for(String displayName : netAssets) {
-				AccountTitle accountTitle = new AccountTitle(AccountType.NetAssets, displayName);
-				accountTitles.add(accountTitle);
-				accountTitleByDisplayName.put(displayName, accountTitle);
+			if(netAssets != null) {
+				for(String displayName : netAssets) {
+					AccountTitle accountTitle = new AccountTitle(AccountType.NetAssets, displayName);
+					accountTitles.add(accountTitle);
+					accountTitleByDisplayName.put(displayName, accountTitle);
+				}
+			}
+			@SuppressWarnings("unchecked")
+			List<String> equity = (List<String>)map.get("資本");
+			if(equity != null) {
+				for(String displayName : equity) {
+					AccountTitle accountTitle = new AccountTitle(AccountType.NetAssets, displayName);
+					accountTitles.add(accountTitle);
+					accountTitleByDisplayName.put(displayName, accountTitle);
+				}
 			}
 			@SuppressWarnings("unchecked")
 			List<String> revenue = (List<String>)map.get("収益");
@@ -196,9 +213,34 @@ public class YamlAccountTitlesLoader {
 				}
 			}
 		}
+
+		obj = root.get("ゼロなら表示しない見出し");
+		if(obj instanceof Map) {
+			@SuppressWarnings("unchecked")
+			Map<String, Object> map = (Map<String, Object>)obj;
+			Object obj2 = map.get("損益計算書");
+			if(obj2 instanceof List) {
+				@SuppressWarnings("unchecked")
+				List<Object> list = (List<Object>)obj2;
+				for(Object o : list) {
+					if(o != null) {
+						plHiddenNamesIfZero.add(o.toString().trim());
+					}
+				}
+			}
+			Object obj3 = map.get("貸借対照表");
+			if(obj3 instanceof List) {
+				@SuppressWarnings("unchecked")
+				List<Object> list = (List<Object>)obj3;
+				for(Object o : list) {
+					if(o != null) {
+						bsHiddenNamesIfZero.add(o.toString().trim());
+					}
+				}
+			}
+		}
 	}
-	
-	
+
 	private <T> void retrieve(Node<T> parent, Map<String, Object> map, NodeCallback<T> callback) {
 		for(Map.Entry<String, Object> entry : map.entrySet()) {
 			String key = entry.getKey();
@@ -311,7 +353,24 @@ public class YamlAccountTitlesLoader {
 	public Set<String> getAlwaysShownNamesForBalanceSheet() {
 		return bsAlwaysShownNames;
 	}
-	
+
+	/** ゼロの場合に損益計算書に表示しない見出しのセットを返します。
+	 * このリストに含まれる見出しは、合計がゼロのときは表示されません。
+	 *
+	 * @return ゼロの場合に損益計算書に表示しない見出しのリスト
+	 */
+	public Set<String> getHiddenNamesIfZeroForProfitAndLoss() {
+		return plHiddenNamesIfZero;
+	}
+
+	/** ゼロの場合に貸借対照表に表示しない見出しのセットを返します。
+	 * このリストに含まれる見出しは、合計がゼロのときは表示されません。
+	 *
+	 * @return ゼロの場合に貸借対照表に表示しない見出しのリスト
+	 */
+	public Set<String> getHiddenNamesIfZeroForBalanceSheet() {
+		return bsHiddenNamesIfZero;
+	}
 	
 	
 	/*

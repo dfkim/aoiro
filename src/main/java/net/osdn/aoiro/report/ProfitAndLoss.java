@@ -42,6 +42,7 @@ public class ProfitAndLoss {
 	private Node<Entry<List<AccountTitle>, Amount>> plRoot;
 	private List<JournalEntry> journalEntries;
 	private Set<String> alwaysShownNames;
+	private Set<String> hiddenNamesIfZero;
 	private Date openingDate;
 	private Date closingDate;
 	private Map<AccountTitle, Amount> incomeSummaries = new HashMap<AccountTitle, Amount>(); 
@@ -50,10 +51,11 @@ public class ProfitAndLoss {
 	private List<String> pageData = new ArrayList<String>();
 	private List<String> printData;
 	
-	public ProfitAndLoss(Node<Entry<List<AccountTitle>, Amount>> plRoot, List<JournalEntry> journalEntries, boolean isSoloProprietorship, Set<String> alwaysShownNames) throws IOException {
+	public ProfitAndLoss(Node<Entry<List<AccountTitle>, Amount>> plRoot, List<JournalEntry> journalEntries, boolean isSoloProprietorship, Set<String> alwaysShownNames, Set<String> hiddenNamesIfZero) throws IOException {
 		this.plRoot = plRoot;
 		this.journalEntries = journalEntries;
 		this.alwaysShownNames = alwaysShownNames != null ? alwaysShownNames : new HashSet<String>();
+		this.hiddenNamesIfZero = hiddenNamesIfZero != null ? hiddenNamesIfZero : new HashSet<String>();
 		
 		this.openingDate = AccountSettlement.getOpeningDate(journalEntries, isSoloProprietorship);
 		this.closingDate = AccountSettlement.getClosingDate(journalEntries, isSoloProprietorship);
@@ -286,7 +288,11 @@ public class ProfitAndLoss {
 			if(amount == null && !alwaysShownNames.contains(node.getName())) {
 				continue;
 			}
-			
+			//ゼロなら表示しない見出しに含まれていて、ゼロの場合、印字をスキップします。
+			if((amount == null || amount.getValue() == 0) && hiddenNamesIfZero.contains(node.getName())) {
+				continue;
+			}
+
 			if(i >= 1) {
 				if(node.isSubTotal()) {
 					printData.add("\t\\line-style thin solid");

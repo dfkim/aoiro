@@ -143,14 +143,16 @@ public class Main {
 				//損益計算書
 				Node<Entry<List<AccountTitle>, Amount>> plRoot = accountTitlesLoader.getProfitAndLossRoot();
 				Set<String> plAlwaysShownNames = accountTitlesLoader.getAlwaysShownNamesForProfitAndLoss();
-				ProfitAndLoss pl = new ProfitAndLoss(plRoot, journalEntries, isSoloProprietorship, plAlwaysShownNames);
+				Set<String> plHiddenNamesIfZero = accountTitlesLoader.getHiddenNamesIfZeroForProfitAndLoss();
+				ProfitAndLoss pl = new ProfitAndLoss(plRoot, journalEntries, isSoloProprietorship, plAlwaysShownNames, plHiddenNamesIfZero);
 				pl.writeTo(new File("損益計算書.pdf"));
 				System.out.println("  損益計算書.pdf を出力しました。");
 				
 				//貸借対照表
 				Node<Entry<List<AccountTitle>, Amount[]>> bsRoot = accountTitlesLoader.getBalanceSheetRoot();
 				Set<String> bsAlwaysShownNames = accountTitlesLoader.getAlwaysShownNamesForBalanceSheet();
-				BalanceSheet bs = new BalanceSheet(bsRoot, journalEntries, isSoloProprietorship, bsAlwaysShownNames);
+				Set<String> bsHiddenNamesIfZero = accountTitlesLoader.getHiddenNamesIfZeroForBalanceSheet();
+				BalanceSheet bs = new BalanceSheet(bsRoot, journalEntries, isSoloProprietorship, bsAlwaysShownNames, bsHiddenNamesIfZero);
 				bs.writeTo(new File("貸借対照表.pdf"));
 				System.out.println("  貸借対照表.pdf を出力しました。");
 				

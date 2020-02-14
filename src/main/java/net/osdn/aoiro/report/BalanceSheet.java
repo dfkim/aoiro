@@ -46,6 +46,7 @@ public class BalanceSheet {
 	private List<JournalEntry> journalEntries;
 	private boolean isSoloProprietorship;
 	private Set<String> alwaysShownNames;
+	private Set<String> hiddenNamesIfZero;
 	private Date openingDate;
 	private Date closingDate;
 	private Map<AccountTitle, Amount> openingBalances = new HashMap<AccountTitle, Amount>();
@@ -57,11 +58,12 @@ public class BalanceSheet {
 	private List<String> pageData = new ArrayList<String>();
 	private List<String> printData;
 
-	public BalanceSheet(Node<Entry<List<AccountTitle>, Amount[]>> bsRoot, List<JournalEntry> journalEntries, boolean isSoloProprietorship, Set<String> alwaysShownNames) throws IOException {
+	public BalanceSheet(Node<Entry<List<AccountTitle>, Amount[]>> bsRoot, List<JournalEntry> journalEntries, boolean isSoloProprietorship, Set<String> alwaysShownNames, Set<String> hiddenNamesIfZero) throws IOException {
 		this.bsRoot = bsRoot;
 		this.journalEntries = journalEntries;
 		this.isSoloProprietorship = isSoloProprietorship;
 		this.alwaysShownNames = alwaysShownNames != null ? alwaysShownNames : new HashSet<String>();
+		this.hiddenNamesIfZero = hiddenNamesIfZero != null ? hiddenNamesIfZero : new HashSet<String>();
 		
 		this.openingDate = AccountSettlement.getOpeningDate(journalEntries, isSoloProprietorship);
 		this.closingDate = AccountSettlement.getClosingDate(journalEntries, isSoloProprietorship);
@@ -162,7 +164,7 @@ public class BalanceSheet {
 				assetsList = getList(child);
 			} else if(child.getName().equals("負債")) {
 				liabilitiesList = getList(child);
-			} else if(child.getName().equals("純資産")) {
+			} else if(child.getName().equals("純資産") || child.getName().equals("資本")) {
 				equityList = getList(child);
 			}
 		}
@@ -308,6 +310,10 @@ public class BalanceSheet {
 			if(openingAmount == null && closingAmount == null && !alwaysShownNames.contains(displayName)) {
 				continue;
 			}
+			//期首・期末どちらもゼロで表示しない見出しに含まれている場合、印字をスキップします。
+			if((openingAmount == null || openingAmount.getValue() == 0) && (closingAmount == null || closingAmount.getValue() == 0) && hiddenNamesIfZero.contains(displayName)) {
+				continue;
+			}
 			assetsRows++;
 		}
 		int liabilitiesRows = 1;
@@ -320,6 +326,10 @@ public class BalanceSheet {
 			if(openingAmount == null && closingAmount == null && !alwaysShownNames.contains(displayName)) {
 				continue;
 			}
+			//期首・期末どちらもゼロで表示しない見出しに含まれている場合、印字をスキップします。
+			if((openingAmount == null || openingAmount.getValue() == 0) && (closingAmount == null || closingAmount.getValue() == 0) && hiddenNamesIfZero.contains(displayName)) {
+				continue;
+			}
 			liabilitiesRows++;
 		}
 		int equityRows = 1;
@@ -330,6 +340,10 @@ public class BalanceSheet {
 			Amount closingAmount = node.getValue().getValue()[1];
 			//対象の仕訳が存在しない科目は印字をスキップします。（ただし、常に表示する見出しに含まれていない場合に限る。）
 			if(openingAmount == null && closingAmount == null && !alwaysShownNames.contains(displayName)) {
+				continue;
+			}
+			//期首・期末どちらもゼロで表示しない見出しに含まれている場合、印字をスキップします。
+			if((openingAmount == null || openingAmount.getValue() == 0) && (closingAmount == null || closingAmount.getValue() == 0) && hiddenNamesIfZero.contains(displayName)) {
 				continue;
 			}
 			equityRows++;
@@ -371,6 +385,10 @@ public class BalanceSheet {
 			if(openingAmount == null && closingAmount == null && !alwaysShownNames.contains(displayName)) {
 				continue;
 			}
+			//期首・期末どちらもゼロで表示しない見出しに含まれている場合、印字をスキップします。
+			if((openingAmount == null || openingAmount.getValue() == 0) && (closingAmount == null || closingAmount.getValue() == 0) && hiddenNamesIfZero.contains(displayName)) {
+				continue;
+			}
 			printData.add("\t\t\\box " + String.format("2 %.2f 35.5 %.2f", y, ROW_HEIGHT));
 			printData.add("\t\t\\align center left");
 			printData.add("\t\t\\text " + displayName);
@@ -395,6 +413,10 @@ public class BalanceSheet {
 			
 			//対象の仕訳が存在しない科目は印字をスキップします。（ただし、常に表示する見出しに含まれていない場合に限る。）
 			if(openingAmount == null && closingAmount == null && !alwaysShownNames.contains(displayName)) {
+				continue;
+			}
+			//期首・期末どちらもゼロで表示しない見出しに含まれている場合、印字をスキップします。
+			if((openingAmount == null || openingAmount.getValue() == 0) && (closingAmount == null || closingAmount.getValue() == 0) && hiddenNamesIfZero.contains(displayName)) {
 				continue;
 			}
 			printData.add("\t\t\\box " + String.format("89.5 %.2f 35.5 %.2f", y, ROW_HEIGHT));
@@ -422,6 +444,10 @@ public class BalanceSheet {
 			
 			//対象の仕訳が存在しない科目は印字をスキップします。（ただし、常に表示する見出しに含まれていない場合に限る。）
 			if(openingAmount == null && closingAmount == null && !alwaysShownNames.contains(displayName)) {
+				continue;
+			}
+			//期首・期末どちらもゼロで表示しない見出しに含まれている場合、印字をスキップします。
+			if((openingAmount == null || openingAmount.getValue() == 0) && (closingAmount == null || closingAmount.getValue() == 0) && hiddenNamesIfZero.contains(displayName)) {
 				continue;
 			}
 			printData.add("\t\t\\box " + String.format("89.5 %.2f 35.5 %.2f", y, ROW_HEIGHT));
