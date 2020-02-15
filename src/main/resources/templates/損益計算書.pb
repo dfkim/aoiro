@@ -12,7 +12,7 @@
 	\box 0 25 -0 6
 	\font sans-serif 9
 		\box 100 0 -0 -0
-		\text 月別売上(収入)金額及び仕入金額
+		\text 月別売上（収入）金額及び仕入金額
 
 	\box 0 31 -0 6
 	\font sans-serif 9

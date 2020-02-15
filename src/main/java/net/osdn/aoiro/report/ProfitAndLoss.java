@@ -99,7 +99,7 @@ public class ProfitAndLoss {
 		//リスト作成
 		list = createList(plRoot);
 		//list = getList(plRoot);
-		
+
 		//月別集計
 		monthlyTotals = getMonthlyTotals(journalEntries);
 		
@@ -196,7 +196,7 @@ public class ProfitAndLoss {
 					}
 					amounts[0].decrease(debtor.getAmount());
 					map.put(month, amounts);
-				} else if(displayName.equals("雑収入")) {
+				} else if(displayName.equals("家事消費等") || displayName.equals("雑収入")) {
 					Amount[] amounts = map.get(displayName);
 					if(amounts[0] == null) {
 						amounts[0] = new Amount(Creditor.class, 0);
@@ -220,7 +220,7 @@ public class ProfitAndLoss {
 						amounts[0] = new Amount(Creditor.class, 0);
 					}
 					amounts[0].increase(creditor.getAmount());
-				} else if(displayName.equals("雑収入")) {
+				} else if(displayName.equals("家事消費等") || displayName.equals("雑収入")) {
 					Amount[] amounts = map.get(displayName);
 					if(amounts[0] == null) {
 						amounts[0] = new Amount(Creditor.class, 0);
@@ -282,7 +282,7 @@ public class ProfitAndLoss {
 		double y = 0.0;
 		for(int i = 0; i < list.size(); i++) {
 			Node<Entry<List<AccountTitle>, Amount>> node = list.get(i);
-			
+
 			Amount amount = node.getValue().getValue();
 			//対象の仕訳が存在しない科目は印字をスキップします。（ただし、常に表示する見出しに含まれていない場合に限る。）
 			if(amount == null && !alwaysShownNames.contains(node.getName())) {
