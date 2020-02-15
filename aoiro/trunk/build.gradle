@@ -71,14 +71,14 @@ task exewrap(type: Exec, dependsOn: 'jar') {
 	executable "${projectDir}/exewrap.exe"
 	args "-A", "x64",
 		"-t", "11",
-		"-a", "-XX:TieredStopAtLevel=1 -XX:+UseSerialGC -XX:CICompilerCount=1 -Xverify:none -Xms128m",
+		"-a", "-XX:TieredStopAtLevel=1 -XX:+UseSerialGC -XX:CICompilerCount=1 -Xverify:none -Xms384m",
 		"-e", "NOLOG",
 		"-j", "${jar.archiveFile.get()}",
 		"-i", "etc/ico/app.ico",
 		"-o", "${buildDir}/package/${archivesBaseName}.exe",
 		"-p", "aoiro",
 		"-d", "aoiro",
-		"-c", "(C) 2017-2019 HIRUKAWA Ryo",
+		"-c", "(C) 2017-2020 HIRUKAWA Ryo",
 		"-V", "${version}",
 		"-v", "${version}"
 }
