@@ -108,7 +108,7 @@ public class GeneralLedger {
 					List<Account> counterpartAccounts = getCounterpartAccounts(entry, account);
 					for(int l = 0; l < counterpartAccounts.size(); l++) {
 						Account counterpartAccount = counterpartAccounts.get(l);
-						
+
 						//この仕訳の後で改ページが必要かどうか
 						boolean isCarriedForward = false;
 						
@@ -471,12 +471,16 @@ public class GeneralLedger {
 			for(JournalEntry entry : this.entries) {
 				for(Debtor debtor : entry.getDebtors()) {
 					if(accountTitle.equals(debtor.getAccountTitle())) {
-						entriesByAccount.add(entry);
+						if(!entriesByAccount.contains(entry)) {
+							entriesByAccount.add(entry);
+						}
 					}
 				}
 				for(Creditor creditor : entry.getCreditors()) {
 					if(accountTitle.equals(creditor.getAccountTitle())) {
-						entriesByAccount.add(entry);
+						if(!entriesByAccount.contains(entry)) {
+							entriesByAccount.add(entry);
+						}
 					}
 				}
 			}

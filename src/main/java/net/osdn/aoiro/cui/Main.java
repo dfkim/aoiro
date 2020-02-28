@@ -128,9 +128,13 @@ public class Main {
 				accountSettlement.addClosingEntries(journalEntries, proportionalDivisions);
 				System.out.println("");
 			}
-			
-			System.out.println("帳簿を作成しています . . .");
-			
+
+			if(skipSettlement) {
+				System.out.println("帳簿を作成しています . . .");
+			} else {
+				System.out.println("帳簿と決算書を作成しています . . .");
+			}
+
 			GeneralJournal generalJournal = new GeneralJournal(journalEntries, isSoloProprietorship);
 			GeneralLedger generalLedger = new GeneralLedger(accountTitles, journalEntries, isSoloProprietorship);
 

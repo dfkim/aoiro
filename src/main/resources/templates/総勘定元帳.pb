@@ -120,3 +120,5 @@
 \line 0 277 -0 277
 \line 0 282 -0 282
 \line 0 287 -0 287
+
+\text-overflow ellipsis
