@@ -689,12 +689,16 @@ public class AccountSettlement {
 			for(JournalEntry entry : journalEntries) {
 				for(Debtor debtor : entry.getDebtors()) {
 					if(accountTitle.equals(debtor.getAccountTitle())) {
-						entriesByAccount.add(entry);
+						if(!entriesByAccount.contains(entry)) {
+							entriesByAccount.add(entry);
+						}
 					}
 				}
 				for(Creditor creditor : entry.getCreditors()) {
 					if(accountTitle.equals(creditor.getAccountTitle())) {
-						entriesByAccount.add(entry);
+						if(!entriesByAccount.contains(entry)) {
+							entriesByAccount.add(entry);
+						}
 					}
 				}
 			}
