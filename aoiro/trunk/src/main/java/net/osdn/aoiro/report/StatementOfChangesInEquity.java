@@ -6,14 +6,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.chrono.JapaneseDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -23,7 +22,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import net.osdn.aoiro.AccountSettlement;
-import net.osdn.aoiro.Util;
 import net.osdn.aoiro.model.AccountTitle;
 import net.osdn.aoiro.model.AccountType;
 import net.osdn.aoiro.model.Amount;
@@ -51,8 +49,8 @@ public class StatementOfChangesInEquity {
 	private Map<String, List<String>> ceReasons;
 	private Node<List<AccountTitle>> ceRoot;
 	
-	private Date openingDate;
-	private Date closingDate;
+	private LocalDate openingDate;
+	private LocalDate closingDate;
 	private Map<AccountTitle, Amount> openingBalances = new HashMap<AccountTitle, Amount>();
 	private Map<AccountTitle, Amount> closingBalances = new HashMap<AccountTitle, Amount>();
 	private Map<String, Map<AccountTitle, Amount>> changes = new LinkedHashMap<String, Map<AccountTitle, Amount>>();
@@ -370,11 +368,9 @@ public class StatementOfChangesInEquity {
 	protected void prepare() {
 		double y;
 		
-		DateFormat df = new SimpleDateFormat("GGGG y 年 M 月 d 日", Util.getLocale());
-		Calendar calendar = Calendar.getInstance();
-		calendar.setTime(this.openingDate);
-		String openingDate = df.format(this.openingDate).replace(" 1 年", "元年");
-		String closingDate = df.format(this.closingDate).replace(" 1 年", "元年");
+		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("GGGG y 年 M 月 d 日");
+		String openingDate = dtf.format(JapaneseDate.from(this.openingDate)).replace(" 1 年", "元年");
+		String closingDate = dtf.format(JapaneseDate.from(this.closingDate)).replace(" 1 年", "元年");
 		
 		printData = new ArrayList<String>();
 		printData.add("\\media A4");
@@ -468,16 +464,6 @@ public class StatementOfChangesInEquity {
 		brewer.setTitle("社員資本等変動計算書");
 		brewer.process(pb);
 		brewer.save(file);
-		
-		/*
-		//dump
-		try(BufferedWriter w = new BufferedWriter(new FileWriter("dump.pb"))) {
-			for(String line : printData) {
-				w.write(line);
-				w.write("\r\n");
-			}
-		}
-		*/
 	}
 	
 	private static String formatMoney(int amount) {

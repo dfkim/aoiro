@@ -1,7 +1,7 @@
 apply plugin: 'java'
 apply plugin: 'eclipse'
 
-version = '0.4.1'
+version = '0.5'
 
 tasks.withType(JavaCompile) {
 	sourceCompatibility = 11
@@ -14,18 +14,18 @@ repositories {
 }
 
 dependencies {
-	compile fileTree(dir: 'lib',
+	implementation fileTree(dir: 'lib',
 		includes: ['**/*.jar'],
 		excludes: ['**/*-sources.jar', '**/*-javadoc.jar'])
-		
-	compile 'org.freemarker:freemarker:2.3.28'
-	compile 'org.apache.pdfbox:pdfbox:2.0.18'
-	compile 'org.apache.pdfbox:fontbox:2.0.18'
 
-	compile 'net.java.dev.jna:jna:5.5.0'
-	compile 'net.java.dev.jna:jna-platform:5.5.0'
+	implementation 'org.freemarker:freemarker:2.3.30'
+	implementation 'org.apache.pdfbox:pdfbox:2.0.19'
+	implementation 'org.apache.pdfbox:fontbox:2.0.19'
 
-	compile 'net.osdn.util.io:auto-detect-reader:0.1.1'
+	implementation 'net.java.dev.jna:jna:5.5.0'
+	implementation 'net.java.dev.jna:jna-platform:5.5.0'
+
+	implementation 'net.osdn.util.io:auto-detect-reader:0.1.1'
 }
 
 sourceSets.main.resources {
@@ -68,7 +68,7 @@ task createJavaRuntime(type: Exec, dependsOn: ['jar', 'copyLibraries']) {
 task exewrap(type: Exec, dependsOn: 'jar') {
 	setGroup("build")
 	setDescription('Assembles the executable.')
-	executable "${projectDir}/exewrap.exe"
+	executable "${projectDir}/etc/exewrap.exe"
 	args "-A", "x64",
 		"-t", "11",
 		"-a", "-XX:TieredStopAtLevel=1 -XX:+UseSerialGC -XX:CICompilerCount=1 -Xverify:none -Xms256m -Xmx768m",

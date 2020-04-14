@@ -1,10 +1,9 @@
 package net.osdn.aoiro;
 
 import java.io.PrintStream;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -25,7 +24,7 @@ public class AccountSettlement {
 	private boolean isSoloProprietorship;
 	
 	/** 決算日 */
-	private Date date;
+	private LocalDate date;
 	
 	/** 勘定科目セット */
 	private Set<AccountTitle> accountTitles;
@@ -619,13 +618,13 @@ public class AccountSettlement {
 	 * @param journalEntries 仕訳リスト
 	 * @return 開始日
 	 */
-	public static Date getOpeningDate(List<JournalEntry> journalEntries, boolean isSoloProprietorship) {
-		Date date = null;
+	public static LocalDate getOpeningDate(List<JournalEntry> journalEntries, boolean isSoloProprietorship) {
+		LocalDate date = null;
 		
 		for(JournalEntry entry : journalEntries) {
 			if(date == null) {
 				date = entry.getDate();
-			} else if(entry.getDate().before(date)) {
+			} else if(entry.getDate().isBefore(date)) {
 				date = entry.getDate();
 			}
 		}
@@ -638,41 +637,36 @@ public class AccountSettlement {
 	 * @param journalEntries 仕訳リスト
 	 * @return 決算日
 	 */
-	public static Date getClosingDate(List<JournalEntry> journalEntries, boolean isSoloProprietorship) {
-		Date date = null;
+	public static LocalDate getClosingDate(List<JournalEntry> journalEntries, boolean isSoloProprietorship) {
+		LocalDate date = null;
 		
 		if(isSoloProprietorship) {
 			//個人事業主の場合、仕訳から年を求めて、その年の12/31を決算日とします。
 			if(journalEntries.size() > 0) {
 				JournalEntry entry = journalEntries.get(0);
-				Calendar calendar = Calendar.getInstance(Util.getLocale());
-				calendar.setTime(entry.getDate());
-				calendar.set(Calendar.MONTH, 11);
-				calendar.set(Calendar.DAY_OF_MONTH, 31);
-				date = calendar.getTime();
+				date = LocalDate.of(entry.getDate().getYear(), 12, 31);
 			}
 		} else {
 			//法人の場合は仕訳データ内の最小日付から決算日を求めます。
-			Date opening = null;
-			Date closing = null;
+			LocalDate opening = null;
+			//LocalDate closing = null;
 			for(JournalEntry entry : journalEntries) {
 				if(opening == null) {
 					opening = entry.getDate();
-				} else if(entry.getDate().before(opening)) {
+				} else if(entry.getDate().isBefore(opening)) {
 					opening = entry.getDate();
 				}
+				/*
 				if(closing == null) {
 					closing = entry.getDate();
-				} else if(entry.getDate().after(closing)) {
+				} else if(entry.getDate().isAfter(closing)) {
 					closing = entry.getDate();
 				}
+				*/
 			}
-			Calendar calendar = Calendar.getInstance(Util.getLocale());
-			calendar.setTime(opening);
-			calendar.set(Calendar.DAY_OF_MONTH, 1);
-			calendar.add(Calendar.YEAR, 1);
-			calendar.add(Calendar.DATE, -1);
-			date = calendar.getTime();
+			// 最小日付の 1年後の前月の末日
+			date = opening.plusYears(1).minusMonths(1);
+			date = date.withDayOfMonth(date.lengthOfMonth());
 		}
 		return date;
 	}

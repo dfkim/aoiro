@@ -6,11 +6,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.chrono.JapaneseDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -43,8 +43,8 @@ public class ProfitAndLoss {
 	private List<JournalEntry> journalEntries;
 	private Set<String> alwaysShownNames;
 	private Set<String> hiddenNamesIfZero;
-	private Date openingDate;
-	private Date closingDate;
+	private LocalDate openingDate;
+	private LocalDate closingDate;
 	private Map<AccountTitle, Amount> incomeSummaries = new HashMap<AccountTitle, Amount>(); 
 	private List<Node<Entry<List<AccountTitle>, Amount>>> list;
 	private List<Entry<String, Amount[]>> monthlyTotals;
@@ -168,12 +168,9 @@ public class ProfitAndLoss {
 	//月別集計
 	protected List<Entry<String, Amount[]>> getMonthlyTotals(List<JournalEntry> journalEntries) {
 		Map<String, Amount[]> map = new LinkedHashMap<String, Amount[]>();
-		Calendar calendar = Calendar.getInstance(Util.getLocale());
-		calendar.setTime(this.closingDate);
-		calendar.set(Calendar.DAY_OF_MONTH, 1);
-		for(int i = 1; i <= 12; i++) {
-			calendar.add(Calendar.MONTH, 1);
-			String month = (calendar.get(Calendar.MONTH) + 1) + "月";
+		YearMonth ym = YearMonth.from(this.openingDate);
+		for(int i = 0; i < 12; i++) {
+			String month = ym.plusMonths(i).getMonthValue() + "月";
 			map.put(month, new Amount[2]);
 		}
 		map.put("家事消費等", new Amount[2]);
@@ -184,8 +181,7 @@ public class ProfitAndLoss {
 			if(entry.isOpening() || entry.isClosing()) {
 				continue;
 			}
-			calendar.setTime(entry.getDate());
-			String month = (calendar.get(Calendar.MONTH) + 1) + "月";
+			String month = entry.getDate().getMonthValue() + "月";
 			
 			for(Debtor debtor : entry.getDebtors()) {
 				String displayName = debtor.getAccountTitle().getDisplayName();
@@ -250,10 +246,9 @@ public class ProfitAndLoss {
 			return;
 		}
 		
-		
-		DateFormat df = new SimpleDateFormat("GGGG y 年 M 月 d 日", Util.getLocale());
-		String openingDate = df.format(this.openingDate).replace(" 1 年", "元年");
-		String closingDate = df.format(this.closingDate).replace(" 1 年", "元年");
+		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("GGGG y 年 M 月 d 日");
+		String openingDate = dtf.format(JapaneseDate.from(this.openingDate)).replace(" 1 年", "元年");
+		String closingDate = dtf.format(JapaneseDate.from(this.closingDate)).replace(" 1 年", "元年");
 		
 		printData = new ArrayList<String>();
 		printData.add("\\media A4");
@@ -335,26 +330,6 @@ public class ProfitAndLoss {
 		printData.add("\t\\line " + String.format(" 0 30.8  0 %.2f", 37 + y + 0.4));
 		printData.add("\t\\line " + String.format("95 30.8 95 %.2f", 37 + y + 0.4));
 		printData.add("\t\\box 0 37 -0 -0");
-		
-		/*
-		//合計 (青色申告特別控除前の所得金額)
-		{
-			String displayName = list.get(0).getName();
-			int amountValue = 0;
-			Amount amount = list.get(0).getValue();
-			if(amount != null) {
-				amountValue = (amount.getNormalBalance() == Creditor.class) ? amount.getValue() : -amount.getValue();
-			}
-
-			printData.add("\t\t\\font serif 10 bold");
-			printData.add("\t\t\\box " + String.format("2 %.2f 63 %.2f", y, ROW_HEIGHT));
-			printData.add("\t\t\\align center left");
-			printData.add("\t\t\\text " + displayName);
-			printData.add("\t\t\\box " + String.format("63 %.2f 27 %.2f", y, ROW_HEIGHT));
-			printData.add("\t\t\\align center right");
-			printData.add("\t\t\\text " + formatMoney(amountValue));
-		}
-		*/
 		
 		//月別
 		Amount salesTotal = null;

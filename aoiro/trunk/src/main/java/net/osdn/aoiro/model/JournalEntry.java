@@ -1,9 +1,8 @@
 package net.osdn.aoiro.model;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 /** 仕訳
@@ -11,26 +10,26 @@ import java.util.List;
  */
 public class JournalEntry {
 
-	private static ThreadLocal<DateFormat> threadLocalDateFormat = new ThreadLocal<DateFormat>() {
-	    @Override
-	    protected DateFormat initialValue() {
-	        return new SimpleDateFormat("yyyy-MM-dd");
-	    }
-	};
-	
 	/** 日付 */
-	private Date date;
+	private LocalDate date;
 	
 	/** 摘要 */
 	private String description;
 	
 	/** 借方 */
 	private List<Debtor> debtors;
-	
+
 	/** 貸方 */
 	private List<Creditor> creditors;
+
+	/** この仕訳のYAML文字列 */
+	private String yaml;
+
+	public JournalEntry() {
+		this(null, "", null, null);
+	}
 	
-	public JournalEntry(Date date, String description, List<Debtor> debtors, List<Creditor> creditors) {
+	public JournalEntry(LocalDate date, String description, List<Debtor> debtors, List<Creditor> creditors) {
 		this.date = date;
 		this.description = description;
 		this.debtors = debtors;
@@ -42,13 +41,14 @@ public class JournalEntry {
 		if(this.creditors == null) {
 			this.creditors = new ArrayList<Creditor>();
 		}
+		updateYaml();
 	}
-	
+
 	/** 日付を取得します。
 	 * 
 	 * @return 日付
 	 */
-	public Date getDate() {
+	public LocalDate getDate() {
 		return date;
 	}
 	
@@ -56,7 +56,7 @@ public class JournalEntry {
 	 * 
 	 * @param date 日付
 	 */
-	public void setDate(Date date) {
+	public void setDate(LocalDate date) {
 		this.date = date;
 	}
 	
@@ -77,7 +77,7 @@ public class JournalEntry {
 	}
 	
 	/** 借方を取得します。
-	 * 
+	 *
 	 * @return 借方
 	 */
 	public List<Debtor> getDebtors() {
@@ -85,13 +85,25 @@ public class JournalEntry {
 	}
 
 	/** 貸方を取得します。
-	 * 
+	 *
 	 * @return 貸方
 	 */
 	public List<Creditor> getCreditors() {
 		return creditors;
 	}
-	
+
+	/** この仕訳が空かどうかを返します。
+	 * 日付、摘要、借方、貸方のすべてが空文字、null、0件の場合、この仕訳は空です。
+	 *
+	 * @return この仕訳が空の場合は true、そうでなければ false
+	 */
+	public boolean isEmpty() {
+		return date == null
+				&& (description == null || description.isBlank())
+				&& (debtors == null || debtors.size() == 0)
+				&& (creditors == null || creditors.size() == 0);
+	}
+
 
 	/** この仕訳が開始仕訳かどうかを返します。
 	 * 
@@ -184,15 +196,84 @@ public class JournalEntry {
 		return false;
 	}
 
+	public String updateYaml() {
+		StringBuilder sb = new StringBuilder();
+
+		sb.append("- \"日付\" : ");
+		if(date != null) {
+			sb.append('"');
+			sb.append(DateTimeFormatter.ISO_LOCAL_DATE.format(date));
+			sb.append("\"\r\n");
+		} else {
+			sb.append("null\r\n");
+		}
+
+		sb.append("  \"摘要\" : \"");
+		if(description != null) {
+			sb.append(description);
+		}
+		sb.append("\"\r\n");
+
+		sb.append("  \"借方\" : [ ");
+		for(int i = 0; i < debtors.size(); i++) {
+			Debtor debtor = debtors.get(i);
+			sb.append("{\"勘定科目\" : ");
+			AccountTitle accountTitle = debtor.getAccountTitle();
+			String displayName = accountTitle != null ? accountTitle.getDisplayName() : null;
+			sb.append(displayName != null ? ("\"" + displayName + "\"") : "null");
+			sb.append(", \"金額\" : ");
+			sb.append(Integer.toString(debtor.getAmount()));
+			if(i + 1 < debtors.size()) {
+				sb.append("}, ");
+			} else {
+				sb.append("} ");
+			}
+		}
+		sb.append("]\r\n");
+
+		sb.append("  \"貸方\" : [ ");
+		for(int i = 0; i < creditors.size(); i++) {
+			Creditor creditor = creditors.get(i);
+			sb.append("{\"勘定科目\" : ");
+			AccountTitle accountTitle = creditor.getAccountTitle();
+			String displayName = accountTitle != null ? accountTitle.getDisplayName() : null;
+			sb.append(displayName != null ? ("\"" + displayName + "\"") : "null");
+			sb.append(", \"金額\" : ");
+			sb.append(Integer.toString(creditor.getAmount()));
+			if(i + 1 < creditors.size()) {
+				sb.append("}, ");
+			} else {
+				sb.append("} ");
+			}
+		}
+		sb.append("]\r\n");
+
+		yaml = sb.toString();
+		return yaml;
+	}
+
+	public String getYaml() {
+		if(yaml == null) {
+			updateYaml();
+		}
+		return yaml;
+	}
+
 	@Override
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
-		sb.append(threadLocalDateFormat.get().format(date));
+		if(date != null) {
+			sb.append(DateTimeFormatter.ISO_LOCAL_DATE.format(date));
+		} else {
+			sb.append("null");
+		}
 		sb.append(", 借方:[");
 		for(int i = 0; i < debtors.size(); i++) {
 			Debtor debtor = debtors.get(i);
 			sb.append("{");
-			sb.append(debtor.getAccountTitle().getDisplayName());
+			AccountTitle accountTitle = debtor.getAccountTitle();
+			String displayName = accountTitle != null ? accountTitle.getDisplayName() : null;
+			sb.append(displayName != null ? displayName : "null");
 			sb.append(":");
 			sb.append(debtor.getAmount());
 			sb.append("}");
@@ -204,7 +285,9 @@ public class JournalEntry {
 		for(int i = 0; i < creditors.size(); i++) {
 			Creditor creditor = creditors.get(i);
 			sb.append("{");
-			sb.append(creditor.getAccountTitle().getDisplayName());
+			AccountTitle accountTitle = creditor.getAccountTitle();
+			String displayName = accountTitle != null ? accountTitle.getDisplayName() : null;
+			sb.append(displayName != null ? displayName : "null");
 			sb.append(":");
 			sb.append(creditor.getAmount());
 			sb.append("}");
