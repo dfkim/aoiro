@@ -1,6 +1,7 @@
 package net.osdn.aoiro.model;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /** 勘定科目
@@ -77,35 +78,7 @@ public class AccountTitle {
 		return sb.toString();
 	}
 
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((displayName == null) ? 0 : displayName.hashCode());
-		result = prime * result + ((type == null) ? 0 : type.hashCode());
-		return result;
-	}
 
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		AccountTitle other = (AccountTitle) obj;
-		if (displayName == null) {
-			if (other.displayName != null)
-				return false;
-		} else if (!displayName.equals(other.displayName))
-			return false;
-		if (type != other.type)
-			return false;
-		return true;
-	}
-	
-	
 	/** 勘定科目リストから指定した勘定科目名を探して返します。
 	 * 
 	 * @param accountTitles 勘定科目リスト
@@ -138,5 +111,19 @@ public class AccountTitle {
 			}
 		}
 		return false;
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		AccountTitle that = (AccountTitle) o;
+		return type == that.type &&
+				Objects.equals(displayName, that.displayName);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(type, displayName);
 	}
 }

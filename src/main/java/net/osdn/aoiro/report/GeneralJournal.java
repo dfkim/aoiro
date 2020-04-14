@@ -6,9 +6,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 
 import net.osdn.aoiro.AccountSettlement;
@@ -44,16 +43,14 @@ public class GeneralJournal {
 		}
 		r.close();
 		
-		Date closing = AccountSettlement.getClosingDate(entries, isSoloProprietorship);
-		Calendar calendar = Calendar.getInstance();
-		calendar.setTime(closing);
-		if(calendar.get(Calendar.MONTH) == Calendar.DECEMBER && calendar.get(Calendar.DAY_OF_MONTH) == 31) {
+		LocalDate closing = AccountSettlement.getClosingDate(entries, isSoloProprietorship);
+		if(closing.getMonthValue() == 12 && closing.getDayOfMonth() == 31) {
 			//決算日が 12月31日の場合は会計年度の「年」は決算日の「年」と同じになります。
-			financialYear = calendar.get(Calendar.YEAR);
+			financialYear = closing.getYear();
 			isFromNewYearsDay = true;
 		} else {
 			//決算日が 12月31日ではない場合は会計年度の「年」は決算日の前年になります。
-			financialYear = calendar.get(Calendar.YEAR) - 1;
+			financialYear = closing.getYear() - 1;
 			isFromNewYearsDay = false;
 		}
 		
@@ -78,10 +75,8 @@ public class GeneralJournal {
 		
 		for(int i = 0; i < entries.size(); i++) {
 			JournalEntry entry = entries.get(i);
-			Calendar calendar = Calendar.getInstance();
-			calendar.setTime(entry.getDate());
-			int month = calendar.get(Calendar.MONTH) + 1;
-			int day = calendar.get(Calendar.DAY_OF_MONTH);
+			int month = entry.getDate().getMonthValue();
+			int day = entry.getDate().getDayOfMonth();
 
 			//この仕訳の後で改ページが必要かどうか
 			boolean isCarriedForward = false;
@@ -357,15 +352,5 @@ public class GeneralJournal {
 		brewer.setTitle("仕訳帳");
 		brewer.process(pb);
 		brewer.save(file);
-		
-		
-		/*
-		BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8));
-		for(String s : printData) {
-			writer.write(s);
-			writer.write("\r\n");
-		}
-		writer.close();
-		*/
 	}
 }

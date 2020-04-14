@@ -160,7 +160,7 @@ public class Main {
 				BalanceSheet bs = new BalanceSheet(bsRoot, journalEntries, isSoloProprietorship, bsAlwaysShownNames, bsHiddenNamesIfZero);
 				bs.writeTo(new File("貸借対照表.pdf"));
 				System.out.println("  貸借対照表.pdf を出力しました。");
-				
+
 				//社員資本等変動計算書
 				if(!isSoloProprietorship) {
 					Map<String, List<String>> ceReasons = accountTitlesLoader.getStateOfChangesInEquityReasons();
@@ -168,6 +168,14 @@ public class Main {
 					StatementOfChangesInEquity ce = new StatementOfChangesInEquity(ceReasons, ceRoot, journalEntries);
 					ce.writeTo(new File("社員資本等変動計算書.pdf"));
 					System.out.println("  社員資本等変動計算書.pdf を出力しました。");
+				}
+
+				//帳簿・決算書の作成で警告メッセージがあれば出力します。
+				if(bs.getWarnings().size() > 0) {
+					System.out.println();
+					for(String warning : bs.getWarnings()) {
+						System.out.println(warning);
+					}
 				}
 
 				//繰越処理

@@ -9,11 +9,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.text.NumberFormat;
+import java.time.LocalDate;
+import java.time.chrono.JapaneseDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -22,7 +22,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import net.osdn.aoiro.AccountSettlement;
-import net.osdn.aoiro.Util;
 import net.osdn.aoiro.model.AccountTitle;
 import net.osdn.aoiro.model.AccountType;
 import net.osdn.aoiro.model.Amount;
@@ -47,8 +46,8 @@ public class BalanceSheet {
 	private boolean isSoloProprietorship;
 	private Set<String> alwaysShownNames;
 	private Set<String> hiddenNamesIfZero;
-	private Date openingDate;
-	private Date closingDate;
+	private LocalDate openingDate;
+	private LocalDate closingDate;
 	private Map<AccountTitle, Amount> openingBalances = new HashMap<AccountTitle, Amount>();
 	private Map<AccountTitle, Amount> closingBalances = new HashMap<AccountTitle, Amount>();
 	private List<Node<Entry<List<AccountTitle>, Amount[]>>> assetsList;
@@ -57,6 +56,8 @@ public class BalanceSheet {
 	
 	private List<String> pageData = new ArrayList<String>();
 	private List<String> printData;
+
+	private List<String> warnings = new ArrayList<String>();
 
 	public BalanceSheet(Node<Entry<List<AccountTitle>, Amount[]>> bsRoot, List<JournalEntry> journalEntries, boolean isSoloProprietorship, Set<String> alwaysShownNames, Set<String> hiddenNamesIfZero) throws IOException {
 		this.bsRoot = bsRoot;
@@ -177,6 +178,51 @@ public class BalanceSheet {
 		if(equityList == null) {
 			equityList = new ArrayList<Node<Entry<List<AccountTitle>, Amount[]>>>();
 		}
+
+		//
+		// 資産・負債の期首残高がマイナスの場合は警告メッセージを表示します。
+		// 通常、資産・負債がマイナスになることはありません。資本（純資産）はマイナスになることがあります。
+		//
+		for(Entry<AccountTitle, Amount> entry : openingBalances.entrySet()) {
+			AccountTitle accountTitle = entry.getKey();
+			Amount amount = entry.getValue();
+			NumberFormat.getNumberInstance();
+			if(amount.getValue() < 0
+					&& (accountTitle.getType() == AccountType.Assets || accountTitle.getType() == AccountType.Liabilities)) {
+				String msg = " [警告] 貸借対照表の「"
+						+ accountTitle.getDisplayName()
+						+ "」期首残高がマイナスになっています。("
+						+ accountTitle.getDisplayName()
+						+ " "
+						+ NumberFormat.getNumberInstance().format(amount.getValue())
+						+ ")";
+				warnings.add(msg);
+			}
+		}
+		//
+		// 資産・負債の期末残高がマイナスの場合は警告メッセージを表示します。
+		// 通常、資産・負債がマイナスになることはありません。資本（純資産）はマイナスになることがあります。
+		//
+		for(Entry<AccountTitle, Amount> entry : closingBalances.entrySet()) {
+			AccountTitle accountTitle = entry.getKey();
+			Amount amount = entry.getValue();
+			NumberFormat.getNumberInstance();
+			if(amount.getValue() < 0
+					&& (accountTitle.getType() == AccountType.Assets || accountTitle.getType() == AccountType.Liabilities)) {
+				String msg = " [警告] 貸借対照表の「"
+						+ accountTitle.getDisplayName()
+						+ "」期末残高がマイナスになっています。("
+						+ accountTitle.getDisplayName()
+						+ " "
+						+ NumberFormat.getNumberInstance().format(amount.getValue())
+						+ ")";
+				warnings.add(msg);
+			}
+		}
+	}
+
+	public List<String> getWarnings() {
+		return warnings;
 	}
 
 	private Amount[] retrieve(Node<Entry<List<AccountTitle>, Amount[]>> node, List<JournalEntry> journalEntries) {
@@ -236,17 +282,14 @@ public class BalanceSheet {
 	}
 	
 	protected void prepare() {
-		DateFormat df = new SimpleDateFormat("GGGG y 年 M 月 d 日", Util.getLocale());
-		Calendar calendar = Calendar.getInstance();
-		calendar.setTime(this.openingDate);
-		String openingDate = df.format(this.openingDate).replace(" 1 年", "元年");
-		String openingMonth = Integer.toString(calendar.get(Calendar.MONTH) + 1);
-		String openingDay = Integer.toString(calendar.get(Calendar.DAY_OF_MONTH));
-		calendar.setTime(this.closingDate);
-		String closingDate = df.format(this.closingDate).replace(" 1 年", "元年");
-		String closingMonth = Integer.toString(calendar.get(Calendar.MONTH) + 1);
-		String closingDay = Integer.toString(calendar.get(Calendar.DAY_OF_MONTH));
-		
+		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("GGGG y 年 M 月 d 日");
+		String openingDate = dtf.format(JapaneseDate.from(this.openingDate)).replace(" 1 年", "元年");
+		String openingMonth = Integer.toString(this.openingDate.getMonthValue());
+		String openingDay = Integer.toString(this.openingDate.getDayOfMonth());
+		String closingDate = dtf.format(JapaneseDate.from(this.closingDate)).replace(" 1 年", "元年");
+		String closingMonth = Integer.toString(this.closingDate.getMonthValue());
+		String closingDay = Integer.toString(this.closingDate.getDayOfMonth());
+
 		printData = new ArrayList<String>();
 		printData.add("\\media A4");
 
@@ -532,16 +575,6 @@ public class BalanceSheet {
 		brewer.setTitle("貸借対照表");
 		brewer.process(pb);
 		brewer.save(file);
-		
-		
-		/*
-		BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8));
-		for(String s : printData) {
-			writer.write(s);
-			writer.write("\r\n");
-		}
-		writer.close();
-		*/
 	}
 
 	/** 次期開始仕訳を作成します。
@@ -557,11 +590,8 @@ public class BalanceSheet {
 		int creditorsTotal = 0;
 		
 		StringBuilder sb = new StringBuilder();
-		DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
-		Calendar calendar = Calendar.getInstance();
-		calendar.setTime(this.closingDate);
-		calendar.add(Calendar.DATE, 1);
-		
+		String nextOpeningDate = DateTimeFormatter.ISO_LOCAL_DATE.format(this.closingDate.plusDays(1));
+
 		if(isSoloProprietorship) {
 			//個人事業主の場合は、事業主貸(資産)、事業主借(負債)、所得金額(純資産)が次期の元入金に加算されます。
 			//事業主貸、事業主借を除く資産と負債を集計して次期開始仕訳を作成します。
@@ -595,7 +625,7 @@ public class BalanceSheet {
 				}
 			}
 			if(debtors.size() > 0) {
-				sb.append("- 日付: " + df.format(calendar.getTime()) + "\r\n");
+				sb.append("- 日付: " + nextOpeningDate + "\r\n");
 				sb.append("  摘要: 元入金\r\n");
 				sb.append("  借方: [ ");
 				for(int i = 0; i < debtors.size(); i++) {
@@ -611,7 +641,7 @@ public class BalanceSheet {
 				sb.append("\r\n");
 			}
 			if(creditors.size() > 0) {
-				sb.append("- 日付: " + df.format(calendar.getTime()) + "\r\n");
+				sb.append("- 日付: " + nextOpeningDate + "\r\n");
 				sb.append("  摘要: 元入金\r\n");
 				sb.append("  借方: [ {勘定科目: 元入金, 金額: " + creditorsTotal + "} ]\r\n");
 				sb.append("  貸方: [ ");
@@ -651,7 +681,7 @@ public class BalanceSheet {
 			}
 			
 			if(debtors.size() > 0 && creditors.size() > 0) {
-				sb.append("- 日付: " + df.format(calendar.getTime()) + "\r\n");
+				sb.append("- 日付: " + nextOpeningDate + "\r\n");
 				sb.append("  摘要: 前期繰越\r\n");
 				sb.append("  借方: [ ");
 				for(int i = 0; i < debtors.size(); i++) {
@@ -684,7 +714,7 @@ public class BalanceSheet {
 			}
 			for(Creditor creditor : entry.getCreditors()) {
 				if(creditor.getAccountTitle().getDisplayName().equals("期末商品棚卸高")) {
-					sb.append("- 日付: " + df.format(calendar.getTime()) + "\r\n");
+					sb.append("- 日付: " + nextOpeningDate + "\r\n");
 					sb.append("  摘要: 前期繰越\r\n");
 					sb.append("  借方: [ {勘定科目: 期首商品棚卸高, 金額: " + creditor.getAmount() + "} ]\r\n");
 					sb.append("  貸方: [ ");
@@ -702,7 +732,7 @@ public class BalanceSheet {
 			}
 			for(Debtor debtor : entry.getDebtors()) {
 				if(debtor.getAccountTitle().getDisplayName().equals("期末商品棚卸高")) {
-					sb.append("- 日付: " + df.format(calendar.getTime()) + "\r\n");
+					sb.append("- 日付: " + nextOpeningDate + "\r\n");
 					sb.append("  摘要: 前期繰越\r\n");
 					sb.append("  借方: [ ");
 					for(int i = 0; i < entry.getCreditors().size(); i++) {
