@@ -54,7 +54,14 @@ public class YamlAccountTitlesLoader {
 	
 	/** 社員資本等変動計算書を集計するためのツリーを構成するルートノード */
 	private Node<List<AccountTitle>> ceRoot;
-	
+
+
+	/** 損益計算書(P/L)で金額の符号を反転して表示する見出しのリスト */
+	private Set<String> plSignReversedNames = new HashSet<String>();
+
+	/** 貸借対照表(B/S)で金額の符号を反転して表示する見出しのリスト */
+	private Set<String> bsSignReversedNames = new HashSet<String>();
+
 	/** 損益計算書(P/L)に常に表示する見出しのリスト */
 	private Set<String> plAlwaysShownNames = new HashSet<String>();
 	
@@ -188,7 +195,33 @@ public class YamlAccountTitlesLoader {
 			});
 			this.ceRoot = ceRoot;
 		}
-		
+
+		obj = root.get("符号を反転して表示する見出し");
+		if(obj instanceof Map) {
+			@SuppressWarnings("unchecked")
+			Map<String, Object> map = (Map<String, Object>)obj;
+			Object obj2 = map.get("損益計算書");
+			if(obj2 instanceof List) {
+				@SuppressWarnings("unchecked")
+				List<Object> list = (List<Object>)obj2;
+				for(Object o : list) {
+					if(o != null) {
+						plSignReversedNames.add(o.toString().trim());
+					}
+				}
+			}
+			Object obj3 = map.get("貸借対照表");
+			if(obj3 instanceof List) {
+				@SuppressWarnings("unchecked")
+				List<Object> list = (List<Object>)obj3;
+				for(Object o : list) {
+					if(o != null) {
+						bsSignReversedNames.add(o.toString().trim());
+					}
+				}
+			}
+		}
+
 		obj = root.get("常に表示する見出し");
 		if(obj instanceof Map) {
 			@SuppressWarnings("unchecked")
@@ -390,38 +423,56 @@ public class YamlAccountTitlesLoader {
 	public Node<List<AccountTitle>> getStateOfChangesInEquityRoot() {
 		return ceRoot;
 	}
-	
+
+	/** 損益計算書で符号を反転して表示する見出しのセットを返します。
+	 * このセットに含まれる見出しは、金額の符号が反転して表示されます。
+	 *
+	 * @return 損益計算書で符号を反転して表示する見出しのセット
+	 */
+	public Set<String> getSignReversedNamesForProfitAndLoss() {
+		return plSignReversedNames;
+	}
+
+	/** 貸借対照表で符号を反転して表示する見出しのセットを返します。
+	 * このセットに含まれる見出しは、金額の符号が反転して表示されます。
+	 *
+	 * @return 貸借対照表で符号を反転して表示する見出しのセット
+	 */
+	public Set<String> getSignReversedNamesForBalanceSheet() {
+		return bsSignReversedNames;
+	}
+
 	/** 損益計算書に常に表示する見出しのセットを返します。
-	 * このリストに含まれる見出しは、対象となる仕訳が存在しない場合でも常に表示されます。
+	 * このセットに含まれる見出しは、対象となる仕訳が存在しない場合でも常に表示されます。
 	 * 
-	 * @return 損益計算書に常に表示する見出しのリスト
+	 * @return 損益計算書に常に表示する見出しのセット
 	 */
 	public Set<String> getAlwaysShownNamesForProfitAndLoss() {
 		return plAlwaysShownNames;
 	}
 
 	/** 貸借対照表に常に表示する見出しのセットを返します。
-	 * このリストに含まれる見出しは、対象となる仕訳が存在しない場合でも常に表示されます。
+	 * このセットに含まれる見出しは、対象となる仕訳が存在しない場合でも常に表示されます。
 	 * 
-	 * @return 貸借対照表のルートノード
+	 * @return 貸借対照表に常に表示する見出しのセット
 	 */
 	public Set<String> getAlwaysShownNamesForBalanceSheet() {
 		return bsAlwaysShownNames;
 	}
 
 	/** ゼロの場合に損益計算書に表示しない見出しのセットを返します。
-	 * このリストに含まれる見出しは、合計がゼロのときは表示されません。
+	 * このセットに含まれる見出しは、合計がゼロのときは表示されません。
 	 *
-	 * @return ゼロの場合に損益計算書に表示しない見出しのリスト
+	 * @return ゼロの場合に損益計算書に表示しない見出しセット
 	 */
 	public Set<String> getHiddenNamesIfZeroForProfitAndLoss() {
 		return plHiddenNamesIfZero;
 	}
 
 	/** ゼロの場合に貸借対照表に表示しない見出しのセットを返します。
-	 * このリストに含まれる見出しは、合計がゼロのときは表示されません。
+	 * このセットに含まれる見出しは、合計がゼロのときは表示されません。
 	 *
-	 * @return ゼロの場合に貸借対照表に表示しない見出しのリスト
+	 * @return ゼロの場合に貸借対照表に表示しない見出しのセット
 	 */
 	public Set<String> getHiddenNamesIfZeroForBalanceSheet() {
 		return bsHiddenNamesIfZero;
