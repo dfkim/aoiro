@@ -82,3 +82,7 @@ task exewrap(type: Exec, dependsOn: 'jar') {
 		"-V", "${version}",
 		"-v", "${version}"
 }
+
+task buildAll(dependsOn: ['createJavaRuntime', 'copyLibraries', 'exewrap', 'clean']) {
+	setGroup("build")
+}
