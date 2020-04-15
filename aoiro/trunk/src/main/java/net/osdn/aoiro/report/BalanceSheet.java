@@ -44,6 +44,7 @@ public class BalanceSheet {
 	private Node<Entry<List<AccountTitle>, Amount[]>> bsRoot;
 	private List<JournalEntry> journalEntries;
 	private boolean isSoloProprietorship;
+	private Set<String> signReversedNames;
 	private Set<String> alwaysShownNames;
 	private Set<String> hiddenNamesIfZero;
 	private LocalDate openingDate;
@@ -59,10 +60,11 @@ public class BalanceSheet {
 
 	private List<String> warnings = new ArrayList<String>();
 
-	public BalanceSheet(Node<Entry<List<AccountTitle>, Amount[]>> bsRoot, List<JournalEntry> journalEntries, boolean isSoloProprietorship, Set<String> alwaysShownNames, Set<String> hiddenNamesIfZero) throws IOException {
+	public BalanceSheet(Node<Entry<List<AccountTitle>, Amount[]>> bsRoot, List<JournalEntry> journalEntries, boolean isSoloProprietorship, Set<String> signReversedNames, Set<String> alwaysShownNames, Set<String> hiddenNamesIfZero) throws IOException {
 		this.bsRoot = bsRoot;
 		this.journalEntries = journalEntries;
 		this.isSoloProprietorship = isSoloProprietorship;
+		this.signReversedNames = signReversedNames != null ? signReversedNames : new HashSet<String>();
 		this.alwaysShownNames = alwaysShownNames != null ? alwaysShownNames : new HashSet<String>();
 		this.hiddenNamesIfZero = hiddenNamesIfZero != null ? hiddenNamesIfZero : new HashSet<String>();
 		
@@ -423,6 +425,7 @@ public class BalanceSheet {
 			String displayName = node.getName();
 			Amount openingAmount = node.getValue().getValue()[0];
 			Amount closingAmount = node.getValue().getValue()[1];
+			int sign = signReversedNames.contains(node.getName()) ? -1 : 1;
 			
 			//対象の仕訳が存在しない科目は印字をスキップします。（ただし、常に表示する見出しに含まれていない場合に限る。）
 			if(openingAmount == null && closingAmount == null && !alwaysShownNames.contains(displayName)) {
@@ -438,11 +441,11 @@ public class BalanceSheet {
 			printData.add("\t\t\\align center right");
 			if(openingAmount != null) {
 				printData.add("\t\t\\box " + String.format("35.5 %.2f 22 %.2f", y, ROW_HEIGHT));
-				printData.add("\t\t\\text " + formatMoney(openingAmount.getValue()));
+				printData.add("\t\t\\text " + formatMoney(sign * openingAmount.getValue()));
 			}
 			if(closingAmount != null) {
 				printData.add("\t\t\\box " + String.format("61.5 %.2f 22 %.2f", y, ROW_HEIGHT));
-				printData.add("\t\t\\text " + formatMoney(closingAmount.getValue()));
+				printData.add("\t\t\\text " + formatMoney(sign * closingAmount.getValue()));
 			}
 			y += ROW_HEIGHT;
 		}
@@ -453,6 +456,7 @@ public class BalanceSheet {
 			String displayName = node.getName();
 			Amount openingAmount = node.getValue().getValue()[0];
 			Amount closingAmount = node.getValue().getValue()[1];
+			int sign = signReversedNames.contains(node.getName()) ? -1 : 1;
 			
 			//対象の仕訳が存在しない科目は印字をスキップします。（ただし、常に表示する見出しに含まれていない場合に限る。）
 			if(openingAmount == null && closingAmount == null && !alwaysShownNames.contains(displayName)) {
@@ -468,11 +472,11 @@ public class BalanceSheet {
 			printData.add("\t\t\\align center right");
 			if(openingAmount != null) {
 				printData.add("\t\t\\box " + String.format("123 %.2f 22 %.2f", y, ROW_HEIGHT));
-				printData.add("\t\t\\text " + formatMoney(openingAmount.getValue()));
+				printData.add("\t\t\\text " + formatMoney(sign * openingAmount.getValue()));
 			}
 			if(closingAmount != null) {
 				printData.add("\t\t\\box " + String.format("149 %.2f 22 %.2f", y, ROW_HEIGHT));
-				printData.add("\t\t\\text " + formatMoney(closingAmount.getValue()));
+				printData.add("\t\t\\text " + formatMoney(sign * closingAmount.getValue()));
 			}
 			y += ROW_HEIGHT;
 		}
@@ -484,6 +488,7 @@ public class BalanceSheet {
 			String displayName = node.getName();
 			Amount openingAmount = node.getValue().getValue()[0];
 			Amount closingAmount = node.getValue().getValue()[1];
+			int sign = signReversedNames.contains(node.getName()) ? -1 : 1;
 			
 			//対象の仕訳が存在しない科目は印字をスキップします。（ただし、常に表示する見出しに含まれていない場合に限る。）
 			if(openingAmount == null && closingAmount == null && !alwaysShownNames.contains(displayName)) {
@@ -499,11 +504,11 @@ public class BalanceSheet {
 			printData.add("\t\t\\align center right");
 			if(openingAmount != null) {
 				printData.add("\t\t\\box " + String.format("123 %.2f 22 %.2f", y, ROW_HEIGHT));
-				printData.add("\t\t\\text " + formatMoney(openingAmount.getValue()));
+				printData.add("\t\t\\text " + formatMoney(sign * openingAmount.getValue()));
 			}
 			if(closingAmount != null) {
 				printData.add("\t\t\\box " + String.format("149 %.2f 22 %.2f", y, ROW_HEIGHT));
-				printData.add("\t\t\\text " + formatMoney(closingAmount.getValue()));
+				printData.add("\t\t\\text " + formatMoney(sign * closingAmount.getValue()));
 			}
 			y += ROW_HEIGHT;
 		}

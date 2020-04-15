@@ -41,6 +41,7 @@ public class ProfitAndLoss {
 	
 	private Node<Entry<List<AccountTitle>, Amount>> plRoot;
 	private List<JournalEntry> journalEntries;
+	private Set<String> signReversedNames;
 	private Set<String> alwaysShownNames;
 	private Set<String> hiddenNamesIfZero;
 	private LocalDate openingDate;
@@ -51,9 +52,10 @@ public class ProfitAndLoss {
 	private List<String> pageData = new ArrayList<String>();
 	private List<String> printData;
 	
-	public ProfitAndLoss(Node<Entry<List<AccountTitle>, Amount>> plRoot, List<JournalEntry> journalEntries, boolean isSoloProprietorship, Set<String> alwaysShownNames, Set<String> hiddenNamesIfZero) throws IOException {
+	public ProfitAndLoss(Node<Entry<List<AccountTitle>, Amount>> plRoot, List<JournalEntry> journalEntries, boolean isSoloProprietorship, Set<String> signReversedNames, Set<String> alwaysShownNames, Set<String> hiddenNamesIfZero) throws IOException {
 		this.plRoot = plRoot;
 		this.journalEntries = journalEntries;
+		this.signReversedNames = signReversedNames != null ? signReversedNames : new HashSet<String>();
 		this.alwaysShownNames = alwaysShownNames != null ? alwaysShownNames : new HashSet<String>();
 		this.hiddenNamesIfZero = hiddenNamesIfZero != null ? hiddenNamesIfZero : new HashSet<String>();
 		
@@ -314,7 +316,8 @@ public class ProfitAndLoss {
 			if(amount != null) {
 				printData.add("\t\t\\box " + String.format("63 %.2f 27 %.2f", y, ROW_HEIGHT));
 				printData.add("\t\t\\align center right");
-				printData.add("\t\t\\text " + formatMoney(amount.getValue()));
+				int sign = signReversedNames.contains(node.getName()) ? -1 : 1;
+				printData.add("\t\t\\text " + formatMoney(sign * amount.getValue()));
 			}
 			y += ROW_HEIGHT;
 		}
