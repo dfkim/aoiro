@@ -426,7 +426,13 @@ public class BalanceSheet {
 			Amount openingAmount = node.getValue().getValue()[0];
 			Amount closingAmount = node.getValue().getValue()[1];
 			int sign = signReversedNames.contains(node.getName()) ? -1 : 1;
-			
+
+			// 事業主貸の期首欄には斜線を引きます。
+			if("事業主貸".equals(node.getName())) {
+				printData.add("\t\t\\box " + String.format("35.5 %.2f 26 %.2f", y, ROW_HEIGHT));
+				printData.add("\t\t\\line-style thin dot");
+				printData.add("\t\t\\line -0 0.15 0 -0.15");
+			}
 			//対象の仕訳が存在しない科目は印字をスキップします。（ただし、常に表示する見出しに含まれていない場合に限る。）
 			if(openingAmount == null && closingAmount == null && !alwaysShownNames.contains(displayName)) {
 				continue;
@@ -489,7 +495,13 @@ public class BalanceSheet {
 			Amount openingAmount = node.getValue().getValue()[0];
 			Amount closingAmount = node.getValue().getValue()[1];
 			int sign = signReversedNames.contains(node.getName()) ? -1 : 1;
-			
+
+			// 事業主借および控除前の所得金額の期首欄には斜線を引きます。
+			if("事業主借".equals(node.getName()) || "控除前の所得金額".equals(node.getName())) {
+				printData.add("\t\t\\box " + String.format("123 %.2f 26 %.2f", y, ROW_HEIGHT));
+				printData.add("\t\t\\line-style thin dot");
+				printData.add("\t\t\\line -0 0.15 0 -0.15");
+			}
 			//対象の仕訳が存在しない科目は印字をスキップします。（ただし、常に表示する見出しに含まれていない場合に限る。）
 			if(openingAmount == null && closingAmount == null && !alwaysShownNames.contains(displayName)) {
 				continue;
