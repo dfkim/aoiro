@@ -330,15 +330,15 @@ public class GeneralLedger {
 			
 			//期末締切線
 			if(entries.size() > 0 && entries.get(entries.size() - 1).isClosing()) {
-				printData.add("\t\t\\box " + String.format("0 %.2f -0 %.2f", currentRow * ROW_HEIGHT, ROW_HEIGHT + 0.4));
+				printData.add("\t\t\\box " + String.format("0 %.2f -0 %.2f", currentRow * ROW_HEIGHT, ROW_HEIGHT + 0.5));
 				printData.add("\t\t\\line-style medium solid");
 				//合計線
-				printData.add("\t\t\\line 75.2 0 134.8 0");
+				printData.add("\t\t\\line 75.325 0 134.675 0");
 				//締切線
-				printData.add("\t\t\\line 0 -0.4 15.8 -0.4");
-				printData.add("\t\t\\line 0 -0.0 15.8 -0.0");
-				printData.add("\t\t\\line 75.2 -0.4 134.8 -0.4");
-				printData.add("\t\t\\line 75.2 -0.0 134.8 -0.0");
+				printData.add("\t\t\\line 0.125 -0.5 15.675 -0.5");
+				printData.add("\t\t\\line 0.125 -0.0 15.675 -0.0");
+				printData.add("\t\t\\line 75.325 -0.5 134.675 -0.5");
+				printData.add("\t\t\\line 75.325 -0.0 134.675 -0.0");
 				//借方合計
 				printData.add("\t\t\\box " + String.format("75 %.2f 25 %.2f", currentRow * ROW_HEIGHT, ROW_HEIGHT));
 				printData.add("\t\t\\font serif 10");

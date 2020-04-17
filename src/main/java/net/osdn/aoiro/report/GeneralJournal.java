@@ -271,7 +271,7 @@ public class GeneralJournal {
 			if(!isCarriedForward && (i + 1 < entries.size())) {
 				printData.add("\t\t\t\\box " + String.format("16 %.2f 77 %.2f", y, ROW_HEIGHT));
 				printData.add("\t\t\t\\line-style medium solid");
-				printData.add("\t\t\t\\line 0.2 -0 -0.2 -0");
+				printData.add("\t\t\t\\line 0.325 -0 -0.325 -0");
 			}
 			
 			//次頁繰越の印字が必要な場合
@@ -279,14 +279,14 @@ public class GeneralJournal {
 				if((ROWS - currentRow - rowsRequired) * ROW_HEIGHT > 0) {
 					printData.add("\t\t\t\\box " + String.format("16 %.2f 77 %.2f", y + ROW_HEIGHT, (ROWS - currentRow - rowsRequired) * ROW_HEIGHT));
 					printData.add("\t\t\t\\line-style medium solid");
-					printData.add("\t\t\t\\line -0.2 0 0.2 -0");
+					printData.add("\t\t\t\\line -0.325 0.15 0.325 -0.15");
 				}
 				
 				printData.add("\t\t\\line-style medium solid");
 				printData.add("\t\t\\box " + String.format("16 %.2f 77 %.2f", (ROWS - 1) * ROW_HEIGHT, ROW_HEIGHT));
-				printData.add("\t\t\\line 0.2 0 -0.2 0");
+				printData.add("\t\t\\line 0.325 0 -0.325 0");
 				printData.add("\t\t\\box " + String.format("101 %.2f -0 %.2f", (ROWS - 1) * ROW_HEIGHT, ROW_HEIGHT));
-				printData.add("\t\t\\line 0.2 0 -0.2 0");
+				printData.add("\t\t\\line 0.325 0 -0.125 0");
 				printData.add("\t\t\\box " + String.format("16 %.2f 75 %.2f", (ROWS - 1) * ROW_HEIGHT, ROW_HEIGHT));
 				printData.add("\t\t\\align center right");
 				printData.add("\t\t\\font serif 10");
@@ -302,13 +302,13 @@ public class GeneralJournal {
 
 			//期末締切線
 			if(i == entries.size() - 1) {
-				printData.add("\t\t\\box " + String.format("0 %.2f -0 %.2f", (currentRow - 1) * ROW_HEIGHT, ROW_HEIGHT + 0.4));
+				printData.add("\t\t\\box " + String.format("0 %.2f -0 %.2f", (currentRow - 1) * ROW_HEIGHT, ROW_HEIGHT + 0.5));
 				printData.add("\t\t\\line-style medium solid");
-				printData.add("\t\t\\line 101.2 0 -0 0");
-				printData.add("\t\t\\line 0 -0.4 15.8 -0.4");
-				printData.add("\t\t\\line 0 -0.0 15.8 -0.0");
-				printData.add("\t\t\\line 101.2 -0.4 -0 -0.4");
-				printData.add("\t\t\\line 101.2 -0.0 -0 -0.0");
+				printData.add("\t\t\\line 101.325 0 -0.125 0");
+				printData.add("\t\t\\line 0.125 -0.5 15.675 -0.5");
+				printData.add("\t\t\\line 0.125 -0.0 15.675 -0.0");
+				printData.add("\t\t\\line 101.325 -0.5 -0.125 -0.5");
+				printData.add("\t\t\\line 101.325 -0.0 -0.125 -0.0");
 				printData.add("\t\t\t\\align center right");
 				printData.add("\t\t\t\\font serif 10");
 				printData.add("\t\t\t\\box " + String.format("101 0 32 %.2f", ROW_HEIGHT));
