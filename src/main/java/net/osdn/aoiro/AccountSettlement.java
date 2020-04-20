@@ -246,7 +246,7 @@ public class AccountSettlement {
 		//int incomeSummaryDebtorGrandTotal = 0;
 		//損益
 		int incomeSummary = 0;
-		
+
 		//全ての収益勘定残高を損益勘定へ振替します。
 		{
 			List<Debtor> debtors = new ArrayList<Debtor>();
@@ -382,9 +382,7 @@ public class AccountSettlement {
 		//貸借対照表の「資本の部」は「純資産の部」に変わりましたが、
 		//損益勘定を繰越利益剰余金に振り替えることは「資本振替」といいます。（純資産振替とはいいません）
 		{
-			if(incomeSummary == 0) {
-				//損益勘定の差額が 0 のときは振替仕訳を作成しません。
-			} else if(incomeSummary > 0) {
+			if(incomeSummary >= 0) { //損益は0でも振替仕訳を出力します。（収益・費用の仕訳がなくて損益0の場合であっても、です。）
 				//借方
 				Debtor debtor = new Debtor(AccountTitle.INCOME_SUMMARY, +incomeSummary);
 				//貸方
@@ -439,18 +437,7 @@ public class AccountSettlement {
 						}
 					}
 				}
-				if(total == 0) {
-					//残高は0でも振替仕訳を出力します。(ノーマルバランスの逆貸借で作成します。)
-					if(accountTitle.getType().getNormalBalance() == Debtor.class) {
-						//貸方
-						Creditor creditor = new Creditor(accountTitle, +total);
-						creditors.add(creditor);
-					} else {
-						//借方
-						Debtor debtor = new Debtor(accountTitle, -total);
-						debtors.add(debtor);
-					}
-				} else if(total > 0) {
+				if(total >= 0) { //残高は0でも振替仕訳を出力します。(ノーマルバランスの逆貸借で作成します。)
 					//貸方
 					Creditor creditor = new Creditor(accountTitle, +total);
 					creditors.add(creditor);
@@ -504,15 +491,13 @@ public class AccountSettlement {
 						}
 					}
 				}
-				if(total == 0) {
-					//
-				} else if(total > 0) {
+				if(total >= 0) { //残高は0でも振替仕訳を出力します。(ノーマルバランスの逆貸借で作成します。)
 					//借方
 					Debtor debtor = new Debtor(accountTitle, +total);
 					debtors.add(debtor);
 					debtorsTotal += (+total);
 				} else if(total < 0) {
-					//借方
+					//貸方
 					Creditor creditor = new Creditor(accountTitle, -total);
 					creditors.add(creditor);
 					creditorsTotal += (-total);
@@ -574,9 +559,7 @@ public class AccountSettlement {
 						}
 					}
 				}
-				if(total == 0) {
-					//
-				} else if(total > 0) {
+				if(total >= 0) { //残高は0でも振替仕訳を出力します。(ノーマルバランスの逆貸借で作成します。)
 					//借方
 					Debtor debtor = new Debtor(accountTitle, +total);
 					debtors.add(debtor);
