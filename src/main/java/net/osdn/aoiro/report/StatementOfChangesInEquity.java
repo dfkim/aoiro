@@ -7,7 +7,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
-import java.time.chrono.JapaneseDate;
+import java.time.chrono.JapaneseChronology;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -368,9 +368,9 @@ public class StatementOfChangesInEquity {
 	protected void prepare() {
 		double y;
 		
-		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("GGGG y 年 M 月 d 日");
-		String openingDate = dtf.format(JapaneseDate.from(this.openingDate)).replace(" 1 年", "元年");
-		String closingDate = dtf.format(JapaneseDate.from(this.closingDate)).replace(" 1 年", "元年");
+		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("GGGG y 年 M 月 d 日").withChronology(JapaneseChronology.INSTANCE);
+		String openingDate = dtf.format(this.openingDate).replace(" 1 年", "元年");
+		String closingDate = dtf.format(this.closingDate).replace(" 1 年", "元年");
 		
 		printData = new ArrayList<String>();
 		printData.add("\\media A4");

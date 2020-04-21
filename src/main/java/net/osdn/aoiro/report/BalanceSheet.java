@@ -11,7 +11,7 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.text.NumberFormat;
 import java.time.LocalDate;
-import java.time.chrono.JapaneseDate;
+import java.time.chrono.JapaneseChronology;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -284,11 +284,11 @@ public class BalanceSheet {
 	}
 	
 	protected void prepare() {
-		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("GGGG y 年 M 月 d 日");
-		String openingDate = dtf.format(JapaneseDate.from(this.openingDate)).replace(" 1 年", "元年");
+		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("GGGG y 年 M 月 d 日").withChronology(JapaneseChronology.INSTANCE);
+		String openingDate = dtf.format(this.openingDate).replace(" 1 年", "元年");
 		String openingMonth = Integer.toString(this.openingDate.getMonthValue());
 		String openingDay = Integer.toString(this.openingDate.getDayOfMonth());
-		String closingDate = dtf.format(JapaneseDate.from(this.closingDate)).replace(" 1 年", "元年");
+		String closingDate = dtf.format(this.closingDate).replace(" 1 年", "元年");
 		String closingMonth = Integer.toString(this.closingDate.getMonthValue());
 		String closingDay = Integer.toString(this.closingDate.getDayOfMonth());
 
