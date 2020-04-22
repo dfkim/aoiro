@@ -222,7 +222,7 @@ public class JournalEntry {
 			String displayName = accountTitle != null ? accountTitle.getDisplayName() : null;
 			sb.append(displayName != null ? ("\"" + displayName + "\"") : "null");
 			sb.append(", \"金額\" : ");
-			sb.append(Integer.toString(debtor.getAmount()));
+			sb.append(Long.toString(debtor.getAmount()));
 			if(i + 1 < debtors.size()) {
 				sb.append("}, ");
 			} else {
@@ -239,7 +239,7 @@ public class JournalEntry {
 			String displayName = accountTitle != null ? accountTitle.getDisplayName() : null;
 			sb.append(displayName != null ? ("\"" + displayName + "\"") : "null");
 			sb.append(", \"金額\" : ");
-			sb.append(Integer.toString(creditor.getAmount()));
+			sb.append(Long.toString(creditor.getAmount()));
 			if(i + 1 < creditors.size()) {
 				sb.append("}, ");
 			} else {

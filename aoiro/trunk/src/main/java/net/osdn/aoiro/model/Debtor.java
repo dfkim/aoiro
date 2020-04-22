@@ -5,7 +5,7 @@ package net.osdn.aoiro.model;
  */
 public class Debtor extends Account {
 	
-	public Debtor(AccountTitle account, int amount) {
+	public Debtor(AccountTitle account, long amount) {
 		setAccountTitle(account);
 		setAmount(amount);
 	}

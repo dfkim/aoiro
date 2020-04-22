@@ -166,10 +166,10 @@ public class YamlJournalsLoader {
 					if(obj instanceof Map) {
 						@SuppressWarnings("unchecked")
 						Map<String, Object> m = (Map<String, Object>)obj;
-						Entry<AccountTitle, Integer> accountWithAmount = parseAccountWithAmount(m);
+						Entry<AccountTitle, Long> accountWithAmount = parseAccountWithAmount(m);
 						if(accountWithAmount != null) {
 							AccountTitle account = accountWithAmount.getKey();
-							int amount = accountWithAmount.getValue();
+							long amount = accountWithAmount.getValue();
 							Debtor debtor = new Debtor(account, amount);
 							debtors.add(debtor);
 						}
@@ -178,10 +178,10 @@ public class YamlJournalsLoader {
 			} else if(obj instanceof Map) {
 				@SuppressWarnings("unchecked")
 				Map<String, Object> m = (Map<String, Object>)obj;
-				Entry<AccountTitle, Integer> accountWithAmount = parseAccountWithAmount(m);
+				Entry<AccountTitle, Long> accountWithAmount = parseAccountWithAmount(m);
 				if(accountWithAmount != null) {
 					AccountTitle account = accountWithAmount.getKey();
-					int amount = accountWithAmount.getValue();
+					long amount = accountWithAmount.getValue();
 					Debtor debtor = new Debtor(account, amount);
 					debtors.add(debtor);
 				}
@@ -215,10 +215,10 @@ public class YamlJournalsLoader {
 					if(obj instanceof Map) {
 						@SuppressWarnings("unchecked")
 						Map<String, Object> m = (Map<String, Object>)obj;
-						Entry<AccountTitle, Integer> accountWithAmount = parseAccountWithAmount(m);
+						Entry<AccountTitle, Long> accountWithAmount = parseAccountWithAmount(m);
 						if(accountWithAmount != null) {
 							AccountTitle account = accountWithAmount.getKey();
-							int amount = accountWithAmount.getValue();
+							long amount = accountWithAmount.getValue();
 							Creditor creditor = new Creditor(account, amount);
 							creditors.add(creditor);
 						}
@@ -227,10 +227,10 @@ public class YamlJournalsLoader {
 			} else if(obj instanceof Map) {
 				@SuppressWarnings("unchecked")
 				Map<String, Object> m = (Map<String, Object>)obj;
-				Entry<AccountTitle, Integer> accountWithAmount = parseAccountWithAmount(m);
+				Entry<AccountTitle, Long> accountWithAmount = parseAccountWithAmount(m);
 				if(accountWithAmount != null) {
 					AccountTitle account = accountWithAmount.getKey();
-					int amount = accountWithAmount.getValue();
+					long amount = accountWithAmount.getValue();
 					Creditor creditor = new Creditor(account, amount);
 					creditors.add(creditor);
 				}
@@ -248,7 +248,7 @@ public class YamlJournalsLoader {
 		return creditors;
 	}
 	
-	private Entry<AccountTitle, Integer> parseAccountWithAmount(Map<String, Object> map) {
+	private Entry<AccountTitle, Long> parseAccountWithAmount(Map<String, Object> map) {
 		Object obj = map.get("勘定科目");
 		if(obj == null) {
 			obj = map.get("科目");
@@ -267,8 +267,8 @@ public class YamlJournalsLoader {
 			throw new IllegalArgumentException("金額が指定されていません");
 		}
 		String s = obj.toString().replace(",", "").trim();
-		int amount = Integer.parseInt(s);
-		Entry<AccountTitle, Integer> entry = new SimpleEntry<AccountTitle, Integer>(account, amount);
+		long amount = Long.parseLong(s);
+		Entry<AccountTitle, Long> entry = new SimpleEntry<>(account, amount);
 		return entry;
 	}
 }

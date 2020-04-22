@@ -35,11 +35,11 @@ public class GeneralLedger {
 	int financialYear;
 	boolean isFromNewYearsDay;
 	
-	private List<String> pageData = new ArrayList<String>();
+	private List<String> pageData = new ArrayList<>();
 	private List<String> printData;
 	
 	public GeneralLedger(Set<AccountTitle> accountTitles, List<JournalEntry> journalEntries, boolean isSoloProprietorship) throws IOException {
-		this.accountTitles = new LinkedHashSet<AccountTitle>(accountTitles);
+		this.accountTitles = new LinkedHashSet<>(accountTitles);
 		this.accountTitles.add(AccountTitle.INCOME_SUMMARY);
 		this.accountTitles.add(AccountTitle.RETAINED_EARNINGS);
 		this.accountTitles.add(AccountTitle.PRETAX_INCOME);
@@ -86,9 +86,9 @@ public class GeneralLedger {
 			int restOfRows = 0;
 			int currentRow = 0;
 			String sign = "";
-			int debtorTotal = 0;
-			int creditorTotal = 0;
-			int accountTitleTotal = 0;
+			long debtorTotal = 0;
+			long creditorTotal = 0;
+			long accountTitleTotal = 0;
 			List<JournalEntry> entries = getJournalEntriesByAccount(accountTitle);
 			for(int j = 0; j < entries.size(); j++) {
 				JournalEntry entry = entries.get(j);
@@ -217,9 +217,7 @@ public class GeneralLedger {
 						if(account.getLedgerPageNumber() <= 0) {
 							account.setLedgerPageNumber(pageNumber);
 						}
-						//counterpartAccount.setLedgerPageNumber(pageNumber);
-						
-						
+
 						//日付
 						printData.add("\t\t\\box " + String.format("0 %.2f -0 %.2f", currentRow * ROW_HEIGHT, ROW_HEIGHT));
 						printData.add("\t\t\\font serif 10");
@@ -361,7 +359,7 @@ public class GeneralLedger {
 	 * @return 勘定リスト
 	 */
 	public List<Account> getAccountsByAccountTitle(JournalEntry entry, AccountTitle accountTitle) {
-		List<Account> accounts = new ArrayList<Account>();
+		List<Account> accounts = new ArrayList<>();
 		for(int k = 0; k < entry.getDebtors().size(); k++) {
 			Debtor debtor = entry.getDebtors().get(k);
 			if(debtor.getAccountTitle().equals(accountTitle)) {
@@ -385,7 +383,7 @@ public class GeneralLedger {
 	 * @return 相手勘定リスト
 	 */
 	public List<Account> getCounterpartAccounts(JournalEntry entry, Account account) {
-		List<Account> counterpartAccounts = new ArrayList<Account>(); //相手勘定科目
+		List<Account> counterpartAccounts = new ArrayList<>(); //相手勘定科目
 
 		if(account.getAccountTitle().getDisplayName().equals("元入金")) {
 			if(account instanceof Debtor) {

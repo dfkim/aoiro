@@ -13,7 +13,7 @@ public abstract class Account {
 	private AccountTitle accountTitle;
 	
 	/** 金額 */
-	private int amount;
+	private long amount;
 	
 	/** 仕訳帳ページ番号 (仕丁) */
 	private int journalPageNumber = 0;
@@ -41,7 +41,7 @@ public abstract class Account {
 	 * 
 	 * @return 金額
 	 */
-	public int getAmount() {
+	public long getAmount() {
 		return amount;
 	}
 	
@@ -49,7 +49,7 @@ public abstract class Account {
 	 * 
 	 * @param amount 金額
 	 */
-	public void setAmount(int amount) {
+	public void setAmount(long amount) {
 		this.amount = amount;
 	}
 	

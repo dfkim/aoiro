@@ -8,9 +8,9 @@ package net.osdn.aoiro.model;
 public class Amount implements Cloneable {
 	
 	private Class<? extends Account> normalBalance;
-	private int value;
+	private long value;
 	
-	public Amount(Class<? extends Account> normalBalance, int value) {
+	public Amount(Class<? extends Account> normalBalance, long value) {
 		this.normalBalance = normalBalance;
 		this.value = value;
 	}
@@ -27,7 +27,7 @@ public class Amount implements Cloneable {
 	 * 
 	 * @return 金額
 	 */
-	public int getValue() {
+	public long getValue() {
 		return value;
 	}
 	
@@ -35,7 +35,7 @@ public class Amount implements Cloneable {
 	 * 
 	 * @param value 金額
 	 */
-	public void setValue(int value) {
+	public void setValue(long value) {
 		this.value = value;
 	}
 
@@ -58,7 +58,7 @@ public class Amount implements Cloneable {
 	 * 
 	 * @param amount 増加させる金額
 	 */
-	public void increase(int amount) {
+	public void increase(long amount) {
 		 this.value += amount;
 	}
 	
@@ -81,7 +81,7 @@ public class Amount implements Cloneable {
 	 * 
 	 * @param amount 減少させる金額
 	 */
-	public void decrease(int amount) {
+	public void decrease(long amount) {
 		this.value -= amount;
 	}
 	

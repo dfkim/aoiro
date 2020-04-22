@@ -12,10 +12,10 @@ public class AccountTitle {
 	/** 諸口 */
 	public static AccountTitle SUNDRIES = new AccountTitle(null, "諸口", false);
 	
-	/** 決算勘定「損益」です。収益と費用がこの損益勘定に振り替えられます。*/
+	/** 決算勘定「損益」です。収益・費用がこの損益勘定に振り替えられます。*/
 	public static AccountTitle INCOME_SUMMARY = new AccountTitle(AccountType.Revenue, "損益", true);
 	
-	/** 決算勘定「残高」です。資産と負債がこの損益勘定に振り替えられます。*/
+	/** 決算勘定「残高」です。資産・負債・資本がこの損益勘定に振り替えられます。*/
 	public static AccountTitle BALANCE = new AccountTitle(AccountType.Assets, "残高", true);
 	
 	/** 決算勘定「繰越利益剰余金」です。収益-費用で算出されます。法人で使用する勘定科目です。*/
