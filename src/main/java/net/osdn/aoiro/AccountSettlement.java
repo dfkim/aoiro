@@ -62,8 +62,8 @@ public class AccountSettlement {
 				List<Creditor> creditors = new ArrayList<Creditor>();
 				
 				for(ProportionalDivision proportionalDivision : proportionalDivisions) {
-					int debtorTotal = 0;
-					int creditorTotal = 0;
+					long debtorTotal = 0;
+					long creditorTotal = 0;
 					for(int i = 0; i < journalEntries.size(); i++) {
 						JournalEntry entry = journalEntries.get(i);
 						for(Debtor debtor : entry.getDebtors()) {
@@ -79,20 +79,20 @@ public class AccountSettlement {
 					}
 					if(debtorTotal > creditorTotal) {
 						double total = (debtorTotal - creditorTotal) * (1.0 - proportionalDivision.getBusinessRatio());
-						int intTotal = (int)Math.floor(total);
-						if(intTotal != 0) {
-							creditors.add(new Creditor(proportionalDivision.getAccountTitle(), intTotal));
+						long longTotal = (long)Math.floor(total);
+						if(longTotal != 0) {
+							creditors.add(new Creditor(proportionalDivision.getAccountTitle(), longTotal));
 						}
 					} else if(creditorTotal > debtorTotal) {
 						double total = (creditorTotal - debtorTotal) * (1.0 - proportionalDivision.getBusinessRatio());
-						int intTotal = (int)Math.floor(total);
-						if(intTotal != 0) {
-							debtors.add(new Debtor(proportionalDivision.getAccountTitle(), intTotal));
+						long longTotal = (long)Math.floor(total);
+						if(longTotal != 0) {
+							debtors.add(new Debtor(proportionalDivision.getAccountTitle(), longTotal));
 						}
 					}
 				}
 				if(debtors.size() > 0) {
-					int creditorTotal = 0;
+					long creditorTotal = 0;
 					for(Debtor debtor : debtors) {
 						creditorTotal += debtor.getAmount();
 					}
@@ -101,7 +101,7 @@ public class AccountSettlement {
 					journalEntries.add(entry);
 				}
 				if(creditors.size() > 0) {
-					int debtorTotal = 0;
+					long debtorTotal = 0;
 					for(Creditor creditor : creditors) {
 						debtorTotal += creditor.getAmount();
 					}
@@ -125,8 +125,8 @@ public class AccountSettlement {
 		AccountTitle mibarai = AccountTitle.getByDisplayName(accountTitles, "未払消費税等");
 		if(karibarai != null && kariuke != null) {
 			boolean existsSettlement = false;
-			int karibaraiTotal = 0;
-			int kariukeTotal = 0;
+			long karibaraiTotal = 0;
+			long kariukeTotal = 0;
 			for(int i = 0; i < journalEntries.size(); i++) {
 				JournalEntry entry = journalEntries.get(i);
 				for(Debtor debtor : entry.getDebtors()) {
@@ -159,8 +159,8 @@ public class AccountSettlement {
 				}
 			}
 			if(!existsSettlement && (karibaraiTotal != 0 || kariukeTotal != 0)) {
-				List<Debtor> debtors = new ArrayList<Debtor>();
-				List<Creditor> creditors = new ArrayList<Creditor>();
+				List<Debtor> debtors = new ArrayList<>();
+				List<Creditor> creditors = new ArrayList<>();
 
 				if(kariukeTotal > 0) {
 					debtors.add(new Debtor(kariuke, kariukeTotal));
@@ -196,19 +196,19 @@ public class AccountSettlement {
 		}
 
 		//収益勘定科目
-		Set<AccountTitle> revenueAccountTitles = new LinkedHashSet<AccountTitle>();
+		Set<AccountTitle> revenueAccountTitles = new LinkedHashSet<>();
 		
 		//費用勘定科目
-		Set<AccountTitle> expenseAccountTitles = new LinkedHashSet<AccountTitle>();
+		Set<AccountTitle> expenseAccountTitles = new LinkedHashSet<>();
 		
 		//資産勘定科目
-		Set<AccountTitle> assetsAccountTitles = new LinkedHashSet<AccountTitle>();
+		Set<AccountTitle> assetsAccountTitles = new LinkedHashSet<>();
 		
 		//負債勘定科目
-		Set<AccountTitle> liabilitiesAccountTitles = new LinkedHashSet<AccountTitle>();
+		Set<AccountTitle> liabilitiesAccountTitles = new LinkedHashSet<>();
 		
 		//純資産勘定科目
-		Set<AccountTitle> netAssetsAccountTitles = new LinkedHashSet<AccountTitle>();
+		Set<AccountTitle> netAssetsAccountTitles = new LinkedHashSet<>();
 		
 		//使用されている収益勘定科目と費用勘定科目を抽出します。
 		for(JournalEntry entry : journalEntries) {
@@ -242,20 +242,18 @@ public class AccountSettlement {
 			}
 		}
 		
-		//int incomeSummaryCreditorGrandTotal = 0;
-		//int incomeSummaryDebtorGrandTotal = 0;
 		//損益
-		int incomeSummary = 0;
+		long incomeSummary = 0;
 
 		//全ての収益勘定残高を損益勘定へ振替します。
 		{
-			List<Debtor> debtors = new ArrayList<Debtor>();
-			int debtorsTotal = 0;
-			List<Creditor> creditors = new ArrayList<Creditor>();
-			int creditorsTotal = 0;
+			List<Debtor> debtors = new ArrayList<>();
+			long debtorsTotal = 0;
+			List<Creditor> creditors = new ArrayList<>();
+			long creditorsTotal = 0;
 			
 			for(AccountTitle accountTitle : revenueAccountTitles) {
-				int total = 0;
+				long total = 0;
 				List<JournalEntry> entries = getJournalEntriesByAccount(journalEntries, accountTitle);
 				for(JournalEntry entry : entries) {
 					for(Creditor creditor : entry.getCreditors()) {
@@ -304,13 +302,13 @@ public class AccountSettlement {
 		
 		//全ての費用勘定残高を損益勘定へ振替します。
 		{
-			List<Debtor> debtors = new ArrayList<Debtor>();
-			int debtorsTotal = 0;
-			List<Creditor> creditors = new ArrayList<Creditor>();
-			int creditorsTotal = 0;
+			List<Debtor> debtors = new ArrayList<>();
+			long debtorsTotal = 0;
+			List<Creditor> creditors = new ArrayList<>();
+			long creditorsTotal = 0;
 			
 			for(AccountTitle accountTitle : expenseAccountTitles) {
-				int total = 0;
+				long total = 0;
 				List<JournalEntry> entries = getJournalEntriesByAccount(journalEntries, accountTitle);
 				for(JournalEntry entry : entries) {
 					for(Debtor debtor : entry.getDebtors()) {
@@ -417,13 +415,13 @@ public class AccountSettlement {
 		
 		//資産の残高振替
 		{
-			List<Debtor> debtors = new ArrayList<Debtor>();
-			int debtorsTotal = 0;
-			List<Creditor> creditors = new ArrayList<Creditor>();
-			int creditorsTotal = 0;
+			List<Debtor> debtors = new ArrayList<>();
+			long debtorsTotal = 0;
+			List<Creditor> creditors = new ArrayList<>();
+			long creditorsTotal = 0;
 			
 			for(AccountTitle accountTitle : assetsAccountTitles) {
-				int total = 0;
+				long total = 0;
 				List<JournalEntry> entries = getJournalEntriesByAccount(journalEntries, accountTitle);
 				for(JournalEntry entry : entries) {
 					for(Debtor debtor : entry.getDebtors()) {
@@ -471,13 +469,13 @@ public class AccountSettlement {
 		
 		//負債の残高振替
 		{
-			List<Debtor> debtors = new ArrayList<Debtor>();
-			int debtorsTotal = 0;
-			List<Creditor> creditors = new ArrayList<Creditor>();
-			int creditorsTotal = 0;
+			List<Debtor> debtors = new ArrayList<>();
+			long debtorsTotal = 0;
+			List<Creditor> creditors = new ArrayList<>();
+			long creditorsTotal = 0;
 			
 			for(AccountTitle accountTitle : liabilitiesAccountTitles) {
-				int total = 0;
+				long total = 0;
 				List<JournalEntry> entries = getJournalEntriesByAccount(journalEntries, accountTitle);
 				for(JournalEntry entry : entries) {
 					for(Creditor creditor : entry.getCreditors()) {
@@ -539,13 +537,13 @@ public class AccountSettlement {
 		
 		//純資産（資本）の残高振替
 		{
-			List<Debtor> debtors = new ArrayList<Debtor>();
-			int debtorsTotal = 0;
-			List<Creditor> creditors = new ArrayList<Creditor>();
-			int creditorsTotal = 0;
+			List<Debtor> debtors = new ArrayList<>();
+			long debtorsTotal = 0;
+			List<Creditor> creditors = new ArrayList<>();
+			long creditorsTotal = 0;
 			
 			for(AccountTitle accountTitle : netAssetsAccountTitles) {
-				int total = 0;
+				long total = 0;
 				List<JournalEntry> entries = getJournalEntriesByAccount(journalEntries, accountTitle);
 				for(JournalEntry entry : entries) {
 					for(Creditor creditor : entry.getCreditors()) {

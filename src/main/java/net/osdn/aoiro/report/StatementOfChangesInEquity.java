@@ -51,16 +51,16 @@ public class StatementOfChangesInEquity {
 	
 	private LocalDate openingDate;
 	private LocalDate closingDate;
-	private Map<AccountTitle, Amount> openingBalances = new HashMap<AccountTitle, Amount>();
-	private Map<AccountTitle, Amount> closingBalances = new HashMap<AccountTitle, Amount>();
-	private Map<String, Map<AccountTitle, Amount>> changes = new LinkedHashMap<String, Map<AccountTitle, Amount>>();
+	private Map<AccountTitle, Amount> openingBalances = new HashMap<>();
+	private Map<AccountTitle, Amount> closingBalances = new HashMap<>();
+	private Map<String, Map<AccountTitle, Amount>> changes = new LinkedHashMap<>();
 
 	private int headerColumns;
 	private int headerRows;
-	private Map<Node<List<AccountTitle>>, Rectangle> headerRects = new LinkedHashMap<Node<List<AccountTitle>>, Rectangle>();
-	private List<Node<Amount[]>> rows = new ArrayList<Node<Amount[]>>();
+	private Map<Node<List<AccountTitle>>, Rectangle> headerRects = new LinkedHashMap<>();
+	private List<Node<Amount[]>> rows = new ArrayList<>();
 	
-	private List<String> pageData = new ArrayList<String>();
+	private List<String> pageData = new ArrayList<>();
 	private List<String> printData;
 	
 	public StatementOfChangesInEquity(Map<String, List<String>> ceReasons, Node<List<AccountTitle>> ceRoot, List<JournalEntry> journalEntries) throws IOException {
@@ -180,7 +180,7 @@ public class StatementOfChangesInEquity {
 		}
 
 		{ //変動事由に含まれていない摘要が存在した場合は変動事由に追加します。
-			Set<String> descriptions = new HashSet<String>();
+			Set<String> descriptions = new HashSet<>();
 			for(List<String> list : ceReasons.values()) {
 				if(list != null) {
 					for(String s : list) {
@@ -199,7 +199,7 @@ public class StatementOfChangesInEquity {
 		calculateHeaderRects(ceRoot);
 		
 		// 当期首残高
-		Node<Amount[]> openingRow = new Node<Amount[]>(0, "当期首残高");
+		Node<Amount[]> openingRow = new Node<>(0, "当期首残高");
 		openingRow.setValue(new Amount[headerColumns]);
 		rows.add(openingRow);
 		for(Entry<AccountTitle, Amount> e : openingBalances.entrySet()) {
@@ -214,11 +214,11 @@ public class StatementOfChangesInEquity {
 		}
 		
 		// 当期変動額合計
-		Node<Amount[]> totalChangesRow = new Node<Amount[]>(0, "当期変動額合計");
+		Node<Amount[]> totalChangesRow = new Node<>(0, "当期変動額合計");
 		totalChangesRow.setValue(new Amount[headerColumns]);
 		rows.add(totalChangesRow);
 		for(Entry<String, List<String>> ey : ceReasons.entrySet()) {
-			Node<Amount[]> changeRow = new Node<Amount[]>(1, "　" + ey.getKey());
+			Node<Amount[]> changeRow = new Node<>(1, "　" + ey.getKey());
 			changeRow.setValue(new Amount[headerColumns]);
 			rows.add(changeRow);
 			if(ey.getValue() != null) {
@@ -251,7 +251,7 @@ public class StatementOfChangesInEquity {
 		}
 		
 		// 当期末残高
-		Node<Amount[]> closingRow = new Node<Amount[]>(0, "当期末残高");
+		Node<Amount[]> closingRow = new Node<>(0, "当期末残高");
 		closingRow.setValue(new Amount[headerColumns]);
 		rows.add(closingRow);
 		for(Entry<AccountTitle, Amount> e : closingBalances.entrySet()) {
@@ -267,7 +267,7 @@ public class StatementOfChangesInEquity {
 	}
 
 	protected List<Integer> getColumnIndexes(AccountTitle accountTitle) {
-		List<Integer> columnIndexes = new ArrayList<Integer>();
+		List<Integer> columnIndexes = new ArrayList<>();
 		
 		for(Entry<Node<List<AccountTitle>>, Rectangle> e : this.headerRects.entrySet()) {
 			for(AccountTitle title : e.getKey().getValue()) {
@@ -414,7 +414,7 @@ public class StatementOfChangesInEquity {
 		
 		//ヘッダー部分
 		printData.add("\t\\box " + String.format("35.0 25.2 %.2f %.2f", HEADER_TITLE_WIDTH, y - 25.2));
-		Set<Double> lineX = new HashSet<Double>();
+		Set<Double> lineX = new HashSet<>();
 		for(Entry<Node<List<AccountTitle>>, Rectangle> e : this.headerRects.entrySet()) {
 			Rectangle rect = e.getValue();
 			Node<List<AccountTitle>> node = e.getKey();
@@ -466,9 +466,9 @@ public class StatementOfChangesInEquity {
 		brewer.save(file);
 	}
 	
-	private static String formatMoney(int amount) {
+	private static String formatMoney(long amount) {
 		if(MINUS_SIGN != null && amount < 0) {
-			return "△" + String.format("%,d", -amount);
+			return MINUS_SIGN + String.format("%,d", -amount);
 		}
 		return String.format("%,d", amount);
 	}

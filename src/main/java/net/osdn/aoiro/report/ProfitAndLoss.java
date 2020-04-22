@@ -45,18 +45,18 @@ public class ProfitAndLoss {
 	private Set<String> hiddenNamesIfZero;
 	private LocalDate openingDate;
 	private LocalDate closingDate;
-	private Map<AccountTitle, Amount> incomeSummaries = new HashMap<AccountTitle, Amount>(); 
+	private Map<AccountTitle, Amount> incomeSummaries = new HashMap<>();
 	private List<Node<Entry<List<AccountTitle>, Amount>>> list;
 	private List<Entry<String, Amount[]>> monthlyTotals;
-	private List<String> pageData = new ArrayList<String>();
+	private List<String> pageData = new ArrayList<>();
 	private List<String> printData;
 	
 	public ProfitAndLoss(Node<Entry<List<AccountTitle>, Amount>> plRoot, List<JournalEntry> journalEntries, boolean isSoloProprietorship, Set<String> signReversedNames, Set<String> alwaysShownNames, Set<String> hiddenNamesIfZero) throws IOException {
 		this.plRoot = plRoot;
 		this.journalEntries = journalEntries;
-		this.signReversedNames = signReversedNames != null ? signReversedNames : new HashSet<String>();
-		this.alwaysShownNames = alwaysShownNames != null ? alwaysShownNames : new HashSet<String>();
-		this.hiddenNamesIfZero = hiddenNamesIfZero != null ? hiddenNamesIfZero : new HashSet<String>();
+		this.signReversedNames = signReversedNames != null ? signReversedNames : new HashSet<>();
+		this.alwaysShownNames = alwaysShownNames != null ? alwaysShownNames : new HashSet<>();
+		this.hiddenNamesIfZero = hiddenNamesIfZero != null ? hiddenNamesIfZero : new HashSet<>();
 		
 		this.openingDate = AccountSettlement.getOpeningDate(journalEntries, isSoloProprietorship);
 		this.closingDate = AccountSettlement.getClosingDate(journalEntries, isSoloProprietorship);
@@ -142,7 +142,7 @@ public class ProfitAndLoss {
 	}
 	
 	protected List<Node<Entry<List<AccountTitle>, Amount>>> createList(Node<Entry<List<AccountTitle>, Amount>> plRoot) {
-		List<Node<Entry<List<AccountTitle>, Amount>>> list = new ArrayList<Node<Entry<List<AccountTitle>, Amount>>>();
+		List<Node<Entry<List<AccountTitle>, Amount>>> list = new ArrayList<>();
 		
 		Amount cumulativeAmount = new Amount(Creditor.class, 0);
 		for(Node<Entry<List<AccountTitle>, Amount>> topLevelNode : plRoot.getChildren()) {
@@ -158,7 +158,7 @@ public class ProfitAndLoss {
 	}
 	
 	protected List<Node<Entry<List<AccountTitle>, Amount>>> getSubList(Node<Entry<List<AccountTitle>, Amount>> node) {
-		List<Node<Entry<List<AccountTitle>, Amount>>> list = new ArrayList<Node<Entry<List<AccountTitle>, Amount>>>();
+		List<Node<Entry<List<AccountTitle>, Amount>>> list = new ArrayList<>();
 		list.add(node);
 		for(Node<Entry<List<AccountTitle>, Amount>> child : node.getChildren()) {
 			list.addAll(getSubList(child));
@@ -168,7 +168,7 @@ public class ProfitAndLoss {
 	
 	//月別集計
 	protected List<Entry<String, Amount[]>> getMonthlyTotals(List<JournalEntry> journalEntries) {
-		Map<String, Amount[]> map = new LinkedHashMap<String, Amount[]>();
+		Map<String, Amount[]> map = new LinkedHashMap<>();
 		YearMonth ym = YearMonth.from(this.openingDate);
 		for(int i = 0; i < 12; i++) {
 			String month = ym.plusMonths(i).getMonthValue() + "月";
@@ -336,7 +336,50 @@ public class ProfitAndLoss {
 		//月別
 		Amount salesTotal = null;
 		Amount purchaseTotal = null;
-		
+
+		//月別売上に出現するもっとも大きな金額を求めます。後の工程で最大金額の桁数に応じて表示位置を調整します。
+		long maxAmount = 0;
+		{
+			long cTotal = 0;
+			long dTotal = 0;
+			for(Entry<String, Amount[]> e : monthlyTotals) {
+				Amount[] amounts = e.getValue();
+				if(amounts[0] != null) {
+					cTotal += amounts[0].getValue();
+					long v = Math.abs(amounts[0].getValue());
+					if(v > maxAmount) {
+						maxAmount = v;
+					}
+				}
+				if(amounts[1] != null) {
+					dTotal += amounts[1].getValue();
+					long v = Math.abs(amounts[1].getValue());
+					if(v > maxAmount) {
+						maxAmount = v;
+					}
+				}
+			}
+			if(cTotal > maxAmount) {
+				maxAmount = cTotal;
+			}
+			if(dTotal > maxAmount) {
+				maxAmount = dTotal;
+			}
+		}
+		// 月別の金額印字幅。通常は21mm。最大金額が
+		// 99999999999（11桁）を超える場合は26mm、9999999999（10桁）を超える場合は25mm、
+		// 999999999（9桁）を超える場合は24mm、99999999（8桁）を超える場合は22mm にします。
+		double amountPrintWidth = 21;
+		if(maxAmount > 99999999999L) {
+			amountPrintWidth = 26;
+		} else if(maxAmount > 9999999999L) {
+			amountPrintWidth = 25;
+		} else if(maxAmount > 999999999L) {
+			amountPrintWidth = 24;
+		} else if(maxAmount > 99999999L) {
+			amountPrintWidth = 22;
+		}
+
 		y = 0.0;
 		printData.add("\t\\box 0 37 -0 -0");
 		printData.add("\t\t\\font serif 10");
@@ -354,7 +397,7 @@ public class ProfitAndLoss {
 			printData.add("\t\t\\text " + displayName);
 			
 			if(amounts[0] != null) {
-				printData.add("\t\t\\box " + String.format("125 %.2f 21 %.2f", y, ROW_HEIGHT));
+				printData.add("\t\t\\box " + String.format("125 %.2f %.2f %.2f", y, amountPrintWidth, ROW_HEIGHT));
 				printData.add("\t\t\\align center right");
 				printData.add("\t\t\\text " + formatMoney(amounts[0].getValue()));
 				if(salesTotal == null) {
@@ -363,7 +406,7 @@ public class ProfitAndLoss {
 				salesTotal.increase(amounts[0].getValue());
 			}
 			if(amounts[1] != null) {
-				printData.add("\t\t\\box " + String.format("150 %.2f 21 %.2f", y, ROW_HEIGHT));
+				printData.add("\t\t\\box " + String.format("150 %.2f %.2f %.2f", y, amountPrintWidth, ROW_HEIGHT));
 				printData.add("\t\t\\align center right");
 				printData.add("\t\t\\text " + formatMoney(amounts[1].getValue()));
 				if(purchaseTotal == null) {
@@ -375,12 +418,12 @@ public class ProfitAndLoss {
 		}
 		printData.add("\t\t\\font serif 10 bold");
 		if(salesTotal != null) {
-			printData.add("\t\t\\box " + String.format("125 %.2f 21 %.2f", y, ROW_HEIGHT));
+			printData.add("\t\t\\box " + String.format("125 %.2f %.2f %.2f", y, amountPrintWidth, ROW_HEIGHT));
 			printData.add("\t\t\\align center right");
 			printData.add("\t\t\\text " + formatMoney(salesTotal.getValue()));
 		}
 		if(purchaseTotal != null) {
-			printData.add("\t\t\\box " + String.format("150 %.2f 21 %.2f", y, ROW_HEIGHT));
+			printData.add("\t\t\\box " + String.format("150 %.2f %.2f %.2f", y, amountPrintWidth, ROW_HEIGHT));
 			printData.add("\t\t\\align center right");
 			printData.add("\t\t\\text " + formatMoney(purchaseTotal.getValue()));
 		}
@@ -397,9 +440,9 @@ public class ProfitAndLoss {
 		brewer.save(file);
 	}
 	
-	private static String formatMoney(int amount) {
+	private static String formatMoney(long amount) {
 		if(MINUS_SIGN != null && amount < 0) {
-			return "△" + String.format("%,d", -amount);
+			return MINUS_SIGN + String.format("%,d", -amount);
 		}
 		return String.format("%,d", amount);
 	}

@@ -63,8 +63,8 @@ public class GeneralJournal {
 		int pageNumber = 0;
 		int restOfRows = 0;
 		int currentRow = 0;
-		int debtorTotal = 0;
-		int creditorTotal = 0;
+		long debtorTotal = 0;
+		long creditorTotal = 0;
 
 		printData = new ArrayList<String>();
 		printData.add("\\media A4");

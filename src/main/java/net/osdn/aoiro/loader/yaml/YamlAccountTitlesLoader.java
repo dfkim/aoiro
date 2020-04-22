@@ -15,7 +15,6 @@ import java.util.Set;
 
 import com.esotericsoftware.yamlbeans.YamlReader;
 
-import net.osdn.aoiro.model.Account;
 import net.osdn.aoiro.model.AccountTitle;
 import net.osdn.aoiro.model.AccountType;
 import net.osdn.aoiro.model.Amount;
@@ -28,7 +27,7 @@ import net.osdn.util.io.AutoDetectReader;
 public class YamlAccountTitlesLoader {
 
 	/** システムで使用する決算勘定 */
-	private static Map<String, AccountTitle> settlementAccountTitleByDisplayName = new HashMap<String, AccountTitle>();
+	private static Map<String, AccountTitle> settlementAccountTitleByDisplayName = new HashMap<>();
 	
 	static {
 		settlementAccountTitleByDisplayName.put(AccountTitle.INCOME_SUMMARY.getDisplayName(), AccountTitle.INCOME_SUMMARY);
@@ -38,10 +37,10 @@ public class YamlAccountTitlesLoader {
 	}
 	
 	/** 勘定科目セット */
-	private Set<AccountTitle> accountTitles = new LinkedHashSet<AccountTitle>();
+	private Set<AccountTitle> accountTitles = new LinkedHashSet<>();
 	
 	/** 勘定科目名から勘定科目を取得するためのマップ */
-	private Map<String, AccountTitle> accountTitleByDisplayName = new HashMap<String, AccountTitle>();
+	private Map<String, AccountTitle> accountTitleByDisplayName = new HashMap<>();
 
 	/** 損益計算書(P/L)を集計するためのツリーを構成するルートノード */
 	private Node<Entry<List<AccountTitle>, Amount>> plRoot;
@@ -57,22 +56,22 @@ public class YamlAccountTitlesLoader {
 
 
 	/** 損益計算書(P/L)で金額の符号を反転して表示する見出しのリスト */
-	private Set<String> plSignReversedNames = new HashSet<String>();
+	private Set<String> plSignReversedNames = new HashSet<>();
 
 	/** 貸借対照表(B/S)で金額の符号を反転して表示する見出しのリスト */
-	private Set<String> bsSignReversedNames = new HashSet<String>();
+	private Set<String> bsSignReversedNames = new HashSet<>();
 
 	/** 損益計算書(P/L)に常に表示する見出しのリスト */
-	private Set<String> plAlwaysShownNames = new HashSet<String>();
+	private Set<String> plAlwaysShownNames = new HashSet<>();
 	
 	/** 貸借対照表(B/S)に常に表示する見出しのリスト */
-	private Set<String> bsAlwaysShownNames = new HashSet<String>();
+	private Set<String> bsAlwaysShownNames = new HashSet<>();
 
 	/** ゼロの場合は損益計算書(P/L)に表示しない見出しのリスト */
-	private Set<String> plHiddenNamesIfZero = new HashSet<String>();
+	private Set<String> plHiddenNamesIfZero = new HashSet<>();
 
 	/** ゼロの場合は貸借対照表(B/S)に表示しない見出しのリスト */
-	private Set<String> bsHiddenNamesIfZero = new HashSet<String>();
+	private Set<String> bsHiddenNamesIfZero = new HashSet<>();
 	
 	public YamlAccountTitlesLoader(File file) throws IOException {
 		String yaml = AutoDetectReader.readAll(file.toPath());

@@ -344,6 +344,60 @@ public class BalanceSheet {
 			printData.add("\t\t\\text 負　債　・　純　資　産　の　部");
 		}
 
+		// 貸借対照表に出現するもっとも大きな金額を求めます。後の工程で最大金額の桁数に応じて表示位置を調整します。
+		long maxAmount = 0;
+		if(assetsList.size() > 0) {
+			Node<Entry<List<AccountTitle>, Amount[]>> node = assetsList.get(0);
+			Amount openingAmount = node.getValue().getValue()[0];
+			Amount closingAmount = node.getValue().getValue()[1];
+			if(openingAmount != null) {
+				long v = Math.abs(openingAmount.getValue());
+				if(v > maxAmount) {
+					maxAmount = v;
+				}
+			}
+			if(closingAmount != null) {
+				long v = Math.abs(closingAmount.getValue());
+				if(v > maxAmount) {
+					maxAmount = v;
+				}
+			}
+		}
+		if(liabilitiesList.size() > 0) {
+			Node<Entry<List<AccountTitle>, Amount[]>> node = liabilitiesList.get(0);
+			Amount openingAmount = node.getValue().getValue()[0];
+			Amount closingAmount = node.getValue().getValue()[1];
+			if(openingAmount != null) {
+				long v = Math.abs(openingAmount.getValue());
+				if(v > maxAmount) {
+					maxAmount = v;
+				}
+			}
+			if(closingAmount != null) {
+				long v = Math.abs(closingAmount.getValue());
+				if(v > maxAmount) {
+					maxAmount = v;
+				}
+			}
+		}
+		if(equityList.size() > 0) {
+			Node<Entry<List<AccountTitle>, Amount[]>> node = liabilitiesList.get(0);
+			Amount openingAmount = node.getValue().getValue()[0];
+			Amount closingAmount = node.getValue().getValue()[1];
+			if(openingAmount != null) {
+				long v = Math.abs(openingAmount.getValue());
+				if(v > maxAmount) {
+					maxAmount = v;
+				}
+			}
+			if(closingAmount != null) {
+				long v = Math.abs(closingAmount.getValue());
+				if(v > maxAmount) {
+					maxAmount = v;
+				}
+			}
+		}
+
 		//印字領域の設定
 		int assetsRows = 1;
 		for(int i = 1; i < assetsList.size(); i++) {
@@ -351,6 +405,18 @@ public class BalanceSheet {
 			String displayName = node.getName();
 			Amount openingAmount = node.getValue().getValue()[0];
 			Amount closingAmount = node.getValue().getValue()[1];
+			if(openingAmount != null) {
+				long v = Math.abs(openingAmount.getValue());
+				if(v > maxAmount) {
+					maxAmount = v;
+				}
+			}
+			if(closingAmount != null) {
+				long v = Math.abs(closingAmount.getValue());
+				if(v > maxAmount) {
+					maxAmount = v;
+				}
+			}
 			//対象の仕訳が存在しない科目は印字をスキップします。（ただし、常に表示する見出しに含まれていない場合に限る。）
 			if(openingAmount == null && closingAmount == null && !alwaysShownNames.contains(displayName)) {
 				continue;
@@ -367,6 +433,18 @@ public class BalanceSheet {
 			String displayName = node.getName();
 			Amount openingAmount = node.getValue().getValue()[0];
 			Amount closingAmount = node.getValue().getValue()[1];
+			if(openingAmount != null) {
+				long v = Math.abs(openingAmount.getValue());
+				if(v > maxAmount) {
+					maxAmount = v;
+				}
+			}
+			if(closingAmount != null) {
+				long v = Math.abs(closingAmount.getValue());
+				if(v > maxAmount) {
+					maxAmount = v;
+				}
+			}
 			//対象の仕訳が存在しない科目は印字をスキップします。（ただし、常に表示する見出しに含まれていない場合に限る。）
 			if(openingAmount == null && closingAmount == null && !alwaysShownNames.contains(displayName)) {
 				continue;
@@ -383,6 +461,18 @@ public class BalanceSheet {
 			String displayName = node.getName();
 			Amount openingAmount = node.getValue().getValue()[0];
 			Amount closingAmount = node.getValue().getValue()[1];
+			if(openingAmount != null) {
+				long v = Math.abs(openingAmount.getValue());
+				if(v > maxAmount) {
+					maxAmount = v;
+				}
+			}
+			if(closingAmount != null) {
+				long v = Math.abs(closingAmount.getValue());
+				if(v > maxAmount) {
+					maxAmount = v;
+				}
+			}
 			//対象の仕訳が存在しない科目は印字をスキップします。（ただし、常に表示する見出しに含まれていない場合に限る。）
 			if(openingAmount == null && closingAmount == null && !alwaysShownNames.contains(displayName)) {
 				continue;
@@ -393,6 +483,18 @@ public class BalanceSheet {
 			}
 			equityRows++;
 		}
+
+		// 貸借対照表の金額印字幅。通常は22mm。最大金額が 99999999999（11桁）を超える場合は26mm、
+		// 9999999999（10桁）を超える場合は25mm、999999999（9桁）を超える場合は24mm にします。
+		double amountPrintWidth = 22;
+		if(maxAmount > 99999999999L) {
+			amountPrintWidth = 26;
+		} else if(maxAmount > 9999999999L) {
+			amountPrintWidth = 25;
+		} else if(maxAmount > 999999999L) {
+			amountPrintWidth = 24;
+		}
+
 		int rows = Math.max(assetsRows, liabilitiesRows + equityRows);
 		printData.add("\t\\box 0 0 -0 -0");
 		printData.add("\t\\line-style thin solid");
@@ -446,11 +548,11 @@ public class BalanceSheet {
 			printData.add("\t\t\\text " + displayName);
 			printData.add("\t\t\\align center right");
 			if(openingAmount != null) {
-				printData.add("\t\t\\box " + String.format("35.5 %.2f 22 %.2f", y, ROW_HEIGHT));
+				printData.add("\t\t\\box " + String.format("35.5 %.2f %.2f %.2f", y, amountPrintWidth, ROW_HEIGHT));
 				printData.add("\t\t\\text " + formatMoney(sign * openingAmount.getValue()));
 			}
 			if(closingAmount != null) {
-				printData.add("\t\t\\box " + String.format("61.5 %.2f 22 %.2f", y, ROW_HEIGHT));
+				printData.add("\t\t\\box " + String.format("61.5 %.2f %.2f %.2f", y, amountPrintWidth, ROW_HEIGHT));
 				printData.add("\t\t\\text " + formatMoney(sign * closingAmount.getValue()));
 			}
 			y += ROW_HEIGHT;
@@ -477,11 +579,11 @@ public class BalanceSheet {
 			printData.add("\t\t\\text " + displayName);
 			printData.add("\t\t\\align center right");
 			if(openingAmount != null) {
-				printData.add("\t\t\\box " + String.format("123 %.2f 22 %.2f", y, ROW_HEIGHT));
+				printData.add("\t\t\\box " + String.format("123 %.2f %.2f %.2f", y, amountPrintWidth, ROW_HEIGHT));
 				printData.add("\t\t\\text " + formatMoney(sign * openingAmount.getValue()));
 			}
 			if(closingAmount != null) {
-				printData.add("\t\t\\box " + String.format("149 %.2f 22 %.2f", y, ROW_HEIGHT));
+				printData.add("\t\t\\box " + String.format("149 %.2f %.2f %.2f", y, amountPrintWidth, ROW_HEIGHT));
 				printData.add("\t\t\\text " + formatMoney(sign * closingAmount.getValue()));
 			}
 			y += ROW_HEIGHT;
@@ -515,11 +617,11 @@ public class BalanceSheet {
 			printData.add("\t\t\\text " + displayName);
 			printData.add("\t\t\\align center right");
 			if(openingAmount != null) {
-				printData.add("\t\t\\box " + String.format("123 %.2f 22 %.2f", y, ROW_HEIGHT));
+				printData.add("\t\t\\box " + String.format("123 %.2f %.2f %.2f", y, amountPrintWidth, ROW_HEIGHT));
 				printData.add("\t\t\\text " + formatMoney(sign * openingAmount.getValue()));
 			}
 			if(closingAmount != null) {
-				printData.add("\t\t\\box " + String.format("149 %.2f 22 %.2f", y, ROW_HEIGHT));
+				printData.add("\t\t\\box " + String.format("149 %.2f %.2f %.2f", y, amountPrintWidth, ROW_HEIGHT));
 				printData.add("\t\t\\text " + formatMoney(sign * closingAmount.getValue()));
 			}
 			y += ROW_HEIGHT;
@@ -539,11 +641,11 @@ public class BalanceSheet {
 			printData.add("\t\t\\text " + displayName);
 			printData.add("\t\t\\align center right");
 			if(openingAmount != null) {
-				printData.add("\t\t\\box " + String.format("35.5 %.2f 22 %.2f", y, ROW_HEIGHT));
+				printData.add("\t\t\\box " + String.format("35.5 %.2f %.2f %.2f", y, amountPrintWidth, ROW_HEIGHT));
 				printData.add("\t\t\\text " + formatMoney(openingAmount.getValue()));
 			}
 			if(closingAmount != null) {
-				printData.add("\t\t\\box " + String.format("61.5 %.2f 22 %.2f", y, ROW_HEIGHT));
+				printData.add("\t\t\\box " + String.format("61.5 %.2f %.2f %.2f", y, amountPrintWidth, ROW_HEIGHT));
 				printData.add("\t\t\\text " + formatMoney(closingAmount.getValue()));
 			}
 		}
@@ -577,9 +679,9 @@ public class BalanceSheet {
 			printData.add("\t\t\\align center left");
 			printData.add("\t\t\\text " + displayName);
 			printData.add("\t\t\\align center right");
-			printData.add("\t\t\\box " + String.format("123 %.2f 22 %.2f", y, ROW_HEIGHT));
+			printData.add("\t\t\\box " + String.format("123 %.2f %.2f %.2f", y, amountPrintWidth, ROW_HEIGHT));
 			printData.add("\t\t\\text " + formatMoney(openingAmount));
-			printData.add("\t\t\\box " + String.format("149 %.2f 22 %.2f", y, ROW_HEIGHT));
+			printData.add("\t\t\\box " + String.format("149 %.2f %.2f %.2f", y, amountPrintWidth, ROW_HEIGHT));
 			printData.add("\t\t\\text " + formatMoney(closingAmount));
 		}
 	}
@@ -601,10 +703,10 @@ public class BalanceSheet {
 	 * @throws IOException 
 	 */
 	public String createOpeningJournalEntries(File file) throws IOException {
-		List<Entry<AccountTitle, Amount>> debtors = new ArrayList<Entry<AccountTitle, Amount>>();
-		int debtorsTotal = 0;
-		List<Entry<AccountTitle, Amount>> creditors = new ArrayList<Entry<AccountTitle, Amount>>();
-		int creditorsTotal = 0;
+		List<Entry<AccountTitle, Amount>> debtors = new ArrayList<>();
+		long debtorsTotal = 0;
+		List<Entry<AccountTitle, Amount>> creditors = new ArrayList<>();
+		long creditorsTotal = 0;
 		
 		StringBuilder sb = new StringBuilder();
 		String nextOpeningDate = DateTimeFormatter.ISO_LOCAL_DATE.format(this.closingDate.plusDays(1));
@@ -778,9 +880,9 @@ public class BalanceSheet {
 		return s;
 	}
 	
-	private static String formatMoney(int amount) {
+	private static String formatMoney(long amount) {
 		if(MINUS_SIGN != null && amount < 0) {
-			return "△" + String.format("%,d", -amount);
+			return MINUS_SIGN + String.format("%,d", -amount);
 		}
 		return String.format("%,d", amount);
 	}
