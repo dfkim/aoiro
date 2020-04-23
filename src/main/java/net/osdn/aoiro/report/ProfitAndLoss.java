@@ -40,6 +40,7 @@ public class ProfitAndLoss {
 	
 	private Node<Entry<List<AccountTitle>, Amount>> plRoot;
 	private List<JournalEntry> journalEntries;
+	private boolean isSoloProprietorship;
 	private Set<String> signReversedNames;
 	private Set<String> alwaysShownNames;
 	private Set<String> hiddenNamesIfZero;
@@ -54,6 +55,7 @@ public class ProfitAndLoss {
 	public ProfitAndLoss(Node<Entry<List<AccountTitle>, Amount>> plRoot, List<JournalEntry> journalEntries, boolean isSoloProprietorship, Set<String> signReversedNames, Set<String> alwaysShownNames, Set<String> hiddenNamesIfZero) throws IOException {
 		this.plRoot = plRoot;
 		this.journalEntries = journalEntries;
+		this.isSoloProprietorship = isSoloProprietorship;
 		this.signReversedNames = signReversedNames != null ? signReversedNames : new HashSet<>();
 		this.alwaysShownNames = alwaysShownNames != null ? alwaysShownNames : new HashSet<>();
 		this.hiddenNamesIfZero = hiddenNamesIfZero != null ? hiddenNamesIfZero : new HashSet<>();
@@ -174,7 +176,9 @@ public class ProfitAndLoss {
 			String month = ym.plusMonths(i).getMonthValue() + "月";
 			map.put(month, new Amount[2]);
 		}
-		map.put("家事消費等", new Amount[2]);
+		if(isSoloProprietorship) {
+			map.put("家事消費等", new Amount[2]);
+		}
 		map.put("雑収入", new Amount[2]);
 
 		for(JournalEntry entry : journalEntries) {
@@ -192,21 +196,20 @@ public class ProfitAndLoss {
 						amounts[0] = new Amount(Creditor.class, 0);
 					}
 					amounts[0].decrease(debtor.getAmount());
-					map.put(month, amounts);
 				} else if(displayName.equals("家事消費等") || displayName.equals("雑収入")) {
 					Amount[] amounts = map.get(displayName);
-					if(amounts[0] == null) {
-						amounts[0] = new Amount(Creditor.class, 0);
+					if(amounts != null) { // 法人の場合は「家事消費等」がないためamountsがnullになる可能性があります。
+						if(amounts[0] == null) {
+							amounts[0] = new Amount(Creditor.class, 0);
+						}
+						amounts[0].decrease(debtor.getAmount());
 					}
-					amounts[0].decrease(debtor.getAmount());
-					map.put(month, amounts);
 				} else if(displayName.equals("仕入")) {
 					Amount[] amounts = map.get(month);
 					if(amounts[1] == null) {
 						amounts[1] = new Amount(Debtor.class, 0);
 					}
 					amounts[1].increase(debtor.getAmount());
-					map.put(month, amounts);
 				}
 			}
 			for(Creditor creditor : entry.getCreditors()) {
@@ -219,17 +222,18 @@ public class ProfitAndLoss {
 					amounts[0].increase(creditor.getAmount());
 				} else if(displayName.equals("家事消費等") || displayName.equals("雑収入")) {
 					Amount[] amounts = map.get(displayName);
-					if(amounts[0] == null) {
-						amounts[0] = new Amount(Creditor.class, 0);
+					if(amounts != null) { // 法人の場合は「家事消費等」がないためamountsがnullになる可能性があります。
+						if(amounts[0] == null) {
+							amounts[0] = new Amount(Creditor.class, 0);
+						}
+						amounts[0].increase(creditor.getAmount());
 					}
-					amounts[0].increase(creditor.getAmount());
 				} else if(displayName.equals("仕入")) {
 					Amount[] amounts = map.get(month);
 					if(amounts[1] == null) {
 						amounts[1] = new Amount(Debtor.class, 0);
 					}
 					amounts[1].decrease(creditor.getAmount());
-					map.put(month, amounts);
 				}
 			}
 		}
@@ -329,8 +333,8 @@ public class ProfitAndLoss {
 		printData.add("\t\\box 0 0 -0 -0");
 		printData.add("\t\\line " + String.format("63 31.2 63 %.2f", 37 + y));
 		printData.add("\t\\line-style thin dot");
-		printData.add("\t\\line " + String.format(" 0 30.8  0 %.2f", 37 + y + 0.4));
-		printData.add("\t\\line " + String.format("95 30.8 95 %.2f", 37 + y + 0.4));
+		printData.add("\t\\line " + String.format(" 0 31.2  0 %.2f", 37 + y));
+		printData.add("\t\\line " + String.format("95 31.2 95 %.2f", 37 + y));
 		printData.add("\t\\box 0 37 -0 -0");
 		
 		//月別
@@ -383,32 +387,38 @@ public class ProfitAndLoss {
 		y = 0.0;
 		printData.add("\t\\box 0 37 -0 -0");
 		printData.add("\t\t\\font serif 10");
+		printData.add("\t\t\\line-style thin dot");
 		for(Entry<String, Amount[]> e : monthlyTotals) {
 			String displayName = e.getKey();
 			Amount[] amounts = e.getValue();
-			
-			if(displayName.endsWith("月")) {
-				printData.add("\t\t\\box " + String.format("105 %.2f 13.5 %.2f", y, ROW_HEIGHT));
-				printData.add("\t\t\\align center right");
-			} else {
-				printData.add("\t\t\\box " + String.format("105 %.2f 20 %.2f", y, ROW_HEIGHT));
-				printData.add("\t\t\\align center");
+
+			if(y > 0.0) {
+				printData.add("\t\t\\line " + String.format("105 %.2f -0 %.2f", y, y));
 			}
-			printData.add("\t\t\\text " + displayName);
+
+			if(displayName.endsWith("月")) {
+				printData.add("\t\t\t\\box " + String.format("105 %.2f 13.5 %.2f", y, ROW_HEIGHT));
+				printData.add("\t\t\t\\align center right");
+			} else {
+				printData.add("\t\t\\line " + String.format("-0 %.2f 150 %.2f", y + 0.15, y + ROW_HEIGHT - 0.15));
+				printData.add("\t\t\t\\box " + String.format("105 %.2f 20 %.2f", y, ROW_HEIGHT));
+				printData.add("\t\t\t\\align center");
+			}
+			printData.add("\t\t\t\\text " + displayName);
 			
 			if(amounts[0] != null) {
-				printData.add("\t\t\\box " + String.format("125 %.2f %.2f %.2f", y, amountPrintWidth, ROW_HEIGHT));
-				printData.add("\t\t\\align center right");
-				printData.add("\t\t\\text " + formatMoney(amounts[0].getValue()));
+				printData.add("\t\t\t\\box " + String.format("125 %.2f %.2f %.2f", y, amountPrintWidth, ROW_HEIGHT));
+				printData.add("\t\t\t\\align center right");
+				printData.add("\t\t\t\\text " + formatMoney(amounts[0].getValue()));
 				if(salesTotal == null) {
 					salesTotal = new Amount(Creditor.class, 0);
 				}
 				salesTotal.increase(amounts[0].getValue());
 			}
 			if(amounts[1] != null) {
-				printData.add("\t\t\\box " + String.format("150 %.2f %.2f %.2f", y, amountPrintWidth, ROW_HEIGHT));
-				printData.add("\t\t\\align center right");
-				printData.add("\t\t\\text " + formatMoney(amounts[1].getValue()));
+				printData.add("\t\t\t\\box " + String.format("150 %.2f %.2f %.2f", y, amountPrintWidth, ROW_HEIGHT));
+				printData.add("\t\t\t\\align center right");
+				printData.add("\t\t\t\\text " + formatMoney(amounts[1].getValue()));
 				if(purchaseTotal == null) {
 					purchaseTotal = new Amount(Debtor.class, 0);
 				}
@@ -416,20 +426,33 @@ public class ProfitAndLoss {
 			}
 			y += ROW_HEIGHT;
 		}
+		printData.add("\t\t\\line-style thin solid");
+		printData.add("\t\t\\line " + String.format("105 %.2f -0 %.2f", y, y));
+		printData.add("\t\t\\line " + String.format("105 %.2f -0 %.2f", y + ROW_HEIGHT, y + ROW_HEIGHT));
+		printData.add("\t\t\\line " + String.format("105 %.2f -0 %.2f", y + ROW_HEIGHT + 0.4, y + ROW_HEIGHT + 0.4));
 		printData.add("\t\t\\font serif 10 bold");
+		printData.add("\t\t\t\\box " + String.format("105 %.2f 20 %.2f", y, ROW_HEIGHT));
+		printData.add("\t\t\t\\align center");
+		printData.add("\t\t\t\\text 計");
 		if(salesTotal != null) {
-			printData.add("\t\t\\box " + String.format("125 %.2f %.2f %.2f", y, amountPrintWidth, ROW_HEIGHT));
-			printData.add("\t\t\\align center right");
-			printData.add("\t\t\\text " + formatMoney(salesTotal.getValue()));
+			printData.add("\t\t\t\\box " + String.format("125 %.2f %.2f %.2f", y, amountPrintWidth, ROW_HEIGHT));
+			printData.add("\t\t\t\\align center right");
+			printData.add("\t\t\t\\text " + formatMoney(salesTotal.getValue()));
 		}
 		if(purchaseTotal != null) {
-			printData.add("\t\t\\box " + String.format("150 %.2f %.2f %.2f", y, amountPrintWidth, ROW_HEIGHT));
-			printData.add("\t\t\\align center right");
-			printData.add("\t\t\\text " + formatMoney(purchaseTotal.getValue()));
+			printData.add("\t\t\t\\box " + String.format("150 %.2f %.2f %.2f", y, amountPrintWidth, ROW_HEIGHT));
+			printData.add("\t\t\t\\align center right");
+			printData.add("\t\t\t\\text " + formatMoney(purchaseTotal.getValue()));
 		}
+		printData.add("\t\\box 0 31 -0 -0");
+		printData.add("\t\t\\line-style thin dot");
+		printData.add("\t\t\\line " + String.format("105 0.2 105 %.2f", y + ROW_HEIGHT + ROW_HEIGHT));
+		printData.add("\t\t\\line " + String.format(" -0 0.2  -0 %.2f", y + ROW_HEIGHT + ROW_HEIGHT));
+		printData.add("\t\t\\line-style thin solid");
+		printData.add("\t\t\\line " + String.format("126 0.2 126 %.2f", y + ROW_HEIGHT + ROW_HEIGHT));
+		printData.add("\t\t\\line " + String.format("150 0.2 150 %.2f", y + ROW_HEIGHT + ROW_HEIGHT));
 	}
 
-	
 	public void writeTo(File file) throws IOException {
 		prepare();
 
