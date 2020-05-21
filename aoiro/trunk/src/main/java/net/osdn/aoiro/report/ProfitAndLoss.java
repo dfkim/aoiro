@@ -167,7 +167,38 @@ public class ProfitAndLoss {
 		}
 		return list;
 	}
-	
+
+	/** 損益計算書の指定した勘定科目名と同じグループにある勘定科目のセットを返します。
+	 *
+	 * @param node 開始ノード
+	 * @return 指定した勘定科目と同じグループにある勘定科目のセット
+	 */
+	protected Set<AccountTitle> getGroupAccounts(Node<Entry<List<AccountTitle>, Amount>> node, String displayName) {
+		Set<AccountTitle> result = new HashSet<>();
+
+		for(Node<Entry<List<AccountTitle>, Amount>> child : node.getChildren()) {
+			Set<AccountTitle> s = getGroupAccounts(child, displayName);
+			if(s.size() > 0) {
+				result.addAll(s);
+			}
+		}
+
+		if(node.getValue().getKey() != null) {
+			boolean containsSales = false;
+			for(AccountTitle accountTitle : node.getValue().getKey()) {
+				if(accountTitle.getDisplayName().equals(displayName)) {
+					containsSales = true;
+					break;
+				}
+			}
+			if(containsSales) {
+				result.addAll(node.getValue().getKey());
+			}
+		}
+
+		return result;
+	}
+
 	//月別集計
 	protected List<Entry<String, Amount[]>> getMonthlyTotals(List<JournalEntry> journalEntries) {
 		Map<String, Amount[]> map = new LinkedHashMap<>();
@@ -181,6 +212,9 @@ public class ProfitAndLoss {
 		}
 		map.put("雑収入", new Amount[2]);
 
+		Set<AccountTitle> salesAccounts = getGroupAccounts(plRoot, "売上");
+		Set<AccountTitle> purchaseAccounts = getGroupAccounts(plRoot, "仕入");
+
 		for(JournalEntry entry : journalEntries) {
 			//開始仕訳と締切仕訳は集計に含めません。
 			if(entry.isOpening() || entry.isClosing()) {
@@ -189,22 +223,27 @@ public class ProfitAndLoss {
 			String month = entry.getDate().getMonthValue() + "月";
 			
 			for(Debtor debtor : entry.getDebtors()) {
-				String displayName = debtor.getAccountTitle().getDisplayName();
-				if(displayName.equals("売上")) {
-					Amount[] amounts = map.get(month);
-					if(amounts[0] == null) {
-						amounts[0] = new Amount(Creditor.class, 0);
-					}
-					amounts[0].decrease(debtor.getAmount());
-				} else if(displayName.equals("家事消費等") || displayName.equals("雑収入")) {
-					Amount[] amounts = map.get(displayName);
-					if(amounts != null) { // 法人の場合は「家事消費等」がないためamountsがnullになる可能性があります。
+				if(salesAccounts.contains(debtor.getAccountTitle())) {
+					String displayName = debtor.getAccountTitle().getDisplayName();
+					if(displayName.equals("家事消費等") || displayName.equals("雑収入")) {
+						// 家事消費等または雑収入
+						Amount[] amounts = map.get(displayName);
+						if(amounts != null) { // 法人の場合は「家事消費等」がないためamountsがnullになる可能性があります。
+							if(amounts[0] == null) {
+								amounts[0] = new Amount(Creditor.class, 0);
+							}
+							amounts[0].decrease(debtor.getAmount());
+						}
+					} else {
+						// 月別の売上および同じグループの勘定科目
+						Amount[] amounts = map.get(month);
 						if(amounts[0] == null) {
 							amounts[0] = new Amount(Creditor.class, 0);
 						}
 						amounts[0].decrease(debtor.getAmount());
 					}
-				} else if(displayName.equals("仕入")) {
+				} else if(purchaseAccounts.contains(debtor.getAccountTitle())) {
+					// 月別の仕入および同じグループの勘定科目
 					Amount[] amounts = map.get(month);
 					if(amounts[1] == null) {
 						amounts[1] = new Amount(Debtor.class, 0);
@@ -213,22 +252,27 @@ public class ProfitAndLoss {
 				}
 			}
 			for(Creditor creditor : entry.getCreditors()) {
-				String displayName = creditor.getAccountTitle().getDisplayName();
-				if(displayName.equals("売上")) {
-					Amount[] amounts = map.get(month);
-					if(amounts[0] == null) {
-						amounts[0] = new Amount(Creditor.class, 0);
-					}
-					amounts[0].increase(creditor.getAmount());
-				} else if(displayName.equals("家事消費等") || displayName.equals("雑収入")) {
-					Amount[] amounts = map.get(displayName);
-					if(amounts != null) { // 法人の場合は「家事消費等」がないためamountsがnullになる可能性があります。
+				if(salesAccounts.contains(creditor.getAccountTitle())) {
+					String displayName = creditor.getAccountTitle().getDisplayName();
+					if(displayName.equals("家事消費等") || displayName.equals("雑収入")) {
+						// 家事消費等または雑収入
+						Amount[] amounts = map.get(displayName);
+						if (amounts != null) { // 法人の場合は「家事消費等」がないためamountsがnullになる可能性があります。
+							if (amounts[0] == null) {
+								amounts[0] = new Amount(Creditor.class, 0);
+							}
+							amounts[0].increase(creditor.getAmount());
+						}
+					} else {
+						// 月別の売上および同じグループの勘定科目
+						Amount[] amounts = map.get(month);
 						if(amounts[0] == null) {
 							amounts[0] = new Amount(Creditor.class, 0);
 						}
 						amounts[0].increase(creditor.getAmount());
 					}
-				} else if(displayName.equals("仕入")) {
+				} else if(purchaseAccounts.contains(creditor.getAccountTitle())) {
+					// 月別の仕入および同じグループの勘定科目
 					Amount[] amounts = map.get(month);
 					if(amounts[1] == null) {
 						amounts[1] = new Amount(Debtor.class, 0);
