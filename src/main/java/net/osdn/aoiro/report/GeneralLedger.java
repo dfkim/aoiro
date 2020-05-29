@@ -32,13 +32,14 @@ public class GeneralLedger {
 	
 	private Set<AccountTitle> accountTitles;
 	private List<JournalEntry> entries;
+	private boolean showMonthlyTotal;
 	int financialYear;
 	boolean isFromNewYearsDay;
 	
 	private List<String> pageData = new ArrayList<>();
 	private List<String> printData;
 	
-	public GeneralLedger(Set<AccountTitle> accountTitles, List<JournalEntry> journalEntries, boolean isSoloProprietorship) throws IOException {
+	public GeneralLedger(Set<AccountTitle> accountTitles, List<JournalEntry> journalEntries, boolean isSoloProprietorship, boolean showMonthlyTotal) throws IOException {
 		this.accountTitles = new LinkedHashSet<>(accountTitles);
 		this.accountTitles.add(AccountTitle.INCOME_SUMMARY);
 		this.accountTitles.add(AccountTitle.RETAINED_EARNINGS);
@@ -46,6 +47,7 @@ public class GeneralLedger {
 		this.accountTitles.add(AccountTitle.BALANCE);
 		
 		this.entries = journalEntries;
+		this.showMonthlyTotal = showMonthlyTotal;
 		
 		InputStream in = getClass().getResourceAsStream("/templates/総勘定元帳.pb");
 		BufferedReader r = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
@@ -89,11 +91,29 @@ public class GeneralLedger {
 			long debtorTotal = 0;
 			long creditorTotal = 0;
 			long accountTitleTotal = 0;
+			long monthlyDebtorTotal = 0;
+			long monthlyCreditorTotal = 0;
+
 			List<JournalEntry> entries = getJournalEntriesByAccount(accountTitle);
 			for(int j = 0; j < entries.size(); j++) {
 				JournalEntry entry = entries.get(j);
 				int month = entry.getDate().getMonthValue();
 				int day = entry.getDate().getDayOfMonth();
+
+				boolean isLastEntryInMonth = false;
+				if(showMonthlyTotal && !entry.isClosing()) {
+					if(j + 1 == entries.size()) {
+						isLastEntryInMonth = true;
+					} else if(j + 1 < entries.size()) {
+						JournalEntry nextEntry = entries.get(j + 1);
+						if(month != nextEntry.getDate().getMonthValue()) {
+							isLastEntryInMonth = true;
+						} else if(nextEntry.isClosing()) {
+							isLastEntryInMonth = true;
+						}
+					}
+				}
+
 				//この勘定科目を含む勘定のリストを取得します。
 				List<Account> accounts = getAccountsByAccountTitle(entry, accountTitle);
 				
@@ -104,6 +124,16 @@ public class GeneralLedger {
 					for(int l = 0; l < counterpartAccounts.size(); l++) {
 						Account counterpartAccount = counterpartAccounts.get(l);
 
+						//月計に加算します。
+						if(showMonthlyTotal) {
+							if(account instanceof Debtor) {
+								monthlyDebtorTotal += counterpartAccount.getAmount();
+							}
+							if(account instanceof Creditor) {
+								monthlyCreditorTotal += counterpartAccount.getAmount();
+							}
+						}
+
 						//この仕訳の後で改ページが必要かどうか
 						boolean isCarriedForward = false;
 						
@@ -112,102 +142,24 @@ public class GeneralLedger {
 								(l == counterpartAccounts.size() - 1) &&
 								(k == accounts.size() -1) &&
 								(j == entries.size() - 1);
-						
+
 						//仕訳の印字に必要な行数を求めます。
 						int rowsRequired = 1;
 						if(!isLastInAccountTitle && (currentRow + 1 == ROWS - 1)) {
 							rowsRequired++;
 							isCarriedForward = true;
 						}
-						
+
 						//印字に必要な行数が残り行数を超えているか、または、勘定科目が変わったときに改ページします。
 						if(rowsRequired > restOfRows || !accountTitle.equals(currentAccountTitle)) {
-							if(++pageNumber >= 2) {
-								printData.add("\\new-page");
-							}
-							if(pageNumber % 2 == 1) {
-								//綴じ代(奇数ページ)
-								printData.add("\\box 15 0 0 0");
-								printData.add("\\line-style thin dot");
-								printData.add("\\line 0 0 0 -0");
-								printData.add("\\box 25 0 -10 -10");
-								
-								//テンプレート
-								printData.addAll(pageData);
-								
-								//ページ番号(奇数ページ)
-								printData.add("\t\\box 0 0 -3 22");
-								printData.add("\t\\font serif 10.5");
-								printData.add("\t\\align bottom right");
-								printData.add("\t\\text " + pageNumber);
-							} else {
-								//綴じ代(偶数ページ)
-								printData.add("\\box 0 0 -15 0");
-								printData.add("\\line-style thin dot");
-								printData.add("\\line -0 0 -0 -0");
-								printData.add("\\box 10 0 -25 -10");
-								
-								//テンプレート
-								printData.addAll(pageData);
-								
-								//ページ番号(偶数ページ)
-								printData.add("\t\\box 3 0 10 22");
-								printData.add("\t\\font serif 10.5");
-								printData.add("\t\\align bottom left");
-								printData.add("\t\\text " + pageNumber);
-							}
-							//勘定科目
-							printData.add("\t\\box 0 16 -0 9");
-							printData.add("\t\\font serif 14");
-							printData.add("\t\\align center");
-							printData.add("\t\\text " + account.getAccountTitle().getDisplayName());
-							currentAccountTitle = account.getAccountTitle();
-							
-							//年
-							if(isFromNewYearsDay) {
-								printData.add("\t\\box 0 25 14.5 6");
-								printData.add("\t\\align center right");
-								printData.add("\t\\font serif 8");
-								printData.add("\t\\text 年");
-								printData.add("\t\\box 0 25 10.5 6");
-								printData.add("\t\\font serif 10");
-								printData.add("\t\\align center right");
-								printData.add("\t\\text " + financialYear);
-							} else {
-								printData.add("\t\\box 0 25 14.7 6");
-								printData.add("\t\\align center right");
-								printData.add("\t\\font serif 8");
-								printData.add("\t\\text 年度");
-								printData.add("\t\\box 0 25 8.6 6");
-								printData.add("\t\\font serif 10");
-								printData.add("\t\\align center right");
-								printData.add("\t\\text " + financialYear);
-							}
-							
-							//明細印字領域
-							printData.add("\t\\box 0 37 -0 -0");
-							
+							newPage(++pageNumber, account.getAccountTitle().getDisplayName());
 							restOfRows = ROWS;
 							currentRow = 0;
+							currentAccountTitle = account.getAccountTitle();
 							
 							//勘定科目が変わった場合を除いて改ページが発生した場合、前頁繰越を印字します。
 							if(j != 0 || k != 0 || l != 0) {
-								//前頁繰越
-								printData.add("\t\t\\box " + String.format("16 %.2f 49 %.2f", currentRow * ROW_HEIGHT, ROW_HEIGHT));
-								printData.add("\t\t\\font serif 10");
-								printData.add("\t\t\\align center right");
-								printData.add("\t\t\\text 前頁繰越");
-								//借または貸
-								printData.add("\t\t\\box " + String.format("135 %.2f 8 %.2f", currentRow * ROW_HEIGHT, ROW_HEIGHT));
-								printData.add("\t\t\\font serif 10");
-								printData.add("\t\t\\align center");
-								printData.add("\t\t\\text " + sign);
-								//残高
-								printData.add("\t\t\\box " + String.format("143 %.2f 27 %.2f", currentRow * ROW_HEIGHT, ROW_HEIGHT));
-								printData.add("\t\t\\font serif 10");
-								printData.add("\t\t\\align center right");
-								printData.add("\t\t\\text " + String.format("%,d", Math.abs(accountTitleTotal)));
-								
+								carryForwardFromPreviousPage(currentRow, sign, accountTitleTotal);
 								currentRow++;
 								restOfRows--;
 							}
@@ -304,24 +256,75 @@ public class GeneralLedger {
 						printData.add("\t\t\\text " + String.format("%,d", Math.abs(accountTitleTotal)));
 
 						if(isCarriedForward) {
-							printData.add("\t\t\\box " + String.format("16 %.2f 49 %.2f", (currentRow + 1) * ROW_HEIGHT, ROW_HEIGHT));
-							printData.add("\t\t\\font serif 10");
-							printData.add("\t\t\\align center right");
-							printData.add("\t\t\\text 次頁繰越");
-							//仮または貸
-							printData.add("\t\t\\box " + String.format("135 %.2f 8 %.2f", (currentRow + 1) * ROW_HEIGHT, ROW_HEIGHT));
-							printData.add("\t\t\\font serif 10");
-							printData.add("\t\t\\align center");
-							printData.add("\t\t\\text " + sign);
-							//残高
-							printData.add("\t\t\\box " + String.format("143 %.2f 27 %.2f", (currentRow + 1) * ROW_HEIGHT, ROW_HEIGHT));
-							printData.add("\t\t\\font serif 10");
-							printData.add("\t\t\\align center right");
-							printData.add("\t\t\\text " + String.format("%,d", Math.abs(accountTitleTotal)));
+							carryForwardToNextPage(currentRow + 1, sign, accountTitleTotal);
 						}
-						
+
 						currentRow += rowsRequired;
 						restOfRows -= rowsRequired;
+
+						if(showMonthlyTotal && isLastEntryInMonth) {
+							int emptyRows = (ROWS - 1) - currentRow - (isLastInAccountTitle ? 0 : 1);
+							if(emptyRows < 0) {
+								emptyRows = 0;
+							}
+							if(emptyRows > 2 || isCarriedForward) {
+								//月計の前の仕訳で次頁繰越(isCarriedForward)が発生していた場合は紙面に余裕があるので空白行を2行にします。
+								emptyRows = 2;
+							}
+							rowsRequired = 1 + emptyRows;
+
+							if(!isLastInAccountTitle && (currentRow + emptyRows + 1 == ROWS - 1)) {
+								rowsRequired++;
+								isCarriedForward = true;
+							} else {
+								isCarriedForward = false;
+							}
+
+							//印字に必要な行数が残り行数を超えているときに改ページします。
+							if(rowsRequired > restOfRows) {
+								newPage(++pageNumber, account.getAccountTitle().getDisplayName());
+								restOfRows = ROWS;
+								currentRow = 0;
+
+								//勘定科目が変わった場合を除いて改ページが発生した場合、前頁繰越を印字します。
+								if(j != 0 || k != 0 || l != 0) {
+									carryForwardFromPreviousPage(currentRow, sign, accountTitleTotal);
+									currentRow++;
+									restOfRows--;
+								}
+							}
+
+							printData.add("\t\t\\box " + String.format("16 %.2f 49 %.2f", currentRow * ROW_HEIGHT, ROW_HEIGHT));
+							printData.add("\t\t\\font serif 10 bold");
+							printData.add("\t\t\\align center right");
+							printData.add("\t\t\\text " + month + "月計");
+
+							printData.add("\t\t\\box " + String.format("0 %.2f -0 %.2f", currentRow * ROW_HEIGHT, ROW_HEIGHT + 0.5));
+							printData.add("\t\t\\line-style medium solid");
+							//合計線
+							printData.add("\t\t\\line 75.325 0 134.675 0");
+							//借方合計
+							printData.add("\t\t\\box " + String.format("75 %.2f 25 %.2f", currentRow * ROW_HEIGHT, ROW_HEIGHT));
+							printData.add("\t\t\\font serif 10.5 bold");
+							printData.add("\t\t\\align center right");
+							printData.add("\t\t\\text " + String.format("%,d", monthlyDebtorTotal));
+							//貸方合計
+							printData.add("\t\t\\box " + String.format("105 %.2f 25 %.2f", currentRow * ROW_HEIGHT, ROW_HEIGHT));
+							printData.add("\t\t\\font serif 10.5 bold");
+							printData.add("\t\t\\align center right");
+							printData.add("\t\t\\text " + String.format("%,d", monthlyCreditorTotal));
+
+							monthlyDebtorTotal = 0;
+							monthlyCreditorTotal = 0;
+
+							if(isCarriedForward) {
+								carryForwardToNextPage(currentRow + emptyRows + 1, sign, accountTitleTotal);
+							}
+
+							currentRow += rowsRequired;
+							restOfRows -= rowsRequired;
+						}
+						
 					}
 				}
 			}
@@ -350,8 +353,108 @@ public class GeneralLedger {
 			}
 		}
 	}
-	
-	
+
+	private void newPage(int pageNumber, String accountTitleDisplayName) {
+		if(pageNumber >= 2) {
+			printData.add("\\new-page");
+		}
+		if(pageNumber % 2 == 1) {
+			//綴じ代(奇数ページ)
+			printData.add("\\box 15 0 0 0");
+			printData.add("\\line-style thin dot");
+			printData.add("\\line 0 0 0 -0");
+			printData.add("\\box 25 0 -10 -10");
+
+			//テンプレート
+			printData.addAll(pageData);
+
+			//ページ番号(奇数ページ)
+			printData.add("\t\\box 0 0 -3 22");
+			printData.add("\t\\font serif 10.5");
+			printData.add("\t\\align bottom right");
+			printData.add("\t\\text " + pageNumber);
+		} else {
+			//綴じ代(偶数ページ)
+			printData.add("\\box 0 0 -15 0");
+			printData.add("\\line-style thin dot");
+			printData.add("\\line -0 0 -0 -0");
+			printData.add("\\box 10 0 -25 -10");
+
+			//テンプレート
+			printData.addAll(pageData);
+
+			//ページ番号(偶数ページ)
+			printData.add("\t\\box 3 0 10 22");
+			printData.add("\t\\font serif 10.5");
+			printData.add("\t\\align bottom left");
+			printData.add("\t\\text " + pageNumber);
+		}
+		//勘定科目
+		printData.add("\t\\box 0 16 -0 9");
+		printData.add("\t\\font serif 14");
+		printData.add("\t\\align center");
+		printData.add("\t\\text " + accountTitleDisplayName);
+
+		//年
+		if(isFromNewYearsDay) {
+			printData.add("\t\\box 0 25 14.5 6");
+			printData.add("\t\\align center right");
+			printData.add("\t\\font serif 8");
+			printData.add("\t\\text 年");
+			printData.add("\t\\box 0 25 10.5 6");
+			printData.add("\t\\font serif 10");
+			printData.add("\t\\align center right");
+			printData.add("\t\\text " + financialYear);
+		} else {
+			printData.add("\t\\box 0 25 14.7 6");
+			printData.add("\t\\align center right");
+			printData.add("\t\\font serif 8");
+			printData.add("\t\\text 年度");
+			printData.add("\t\\box 0 25 8.6 6");
+			printData.add("\t\\font serif 10");
+			printData.add("\t\\align center right");
+			printData.add("\t\\text " + financialYear);
+		}
+
+		//明細印字領域
+		printData.add("\t\\box 0 37 -0 -0");
+	}
+
+	private void carryForwardFromPreviousPage(int currentRow, String sign, long accountTitleTotal) {
+		//前頁繰越
+		printData.add("\t\t\\box " + String.format("16 %.2f 49 %.2f", currentRow * ROW_HEIGHT, ROW_HEIGHT));
+		printData.add("\t\t\\font serif 10");
+		printData.add("\t\t\\align center right");
+		printData.add("\t\t\\text 前頁繰越");
+		//借または貸
+		printData.add("\t\t\\box " + String.format("135 %.2f 8 %.2f", currentRow * ROW_HEIGHT, ROW_HEIGHT));
+		printData.add("\t\t\\font serif 10");
+		printData.add("\t\t\\align center");
+		printData.add("\t\t\\text " + sign);
+		//残高
+		printData.add("\t\t\\box " + String.format("143 %.2f 27 %.2f", currentRow * ROW_HEIGHT, ROW_HEIGHT));
+		printData.add("\t\t\\font serif 10");
+		printData.add("\t\t\\align center right");
+		printData.add("\t\t\\text " + String.format("%,d", Math.abs(accountTitleTotal)));
+	}
+
+	private void carryForwardToNextPage(int row, String sign, long accountTitleTotal) {
+		printData.add("\t\t\\box " + String.format("16 %.2f 49 %.2f", row * ROW_HEIGHT, ROW_HEIGHT));
+		printData.add("\t\t\\font serif 10");
+		printData.add("\t\t\\align center right");
+		printData.add("\t\t\\text 次頁繰越");
+		//仮または貸
+		printData.add("\t\t\\box " + String.format("135 %.2f 8 %.2f", row * ROW_HEIGHT, ROW_HEIGHT));
+		printData.add("\t\t\\font serif 10");
+		printData.add("\t\t\\align center");
+		printData.add("\t\t\\text " + sign);
+		//残高
+		printData.add("\t\t\\box " + String.format("143 %.2f 27 %.2f", row * ROW_HEIGHT, ROW_HEIGHT));
+		printData.add("\t\t\\font serif 10");
+		printData.add("\t\t\\align center right");
+		printData.add("\t\t\\text " + String.format("%,d", Math.abs(accountTitleTotal)));
+	}
+
 	/** 指定した仕訳と勘定科目から勘定リストを取得します。
 	 * 
 	 * @param entry 仕訳
