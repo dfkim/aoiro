@@ -35,6 +35,7 @@ public class Main {
 		try {
 
 			boolean skipSettlement = false;
+			boolean showMonthlyTotal = false;
 			Boolean isSoloProprietorship = null;
 			String filename = null;
 			
@@ -42,6 +43,9 @@ public class Main {
 				for(int i = 0; i < args.length; i++) {
 					if(args[i].equals("-o")) {
 						skipSettlement = true;
+					}
+					if(args[i].equals("-m")) {
+						showMonthlyTotal = true;
 					}
 					if(args[i].equals("-p")) {
 						isSoloProprietorship = Boolean.TRUE;
@@ -57,6 +61,7 @@ public class Main {
 				System.out.println("Usage: aoiro.exe <options> <仕訳データファイル>");
 				System.out.println("Options:");
 				System.out.println("  -o    決算処理をせずに仕訳帳と総勘定元帳を出力します。");
+				System.out.println("  -m    総勘定元帳に月計を印字します。");
 				System.out.println("  -p    個人事業主用のデータファイルを使用します。");
 				System.out.println("  -c    法人用のデータファイルを使用します。");
 				System.out.println();
@@ -136,7 +141,7 @@ public class Main {
 			}
 
 			GeneralJournal generalJournal = new GeneralJournal(journalEntries, isSoloProprietorship);
-			GeneralLedger generalLedger = new GeneralLedger(accountTitles, journalEntries, isSoloProprietorship);
+			GeneralLedger generalLedger = new GeneralLedger(accountTitles, journalEntries, isSoloProprietorship, showMonthlyTotal);
 
 			generalJournal.writeTo(new File("仕訳帳.pdf"));
 			System.out.println("  仕訳帳.pdf を出力しました。");
