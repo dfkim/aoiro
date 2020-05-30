@@ -100,16 +100,22 @@ public class GeneralLedger {
 				int month = entry.getDate().getMonthValue();
 				int day = entry.getDate().getDayOfMonth();
 
+				int monthlyTotalMonth = -1;
 				boolean isLastEntryInMonth = false;
-				if(showMonthlyTotal && !entry.isClosing()) {
-					if(j + 1 == entries.size()) {
-						isLastEntryInMonth = true;
-					} else if(j + 1 < entries.size()) {
-						JournalEntry nextEntry = entries.get(j + 1);
-						if(month != nextEntry.getDate().getMonthValue()) {
+				if(showMonthlyTotal) {
+					// 開始仕訳は1月計に含めないようにするために0月として扱います。
+					monthlyTotalMonth = entry.isOpening() ? 0 : month;
+					if(!entry.isClosing()) {
+						if(j + 1 == entries.size()) {
 							isLastEntryInMonth = true;
-						} else if(nextEntry.isClosing()) {
-							isLastEntryInMonth = true;
+						} else if(j + 1 < entries.size()) {
+							JournalEntry nextEntry = entries.get(j + 1);
+							int nextEntryMonth = nextEntry.isOpening() ? 0 : nextEntry.getDate().getMonthValue();
+							if(monthlyTotalMonth != nextEntryMonth) {
+								isLastEntryInMonth = true;
+							} else if(nextEntry.isClosing()) {
+								isLastEntryInMonth = true;
+							}
 						}
 					}
 				}
@@ -262,7 +268,8 @@ public class GeneralLedger {
 						currentRow += rowsRequired;
 						restOfRows -= rowsRequired;
 
-						if(showMonthlyTotal && isLastEntryInMonth) {
+						//月計印字有効 + 月末最後の仕訳 + 相手勘定科目の末尾 のときに月計を印字します。
+						if(showMonthlyTotal && isLastEntryInMonth && (l + 1) == counterpartAccounts.size()) {
 							int emptyRows = (ROWS - 1) - currentRow - (isLastInAccountTitle ? 0 : 1);
 							if(emptyRows < 0) {
 								emptyRows = 0;
@@ -297,7 +304,11 @@ public class GeneralLedger {
 							printData.add("\t\t\\box " + String.format("16 %.2f 49 %.2f", currentRow * ROW_HEIGHT, ROW_HEIGHT));
 							printData.add("\t\t\\font serif 10 bold");
 							printData.add("\t\t\\align center right");
-							printData.add("\t\t\\text " + month + "月計");
+							if(monthlyTotalMonth == 0) {
+								printData.add("\t\t\\text 前期繰越計");
+							} else {
+								printData.add("\t\t\\text " + month + "月計");
+							}
 
 							printData.add("\t\t\\box " + String.format("0 %.2f -0 %.2f", currentRow * ROW_HEIGHT, ROW_HEIGHT + 0.5));
 							printData.add("\t\t\\line-style medium solid");
@@ -324,7 +335,7 @@ public class GeneralLedger {
 							currentRow += rowsRequired;
 							restOfRows -= rowsRequired;
 						}
-						
+
 					}
 				}
 			}
