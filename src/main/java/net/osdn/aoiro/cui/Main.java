@@ -140,12 +140,21 @@ public class Main {
 				System.out.println("帳簿と決算書を作成しています . . .");
 			}
 
+			// 仕訳帳
 			GeneralJournal generalJournal = new GeneralJournal(journalEntries, isSoloProprietorship);
+
+			// 総勘定元帳
 			GeneralLedger generalLedger = new GeneralLedger(accountTitles, journalEntries, isSoloProprietorship, showMonthlyTotal);
 
+
+
+			// 仕訳帳をファイルに出力します。
+			// この処理は総勘定元帳（GeneralLedger）を作成してから呼び出す必要があります。GeneralLedgerによって仕訳帳の「元丁」が設定されるからです。
 			generalJournal.writeTo(new File("仕訳帳.pdf"));
 			System.out.println("  仕訳帳.pdf を出力しました。");
-			
+
+			// 総勘定元帳をファイルに出力します。
+			// この処理は仕訳帳（GeneralJournal）を作成してから呼び出す必要があります。GeneralJournalによって総勘定元帳の「仕丁」が設定されるからです。
 			generalLedger.writeTo(new File("総勘定元帳.pdf"));
 			System.out.println("  総勘定元帳.pdf を出力しました。");
 			
