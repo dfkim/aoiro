@@ -500,44 +500,50 @@ public class GeneralLedger {
 		List<Account> counterpartAccounts = new ArrayList<>(); //相手勘定科目
 
 		if(account.getAccountTitle().getDisplayName().equals("元入金")) {
+			// 元入金の場合は相手勘定科目を「諸口」とせずに、相手勘定科目を個別に出力します。
+			// ただし、元入金側の勘定科目が2件以上ある場合は金額を算出できないので「諸口」とします。
+			// 元入金側の勘定科目が1件の場合は、元入金の金額と相手勘定科目の合計金額が一致しますが、
+			// 元入金側の勘定科目が2件以上ある場合は元入金の金額と相手勘定科目の合計金額は一致しないためです。
 			if(account instanceof Debtor) {
-				if(entry.getCreditors().size() == 1) {
-					counterpartAccounts.add(new Creditor(entry.getCreditors().get(0).getAccountTitle(), account.getAmount()));
-				} else {
+				if(entry.getDebtors().size() == 1) {
 					counterpartAccounts.addAll(entry.getCreditors());
+				} else {
+					counterpartAccounts.add(new Creditor(AccountTitle.SUNDRIES, account.getAmount()));
 				}
 			} else if(account instanceof Creditor) {
-				if(entry.getDebtors().size() == 1) {
-					counterpartAccounts.add(new Debtor(entry.getDebtors().get(0).getAccountTitle(), account.getAmount()));
-				} else {
+				if(entry.getCreditors().size() == 1) {
 					counterpartAccounts.addAll(entry.getDebtors());
+				} else {
+					counterpartAccounts.add(new Debtor(AccountTitle.SUNDRIES, account.getAmount()));
 				}
 			}
 		} else if(account.getAccountTitle().isClosing()) {
 			//決算勘定の場合は相手勘定科目を諸口としてまとめずにすべて出力します。
+			//ただし、決算勘定側の勘定科目が2件以上ある場合は相手勘定科目を「諸口」とします。
+			//理由は元入金と同様に金額の不一致を避けるためです。
 			if(account instanceof Debtor) {
-				if(entry.getCreditors().size() == 1) {
-					counterpartAccounts.add(new Creditor(entry.getCreditors().get(0).getAccountTitle(), account.getAmount()));
-				} else {
+				if(entry.getDebtors().size() == 1) { //自勘定が1件
 					counterpartAccounts.addAll(entry.getCreditors());
+				} else {
+					counterpartAccounts.add(new Creditor(AccountTitle.SUNDRIES, account.getAmount()));
 				}
 			} else if(account instanceof Creditor) {
-				if(entry.getDebtors().size() == 1) {
-					counterpartAccounts.add(new Debtor(entry.getDebtors().get(0).getAccountTitle(), account.getAmount()));
-				} else {
+				if(entry.getCreditors().size() == 1) { //自勘定が1件
 					counterpartAccounts.addAll(entry.getDebtors());
+				} else {
+					counterpartAccounts.add(new Debtor(AccountTitle.SUNDRIES, account.getAmount()));
 				}
 			}
 		} else {
 			//決算勘定でない場合は相手勘定科目が複数ある場合は諸口としてまとめます。
 			if(account instanceof Debtor) {
-				if(entry.getCreditors().size() == 1) {
+				if(entry.getCreditors().size() == 1) { //相手勘定が1件
 					counterpartAccounts.add(new Creditor(entry.getCreditors().get(0).getAccountTitle(), account.getAmount()));
 				} else {
 					counterpartAccounts.add(new Creditor(AccountTitle.SUNDRIES, account.getAmount()));
 				}
 			} else if(account instanceof Creditor) {
-				if(entry.getDebtors().size() == 1) {
+				if(entry.getDebtors().size() == 1) { //相手勘定が1件
 					counterpartAccounts.add(new Debtor(entry.getDebtors().get(0).getAccountTitle(), account.getAmount()));
 				} else {
 					counterpartAccounts.add(new Debtor(AccountTitle.SUNDRIES, account.getAmount()));

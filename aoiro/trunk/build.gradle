@@ -1,7 +1,7 @@
 apply plugin: 'java'
 apply plugin: 'eclipse'
 
-version = '0.6'
+version = '0.7'
 
 tasks.withType(JavaCompile) {
 	sourceCompatibility = 11
@@ -19,8 +19,8 @@ dependencies {
 		excludes: ['**/*-sources.jar', '**/*-javadoc.jar'])
 
 	implementation 'org.freemarker:freemarker:2.3.30'
-	implementation 'org.apache.pdfbox:pdfbox:2.0.19'
-	implementation 'org.apache.pdfbox:fontbox:2.0.19'
+	implementation 'org.apache.pdfbox:pdfbox:2.0.20'
+	implementation 'org.apache.pdfbox:fontbox:2.0.20'
 
 	implementation 'net.java.dev.jna:jna:5.5.0'
 	implementation 'net.java.dev.jna:jna-platform:5.5.0'
