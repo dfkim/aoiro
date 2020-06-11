@@ -20,6 +20,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import net.osdn.aoiro.AccountSettlement;
+import net.osdn.aoiro.Util;
 import net.osdn.aoiro.model.AccountTitle;
 import net.osdn.aoiro.model.Amount;
 import net.osdn.aoiro.model.Creditor;
@@ -501,6 +502,7 @@ public class ProfitAndLoss {
 		prepare();
 
 		PdfBrewer brewer = new PdfBrewer();
+		brewer.setCreator(Util.getPdfCreator());
 		BrewerData pb = new BrewerData(printData, brewer.getFontLoader());
 		brewer.setTitle("損益計算書");
 		brewer.process(pb);

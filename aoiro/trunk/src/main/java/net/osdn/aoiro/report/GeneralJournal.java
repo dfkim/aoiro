@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.osdn.aoiro.AccountSettlement;
+import net.osdn.aoiro.Util;
 import net.osdn.aoiro.model.Creditor;
 import net.osdn.aoiro.model.Debtor;
 import net.osdn.aoiro.model.JournalEntry;
@@ -348,6 +349,7 @@ public class GeneralJournal {
 		prepare();
 
 		PdfBrewer brewer = new PdfBrewer();
+		brewer.setCreator(Util.getPdfCreator());
 		BrewerData pb = new BrewerData(printData, brewer.getFontLoader());
 		brewer.setTitle("仕訳帳");
 		brewer.process(pb);
