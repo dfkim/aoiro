@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Set;
 
 import net.osdn.aoiro.AccountSettlement;
+import net.osdn.aoiro.Util;
 import net.osdn.aoiro.model.Account;
 import net.osdn.aoiro.model.AccountTitle;
 import net.osdn.aoiro.model.AccountType;
@@ -558,6 +559,7 @@ public class GeneralLedger {
 		prepare();
 
 		PdfBrewer brewer = new PdfBrewer();
+		brewer.setCreator(Util.getPdfCreator());
 		BrewerData pb = new BrewerData(printData, brewer.getFontLoader());
 		brewer.setTitle("総勘定元帳");
 		brewer.process(pb);

@@ -12,6 +12,9 @@ public class Util {
 
 	private static File appDir;
 	private static Locale locale = new Locale("ja", "JP", "JP");
+
+	private static String pdfCreatorName;
+	private static String pdfCreatorVersion;
 	
 	public static File getApplicationDirectory() {
 		if(appDir == null) {
@@ -59,8 +62,34 @@ public class Util {
 		}
 		return version;
 	}
-	
-	public static Locale getLocale() {
-		return locale;
+
+	public static void setPdfCreator(String name, String version) {
+		Util.pdfCreatorName = name;
+		Util.pdfCreatorVersion = version;
+	}
+
+	public static String getPdfCreator() {
+		String name = Util.pdfCreatorName;
+		if(name == null) {
+			name = "aoiro";
+		}
+		String version = Util.pdfCreatorVersion;
+		if(version == null) {
+			int[] v = getApplicationVersion();
+			if(v != null) {
+				if(v[2] == 0 && v[3] == 0) {
+					version = String.format("%d.%d", v[0], v[1]);
+				} else if(v[3] == 0) {
+					version = String.format("%d.%d.%d", v[0], v[1], v[2]);
+				} else {
+					version = String.format("%d.%d.%d.%d", v[0], v[1], v[2], v[3]);
+				}
+			}
+		}
+		if(version == null || version.isBlank()) {
+			return name;
+		} else {
+			return name + " " + version;
+		}
 	}
 }
