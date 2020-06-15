@@ -1,11 +1,11 @@
 package net.osdn.aoiro.report;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.chrono.JapaneseChronology;
@@ -498,7 +498,7 @@ public class ProfitAndLoss {
 		printData.add("\t\t\\line " + String.format("150 0.2 150 %.2f", y + ROW_HEIGHT + ROW_HEIGHT));
 	}
 
-	public void writeTo(File file) throws IOException {
+	public void writeTo(Path path) throws IOException {
 		prepare();
 
 		PdfBrewer brewer = new PdfBrewer();
@@ -506,7 +506,7 @@ public class ProfitAndLoss {
 		BrewerData pb = new BrewerData(printData, brewer.getFontLoader());
 		brewer.setTitle("損益計算書");
 		brewer.process(pb);
-		brewer.save(file);
+		brewer.save(path);
 	}
 	
 	private static String formatMoney(long amount) {

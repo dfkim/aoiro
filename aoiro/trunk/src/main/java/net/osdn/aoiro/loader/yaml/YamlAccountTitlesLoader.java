@@ -1,7 +1,7 @@
 package net.osdn.aoiro.loader.yaml;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.esotericsoftware.yamlbeans.YamlException;
 import com.esotericsoftware.yamlbeans.YamlReader;
 
 import net.osdn.aoiro.model.AccountTitle;
@@ -20,6 +21,8 @@ import net.osdn.aoiro.model.AccountType;
 import net.osdn.aoiro.model.Amount;
 import net.osdn.aoiro.model.Node;
 import net.osdn.util.io.AutoDetectReader;
+
+import static net.osdn.aoiro.ErrorMessage.error;
 
 /** YAMLファイルから勘定科目をロードします。
  *
@@ -73,33 +76,77 @@ public class YamlAccountTitlesLoader {
 	/** ゼロの場合は貸借対照表(B/S)に表示しない見出しのリスト */
 	private Set<String> bsHiddenNamesIfZero = new HashSet<>();
 	
-	public YamlAccountTitlesLoader(File file) throws IOException {
-		String yaml = AutoDetectReader.readAll(file.toPath());
-		@SuppressWarnings("unchecked")
-		Map<String, Object> root = (Map<String, Object>)new YamlReader(yaml).read();
-
+	public YamlAccountTitlesLoader(Path path) throws IOException {
+		String yaml = AutoDetectReader.readAll(path);
 		Object obj;
-		
+
+		try {
+			obj = new YamlReader(yaml).read();
+		} catch(YamlException e) {
+			YamlBeansUtil.Message m = YamlBeansUtil.getMessage(e);
+			throw error(" [エラー] " + path + " (" + m.getLine() + "行目, " + m.getColumn() + "桁目)\r\n"
+					+ " " + m.getMessage());
+		}
+		if(obj == null) {
+			throw error(" [エラー] " + path + "\r\n 形式に誤りがあります。");
+		} else if(!(obj instanceof Map)) {
+			throw error(" [エラー] " + path + "\r\n 形式に誤りがあります。");
+		}
+
+		@SuppressWarnings("unchecked")
+		Map<String, Object> root = (Map<String, Object>)obj;
+
 		obj = root.get("仕訳");
-		if(obj instanceof Map) {
+		if(obj == null) {
+			throw error(" [エラー] " + path + "\r\n 仕訳が定義されていません。");
+		} else if(!(obj instanceof Map)) {
+			throw error(" [エラー] " + path + "\r\n 仕訳の形式に誤りがあります。");
+		} else {
 			@SuppressWarnings("unchecked")
 			Map<String, Object> map = (Map<String, Object>)obj;
+			Object obj2;
+
+			obj2 = map.get("資産");
+			if(obj2 == null) {
+				throw error(" [エラー] " + path + "\r\n 資産が定義されていません。");
+			} else if(!(obj2 instanceof List)) {
+				throw error(" [エラー] " + path + "\r\n 資産の形式に誤りがあります。");
+			}
 			@SuppressWarnings("unchecked")
-			List<String> assets = (List<String>)map.get("資産");
+			List<String> assets = (List<String>)obj2;
 			for(String displayName : assets) {
 				AccountTitle accountTitle = new AccountTitle(AccountType.Assets, displayName);
 				accountTitles.add(accountTitle);
 				accountTitleByDisplayName.put(displayName, accountTitle);
 			}
+
+			obj2 = map.get("負債");
+			if(obj2 == null) {
+				throw error(" [エラー] " + path + "\r\n 負債が定義されていません。");
+			} else if(!(obj2 instanceof List)) {
+				throw error(" [エラー] " + path + "\r\n 負債の形式に誤りがあります。");
+			}
 			@SuppressWarnings("unchecked")
-			List<String> liabilities = (List<String>)map.get("負債");
+			List<String> liabilities = (List<String>)obj2;
 			for(String displayName : liabilities) {
 				AccountTitle accountTitle = new AccountTitle(AccountType.Liabilities, displayName);
 				accountTitles.add(accountTitle);
 				accountTitleByDisplayName.put(displayName, accountTitle);
 			}
+
+			obj2 = map.get("純資産");
+			if(obj2 == null) {
+				obj2 = map.get("資本");
+				if(obj2 == null) {
+					throw error(" [エラー] " + path + "\r\n 資本・純資産が定義されていません。（どちらかの定義が必要です。）");
+				} else if(!(obj2 instanceof List)) {
+					throw error(" [エラー] " + path + "\r\n 資本の形式に誤りがあります。");
+				}
+			} else if(!(obj2 instanceof List)) {
+				throw error(" [エラー] " + path + "\r\n 純資産の形式に誤りがあります。");
+			}
 			@SuppressWarnings("unchecked")
-			List<String> netAssets = (List<String>)map.get("純資産");
+			List<String> netAssets = (List<String>)obj2;
 			if(netAssets != null) {
 				for(String displayName : netAssets) {
 					AccountTitle accountTitle = new AccountTitle(AccountType.NetAssets, displayName);
@@ -107,24 +154,29 @@ public class YamlAccountTitlesLoader {
 					accountTitleByDisplayName.put(displayName, accountTitle);
 				}
 			}
-			@SuppressWarnings("unchecked")
-			List<String> equity = (List<String>)map.get("資本");
-			if(equity != null) {
-				for(String displayName : equity) {
-					AccountTitle accountTitle = new AccountTitle(AccountType.NetAssets, displayName);
-					accountTitles.add(accountTitle);
-					accountTitleByDisplayName.put(displayName, accountTitle);
-				}
+
+			obj2 = map.get("収益");
+			if(obj2 == null) {
+				throw error(" [エラー] " + path + "\r\n 収益が定義されていません。");
+			} else if(!(obj2 instanceof List)) {
+				throw error(" [エラー] " + path + "\r\n 収益の形式に誤りがあります。");
 			}
 			@SuppressWarnings("unchecked")
-			List<String> revenue = (List<String>)map.get("収益");
+			List<String> revenue = (List<String>)obj2;
 			for(String displayName : revenue) {
 				AccountTitle accountTitle = new AccountTitle(AccountType.Revenue, displayName);
 				accountTitles.add(accountTitle);
 				accountTitleByDisplayName.put(displayName, accountTitle);
 			}
+
+			obj2 = map.get("費用");
+			if(obj2 == null) {
+				throw error(" [エラー] " + path + "\r\n 費用が定義されていません。");
+			} else if(!(obj2 instanceof List)) {
+				throw error(" [エラー] " + path + "\r\n 費用の形式に誤りがあります。");
+			}
 			@SuppressWarnings("unchecked")
-			List<String> expense = (List<String>)map.get("費用");
+			List<String> expense = (List<String>)obj2;
 			for(String displayName : expense) {
 				AccountTitle accountTitle = new AccountTitle(AccountType.Expense, displayName);
 				accountTitles.add(accountTitle);
@@ -133,7 +185,11 @@ public class YamlAccountTitlesLoader {
 		}
 		
 		obj = root.get("損益計算書");
-		if(obj instanceof Map) {
+		if(obj == null) {
+			throw error(" [エラー] " + path + "\r\n 損益計算書が定義されていません。");
+		} else if(!(obj instanceof Map)) {
+			throw error(" [エラー] " + path + "\r\n 損益計算書の形式に誤りがあります。");
+		} else {
 			@SuppressWarnings("unchecked")
 			Map<String, Object> map = (Map<String, Object>)obj;
 			Node<Entry<List<AccountTitle>, Amount>> plRoot = new Node<Entry<List<AccountTitle>, Amount>>(-1, "損益計算書");
@@ -147,12 +203,30 @@ public class YamlAccountTitlesLoader {
 				public void setAccountTitles(Node<Entry<List<AccountTitle>, Amount>> node, List<AccountTitle> list) {
 					node.getValue().getKey().addAll(list);
 				}
+				@Override
+				public AccountTitle findAccountTitle(String displayName) {
+					AccountTitle accountTitle = getAccountTitleByDisplayName(displayName);
+					if(accountTitle == null) {
+						throw error(" [エラー] " + path + "\r\n 損益計算書に未定義の勘定科目が指定されています: " + displayName);
+					} else if(accountTitle.getType() == AccountType.Assets) {
+						throw error(" [エラー] " + path + "\r\n 損益計算書に資産の勘定科目を指定することはできません: " + displayName);
+					} else if(accountTitle.getType() == AccountType.Liabilities) {
+						throw error(" [エラー] " + path + "\r\n 損益計算書に負債の勘定科目を指定することはできません: " + displayName);
+					} else if(accountTitle.getType() == AccountType.NetAssets) {
+						throw error(" [エラー] " + path + "\r\n 損益計算書に資本（純資産）の勘定科目を指定することはできません: " + displayName);
+					}
+					return accountTitle;
+				}
 			});
 			this.plRoot = plRoot;
 		}
 		
 		obj = root.get("貸借対照表");
-		if(obj instanceof Map) {
+		if(obj == null) {
+			throw error(" [エラー] " + path + "\r\n 貸借対照表が定義されていません。");
+		} else if(!(obj instanceof Map)) {
+			throw error(" [エラー] " + path + "\r\n 貸借対照表の形式に誤りがあります。");
+		} else {
 			@SuppressWarnings("unchecked")
 			Map<String, Object> map = (Map<String, Object>)obj;
 			Node<Entry<List<AccountTitle>, Amount[]>> bsRoot = new Node<Entry<List<AccountTitle>, Amount[]>>(0, "貸借対照表");
@@ -166,16 +240,41 @@ public class YamlAccountTitlesLoader {
 				public void setAccountTitles(Node<Entry<List<AccountTitle>, Amount[]>> node, List<AccountTitle> list) {
 					node.getValue().getKey().addAll(list);
 				}
+
+				@Override
+				public AccountTitle findAccountTitle(String displayName) {
+					AccountTitle accountTitle = getAccountTitleByDisplayName(displayName);
+					if(accountTitle == null) {
+						throw error(" [エラー] " + path + "\r\n 貸借対照表に未定義の勘定科目が指定されています: " + displayName);
+					} else if(accountTitle.getType() == AccountType.Revenue) {
+						throw error(" [エラー] " + path + "\r\n 貸借対照表に収益の勘定科目を指定することはできません: " + displayName);
+					} else if(accountTitle.getType() == AccountType.Expense) {
+						throw error(" [エラー] " + path + "\r\n 貸借対照表に費用の勘定科目を指定することはできません: " + displayName);
+					}
+					return accountTitle;
+				}
 			});
 			this.bsRoot = bsRoot;
 		}
 		
 		obj = root.get("社員資本等変動計算書");
-		if(obj instanceof Map) {
+		if(obj == null) {
+			// 社員資本等変動計算書は定義されていないくても構わない。
+		} else if(!(obj instanceof Map)) {
+			throw error(" [エラー] " + path + "\r\n 社員資本等変動計算書の形式に誤りがあります。");
+		} else {
 			@SuppressWarnings("unchecked")
 			Map<String, Object> map = (Map<String, Object>)obj;
-			Object obj2 = map.remove("変動事由");
-			if(obj2 instanceof Map) {
+			Object obj2;
+
+			// 変動事由を取り出してマップから取り除きます。
+			// 変動事由は ceReasons に保持して、他部分は ceRoot にぶら下がります。
+			obj2 = map.remove("変動事由");
+			if(obj2 == null) {
+				throw error(" [エラー] " + path + "\r\n 社員資本等変動計算書（変動事由）が定義されていません。");
+			} else if(!(obj2 instanceof Map)) {
+				throw error(" [エラー] " + path + "\r\n 社員資本等変動計算書（変動事由）の形式に誤りがあります。");
+			} else {
 				@SuppressWarnings("unchecked")
 				Map<String, List<String>> map2 = (Map<String, List<String>>)obj2;
 				this.ceReasons = map2;
@@ -191,16 +290,34 @@ public class YamlAccountTitlesLoader {
 				public void setAccountTitles(Node<List<AccountTitle>> node, List<AccountTitle> list) {
 					node.getValue().addAll(list);
 				}
+				@Override
+				public AccountTitle findAccountTitle(String displayName) {
+					AccountTitle accountTitle = getAccountTitleByDisplayName(displayName);
+					if(accountTitle == null) {
+						throw error(" [エラー] " + path + "\r\n 社員資本等変動計算書に未定義の勘定科目が指定されています: " + displayName);
+					}
+					return accountTitle;
+				}
 			});
 			this.ceRoot = ceRoot;
 		}
 
 		obj = root.get("符号を反転して表示する見出し");
-		if(obj instanceof Map) {
+		if(obj == null) {
+			// 符号を反転して表示する見出しは定義はなくても構わない。
+		} else if(!(obj instanceof Map)) {
+			throw error(" [エラー] " + path + "\r\n 符号を反転して表示する見出しの形式に誤りがあります。");
+		} else {
 			@SuppressWarnings("unchecked")
 			Map<String, Object> map = (Map<String, Object>)obj;
-			Object obj2 = map.get("損益計算書");
-			if(obj2 instanceof List) {
+			Object obj2;
+
+			obj2 = map.get("損益計算書");
+			if(obj2 == null) {
+				// 気にしない
+			} else if(!(obj2 instanceof List)) {
+				throw error(" [エラー] " + path + "\r\n 符号を反転して表示する見出し（損益計算書）の形式に誤りがあります。");
+			} else {
 				@SuppressWarnings("unchecked")
 				List<Object> list = (List<Object>)obj2;
 				for(Object o : list) {
@@ -209,10 +326,15 @@ public class YamlAccountTitlesLoader {
 					}
 				}
 			}
-			Object obj3 = map.get("貸借対照表");
-			if(obj3 instanceof List) {
+
+			obj2 = map.get("貸借対照表");
+			if(obj2 == null) {
+				// 気にしない
+			} else if(!(obj2 instanceof List)) {
+				throw error(" [エラー] " + path + "\r\n 符号を反転して表示する見出し（貸借対照表）の形式に誤りがあります。");
+			} else {
 				@SuppressWarnings("unchecked")
-				List<Object> list = (List<Object>)obj3;
+				List<Object> list = (List<Object>)obj2;
 				for(Object o : list) {
 					if(o != null) {
 						bsSignReversedNames.add(o.toString().trim());
@@ -222,11 +344,21 @@ public class YamlAccountTitlesLoader {
 		}
 
 		obj = root.get("常に表示する見出し");
-		if(obj instanceof Map) {
+		if(obj == null) {
+			// 気にしない
+		} else if(!(obj instanceof Map)) {
+			throw error(" [エラー] " + path + "\r\n 常に表示する見出しの形式に誤りがあります。");
+		} else {
 			@SuppressWarnings("unchecked")
 			Map<String, Object> map = (Map<String, Object>)obj;
-			Object obj2 = map.get("損益計算書");
-			if(obj2 instanceof List) {
+			Object obj2;
+
+			obj2 = map.get("損益計算書");
+			if(obj2 == null) {
+				// 気にしない
+			} else if(!(obj2 instanceof List)) {
+				throw error(" [エラー] " + path + "\r\n 常に表示する見出し（損益計算書）の形式に誤りがあります。");
+			} else {
 				@SuppressWarnings("unchecked")
 				List<Object> list = (List<Object>)obj2;
 				for(Object o : list) {
@@ -235,10 +367,15 @@ public class YamlAccountTitlesLoader {
 					}
 				}
 			}
-			Object obj3 = map.get("貸借対照表");
-			if(obj3 instanceof List) {
+
+			obj2 = map.get("貸借対照表");
+			if(obj2 == null) {
+				// 気にしない
+			} else if(!(obj2 instanceof List)) {
+				throw error(" [エラー] " + path + "\r\n 常に表示する見出し（貸借対照表）の形式に誤りがあります。");
+			} else {
 				@SuppressWarnings("unchecked")
-				List<Object> list = (List<Object>)obj3;
+				List<Object> list = (List<Object>)obj2;
 				for(Object o : list) {
 					if(o != null) {
 						bsAlwaysShownNames.add(o.toString().trim());
@@ -248,11 +385,21 @@ public class YamlAccountTitlesLoader {
 		}
 
 		obj = root.get("ゼロなら表示しない見出し");
-		if(obj instanceof Map) {
+		if(obj == null) {
+			// 気にしない
+		} else if(!(obj instanceof Map)) {
+			throw error(" [エラー] " + path + "\r\n ゼロなら表示しない見出しの形式に誤りがあります。");
+		} else {
 			@SuppressWarnings("unchecked")
 			Map<String, Object> map = (Map<String, Object>)obj;
-			Object obj2 = map.get("損益計算書");
-			if(obj2 instanceof List) {
+			Object obj2;
+
+			obj2 = map.get("損益計算書");
+			if(obj2 == null) {
+				// 気にしない
+			} else if(!(obj2 instanceof List)) {
+				throw error(" [エラー] " + path + "\r\n ゼロなら表示しない見出し（損益計算書）の形式に誤りがあります。");
+			} else {
 				@SuppressWarnings("unchecked")
 				List<Object> list = (List<Object>)obj2;
 				for(Object o : list) {
@@ -261,10 +408,15 @@ public class YamlAccountTitlesLoader {
 					}
 				}
 			}
-			Object obj3 = map.get("貸借対照表");
-			if(obj3 instanceof List) {
+
+			obj2 = map.get("貸借対照表");
+			if(obj2 == null) {
+				// 気にしない
+			} else if(!(obj2 instanceof List)) {
+				throw error(" [エラー] " + path + "\r\n ゼロなら表示しない見出し（貸借対照表）の形式に誤りがあります。");
+			} else {
 				@SuppressWarnings("unchecked")
-				List<Object> list = (List<Object>)obj3;
+				List<Object> list = (List<Object>)obj2;
 				for(Object o : list) {
 					if(o != null) {
 						bsHiddenNamesIfZero.add(o.toString().trim());
@@ -288,10 +440,7 @@ public class YamlAccountTitlesLoader {
 			} else if(value instanceof String) {
 				String displayName = ((String)value).trim();
 				if(displayName.length() > 0) {
-					AccountTitle accountTitle = getAccountTitleByDisplayName(displayName);
-					if(accountTitle == null) {
-						throw new IllegalArgumentException("勘定科目が定義されていません: " + displayName);
-					}
+					AccountTitle accountTitle = callback.findAccountTitle(displayName);
 					List<AccountTitle> list = new LinkedList<AccountTitle>();
 					list.add(accountTitle);
 					callback.setAccountTitles(node, list);
@@ -306,10 +455,7 @@ public class YamlAccountTitlesLoader {
 				List<Object> l = (List<Object>)value;
 				for(Object obj : l) {
 					String displayName = obj.toString().trim();
-					AccountTitle accountTitle = getAccountTitleByDisplayName(displayName);
-					if(accountTitle == null) {
-						throw new IllegalArgumentException("勘定科目が定義されていません: " + displayName);
-					}
+					AccountTitle accountTitle = callback.findAccountTitle(displayName);
 					list.add(accountTitle);
 				}
 				callback.setAccountTitles(node, list);
@@ -505,5 +651,6 @@ public class YamlAccountTitlesLoader {
 	private interface NodeCallback<T> {
 		void initialize(Node<T> node);
 		void setAccountTitles(Node<T> node, List<AccountTitle> list);
+		AccountTitle findAccountTitle(String displayName);
 	}
 }

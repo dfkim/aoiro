@@ -1,14 +1,13 @@
 package net.osdn.aoiro.report;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.chrono.JapaneseChronology;
@@ -687,7 +686,7 @@ public class BalanceSheet {
 		}
 	}
 
-	public void writeTo(File file) throws IOException {
+	public void writeTo(Path path) throws IOException {
 		prepare();
 
 		PdfBrewer brewer = new PdfBrewer();
@@ -695,7 +694,7 @@ public class BalanceSheet {
 		BrewerData pb = new BrewerData(printData, brewer.getFontLoader());
 		brewer.setTitle("貸借対照表");
 		brewer.process(pb);
-		brewer.save(file);
+		brewer.save(path);
 	}
 
 	/** 次期開始仕訳を作成します。
@@ -704,7 +703,7 @@ public class BalanceSheet {
 	 * @return 次期開始仕訳のYAML文字列
 	 * @throws IOException 
 	 */
-	public String createOpeningJournalEntries(File file) throws IOException {
+	public String createOpeningJournalEntries(Path path) throws IOException {
 		List<Entry<AccountTitle, Amount>> debtors = new ArrayList<>();
 		long debtorsTotal = 0;
 		List<Entry<AccountTitle, Amount>> creditors = new ArrayList<>();
@@ -873,10 +872,10 @@ public class BalanceSheet {
 		
 		String s = sb.toString();
 		
-		if(file != null) {
-			BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8));
-			writer.write(s);
-			writer.close();
+		if(path != null) {
+			try(Writer writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
+				writer.write(s);
+			}
 		}
 		
 		return s;

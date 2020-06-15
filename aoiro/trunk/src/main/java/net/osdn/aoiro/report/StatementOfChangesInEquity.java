@@ -1,11 +1,11 @@
 package net.osdn.aoiro.report;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.chrono.JapaneseChronology;
 import java.time.format.DateTimeFormatter;
@@ -457,7 +457,7 @@ public class StatementOfChangesInEquity {
 		}
 	}
 	
-	public void writeTo(File file) throws IOException {
+	public void writeTo(Path path) throws IOException {
 		prepare();
 
 		PdfBrewer brewer = new PdfBrewer();
@@ -465,7 +465,7 @@ public class StatementOfChangesInEquity {
 		BrewerData pb = new BrewerData(printData, brewer.getFontLoader());
 		brewer.setTitle("社員資本等変動計算書");
 		brewer.process(pb);
-		brewer.save(file);
+		brewer.save(path);
 	}
 	
 	private static String formatMoney(long amount) {

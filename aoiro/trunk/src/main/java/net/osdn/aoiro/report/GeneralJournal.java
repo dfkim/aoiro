@@ -1,11 +1,11 @@
 package net.osdn.aoiro.report;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -345,7 +345,7 @@ public class GeneralJournal {
 		return rowsRequired;
 	}
 	
-	public void writeTo(File file) throws IOException {
+	public void writeTo(Path path) throws IOException {
 		prepare();
 
 		PdfBrewer brewer = new PdfBrewer();
@@ -353,6 +353,6 @@ public class GeneralJournal {
 		BrewerData pb = new BrewerData(printData, brewer.getFontLoader());
 		brewer.setTitle("仕訳帳");
 		brewer.process(pb);
-		brewer.save(file);
+		brewer.save(path);
 	}
 }
