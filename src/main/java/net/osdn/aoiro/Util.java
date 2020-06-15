@@ -1,43 +1,35 @@
 package net.osdn.aoiro;
 
-import java.io.File;
-import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
+import java.nio.file.Path;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
-import java.util.Locale;
 
 public class Util {
 
-	private static File appDir;
-	private static Locale locale = new Locale("ja", "JP", "JP");
-
+	private static Path appDir;
 	private static String pdfCreatorName;
 	private static String pdfCreatorVersion;
 	
-	public static File getApplicationDirectory() {
+	public static Path getApplicationDirectory() {
 		if(appDir == null) {
 			appDir = getApplicationDirectory(Util.class);
 		}
 		return appDir;
 	}
 
-	public static File getApplicationDirectory(Class<?> cls) {
+	public static Path getApplicationDirectory(Class<?> cls) {
 		try {
 			ProtectionDomain pd = cls.getProtectionDomain();
 			CodeSource cs = pd.getCodeSource();
 			URL location = cs.getLocation();
 			URI uri = location.toURI();
-			String path = uri.getPath();
-			File file = new File(path);
-			return file.getParentFile();
+			Path path = Path.of(uri);
+			Path parent = path.getParent();
+			return parent.toAbsolutePath().normalize();
 		} catch (Exception e) {
-			try {
-				return new File(".").getCanonicalFile();
-			} catch (IOException e1) {
-				return new File(".").getAbsoluteFile();
-			}
+			return Path.of(".").toAbsolutePath().normalize();
 		}
 	}
 	

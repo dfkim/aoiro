@@ -26,6 +26,7 @@ dependencies {
 	implementation 'net.java.dev.jna:jna-platform:5.5.0'
 
 	implementation 'net.osdn.util.io:auto-detect-reader:0.1.1'
+	implementation 'com.esotericsoftware.yamlbeans:yamlbeans:1.14'
 }
 
 sourceSets.main.resources {

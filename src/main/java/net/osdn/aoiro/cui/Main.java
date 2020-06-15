@@ -1,15 +1,16 @@
 package net.osdn.aoiro.cui;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.esotericsoftware.yamlbeans.YamlReader;
-
 import net.osdn.aoiro.AccountSettlement;
+import net.osdn.aoiro.ErrorMessage;
 import net.osdn.aoiro.Util;
 import net.osdn.aoiro.loader.yaml.YamlAccountTitlesLoader;
 import net.osdn.aoiro.loader.yaml.YamlJournalsLoader;
@@ -26,6 +27,8 @@ import net.osdn.aoiro.report.ProfitAndLoss;
 import net.osdn.aoiro.report.StatementOfChangesInEquity;
 import net.osdn.util.io.AutoDetectReader;
 
+import static net.osdn.aoiro.ErrorMessage.error;
+
 public class Main {
 	
 	public static void main(String[] args) {
@@ -33,30 +36,29 @@ public class Main {
 		System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.NoOpLog");
 		
 		try {
-
 			boolean skipSettlement = false;
 			boolean showMonthlyTotal = false;
 			Boolean isSoloProprietorship = null;
 			String filename = null;
-			
+
 			if(args.length >= 1) {
-				for(int i = 0; i < args.length; i++) {
-					if(args[i].equals("-o")) {
+				for (int i = 0; i < args.length; i++) {
+					if (args[i].equals("-o")) {
 						skipSettlement = true;
 					}
-					if(args[i].equals("-m")) {
+					if (args[i].equals("-m")) {
 						showMonthlyTotal = true;
 					}
-					if(args[i].equals("-p")) {
+					if (args[i].equals("-p")) {
 						isSoloProprietorship = Boolean.TRUE;
 					}
-					if(args[i].equals("-c")) {
+					if (args[i].equals("-c")) {
 						isSoloProprietorship = Boolean.FALSE;
 					}
 				}
 				filename = args[args.length - 1];
 			}
-			
+
 			if(filename == null) {
 				System.out.println("Usage: aoiro.exe <options> <仕訳データファイル>");
 				System.out.println("Options:");
@@ -69,63 +71,65 @@ public class Main {
 				return;
 			}
 
-			File journalEntryFile = new File(filename);
-			if(!journalEntryFile.exists() || journalEntryFile.isDirectory()) {
-				System.err.println("ファイルが見つかりません: " + journalEntryFile.getAbsolutePath());
+			Path journalEntryPath = Paths.get(filename);
+			if(!Files.exists(journalEntryPath) || Files.isDirectory(journalEntryPath)) {
+				System.err.println("ファイルが見つかりません: " + journalEntryPath);
 				pause();
 				return;
 			}
-			
+			journalEntryPath = journalEntryPath.toAbsolutePath().normalize();
+
 			if(isSoloProprietorship == null) {
-				isSoloProprietorship = isSoloProprietorship(journalEntryFile);
+				isSoloProprietorship = isSoloProprietorship(journalEntryPath);
 			}
-			File defaultDir = new File(Util.getApplicationDirectory(), "default");
-			if(isSoloProprietorship) {
-				System.out.println("次のデータファイルを使用して、個人決算処理を実行します。");
-				defaultDir = new File(defaultDir, "個人");
+			Path defaultDir = Util.getApplicationDirectory().resolve("default");
+			if (isSoloProprietorship) {
+				System.out.println("次のデータファイルを使用して処理を実行します。");
+				defaultDir = defaultDir.resolve("個人");
 			} else {
-				System.out.println("次のデータファイルを使用して、法人決算処理を実行します。");
-				defaultDir = new File(defaultDir, "法人");
+				System.out.println("次のデータファイルを使用して処理を実行します。");
+				defaultDir = defaultDir.resolve("法人");
 			}
-			File inputDir = journalEntryFile.getParentFile();
-			
-			File accountTitlesFile = getAccountTitleFile(inputDir, defaultDir);
-			if(accountTitlesFile == null) {
-				System.err.println("ファイルが見つかりません: 勘定科目.yml");
-				pause();
-				return;
+			Path inputDir = journalEntryPath.getParent();
+			Path outputDir = inputDir;
+
+			int processNumber = 0;
+
+			// 勘定科目.yml
+			Path accountTitlesPath = getAccountTitlePath(inputDir, defaultDir);
+			if (accountTitlesPath == null) {
+				throw error(" [エラー] ファイルが見つかりません: 勘定科目.yml");
 			}
-			
-			File proportionalDivisionsFile = null;
-			if(isSoloProprietorship) {
-				proportionalDivisionsFile = getProportionalDivisionsFile(inputDir, defaultDir);
-				if(proportionalDivisionsFile == null) {
-					System.err.println("ファイルが見つかりません: 家事按分.yml");
-					pause();
-					return;
+
+			System.out.println(" (" + (++processNumber) + ") 勘定科目 | " + accountTitlesPath);
+			YamlAccountTitlesLoader accountTitlesLoader = new YamlAccountTitlesLoader(accountTitlesPath);
+			Set<AccountTitle> accountTitles = accountTitlesLoader.getAccountTitles();
+
+			// 家事按分.yml
+			Path proportionalDivisionsPath = null;
+			if (isSoloProprietorship) {
+				proportionalDivisionsPath = getProportionalDivisionsPath(inputDir, defaultDir);
+				if (proportionalDivisionsPath == null) {
+					throw error(" [エラー] ファイルが見つかりません: 家事按分.yml");
 				}
 			}
-			
-			int processNumber = 0;
-			System.out.println(" (" + (++processNumber) + ") 勘定科目 | " + accountTitlesFile.getAbsolutePath());
-			YamlAccountTitlesLoader accountTitlesLoader = new YamlAccountTitlesLoader(accountTitlesFile);
-			Set<AccountTitle> accountTitles = accountTitlesLoader.getAccountTitles();
-			
+
 			List<ProportionalDivision> proportionalDivisions = null;
-			if(proportionalDivisionsFile != null) {
-				System.out.println(" (" + (++processNumber) + ") 家事按分 | " + proportionalDivisionsFile.getAbsolutePath());
-				YamlProportionalDivisionsLoader proportionalDivisionsLoader = new YamlProportionalDivisionsLoader(proportionalDivisionsFile, accountTitles);
+			if (proportionalDivisionsPath != null) {
+				System.out.println(" (" + (++processNumber) + ") 家事按分 | " + proportionalDivisionsPath);
+				YamlProportionalDivisionsLoader proportionalDivisionsLoader = new YamlProportionalDivisionsLoader(proportionalDivisionsPath, accountTitles);
 				proportionalDivisions = proportionalDivisionsLoader.getProportionalDivisions();
 			}
-			
-			YamlJournalsLoader journalsLoader = new YamlJournalsLoader(journalEntryFile, accountTitles);
+
+			// 仕訳データ.yml
+			YamlJournalsLoader journalsLoader = new YamlJournalsLoader(journalEntryPath, accountTitles);
 			List<JournalEntry> journalEntries = journalsLoader.getJournalEntries();
-			System.out.println(" (" + (++processNumber) + ") 仕訳　　 | " + journalEntryFile.getAbsolutePath() + " (" + journalEntries.size() + "件)");
+			System.out.println(" (" + (++processNumber) + ") 仕訳　　 | " + journalEntryPath + " (" + journalEntries.size() + "件)");
 			System.out.println();
 
 			accountTitlesLoader.validate();
 
-			if(!skipSettlement) {
+			if (!skipSettlement) {
 				//決算
 				System.out.println("決算処理を実行しています . . .");
 				AccountSettlement accountSettlement = new AccountSettlement(accountTitles, isSoloProprietorship);
@@ -134,7 +138,7 @@ public class Main {
 				System.out.println("");
 			}
 
-			if(skipSettlement) {
+			if (skipSettlement) {
 				System.out.println("帳簿を作成しています . . .");
 			} else {
 				System.out.println("帳簿と決算書を作成しています . . .");
@@ -146,19 +150,17 @@ public class Main {
 			// 総勘定元帳
 			GeneralLedger generalLedger = new GeneralLedger(accountTitles, journalEntries, isSoloProprietorship, showMonthlyTotal);
 
-
-
 			// 仕訳帳をファイルに出力します。
 			// この処理は総勘定元帳（GeneralLedger）を作成してから呼び出す必要があります。GeneralLedgerによって仕訳帳の「元丁」が設定されるからです。
-			generalJournal.writeTo(new File("仕訳帳.pdf"));
+			generalJournal.writeTo(outputDir.resolve("仕訳帳.pdf"));
 			System.out.println("  仕訳帳.pdf を出力しました。");
 
 			// 総勘定元帳をファイルに出力します。
 			// この処理は仕訳帳（GeneralJournal）を作成してから呼び出す必要があります。GeneralJournalによって総勘定元帳の「仕丁」が設定されるからです。
-			generalLedger.writeTo(new File("総勘定元帳.pdf"));
+			generalLedger.writeTo(outputDir.resolve("総勘定元帳.pdf"));
 			System.out.println("  総勘定元帳.pdf を出力しました。");
-			
-			if(!skipSettlement) {
+
+			if (!skipSettlement) {
 				//損益計算書
 				Node<Entry<List<AccountTitle>, Amount>> plRoot = accountTitlesLoader.getProfitAndLossRoot();
 				Set<String> plSignReversedNames = accountTitlesLoader.getSignReversedNamesForProfitAndLoss();
@@ -166,9 +168,9 @@ public class Main {
 				Set<String> plHiddenNamesIfZero = accountTitlesLoader.getHiddenNamesIfZeroForProfitAndLoss();
 				ProfitAndLoss pl = new ProfitAndLoss(plRoot, journalEntries, isSoloProprietorship,
 						plSignReversedNames, plAlwaysShownNames, plHiddenNamesIfZero);
-				pl.writeTo(new File("損益計算書.pdf"));
+				pl.writeTo(outputDir.resolve("損益計算書.pdf"));
 				System.out.println("  損益計算書.pdf を出力しました。");
-				
+
 				//貸借対照表
 				Node<Entry<List<AccountTitle>, Amount[]>> bsRoot = accountTitlesLoader.getBalanceSheetRoot();
 				Set<String> bsSignReversedNames = accountTitlesLoader.getSignReversedNamesForBalanceSheet();
@@ -176,22 +178,22 @@ public class Main {
 				Set<String> bsHiddenNamesIfZero = accountTitlesLoader.getHiddenNamesIfZeroForBalanceSheet();
 				BalanceSheet bs = new BalanceSheet(bsRoot, journalEntries, isSoloProprietorship,
 						bsSignReversedNames, bsAlwaysShownNames, bsHiddenNamesIfZero);
-				bs.writeTo(new File("貸借対照表.pdf"));
+				bs.writeTo(outputDir.resolve("貸借対照表.pdf"));
 				System.out.println("  貸借対照表.pdf を出力しました。");
 
 				//社員資本等変動計算書
-				if(!isSoloProprietorship) {
+				if (!isSoloProprietorship) {
 					Map<String, List<String>> ceReasons = accountTitlesLoader.getStateOfChangesInEquityReasons();
 					Node<List<AccountTitle>> ceRoot = accountTitlesLoader.getStateOfChangesInEquityRoot();
 					StatementOfChangesInEquity ce = new StatementOfChangesInEquity(ceReasons, ceRoot, journalEntries);
-					ce.writeTo(new File("社員資本等変動計算書.pdf"));
+					ce.writeTo(outputDir.resolve("社員資本等変動計算書.pdf"));
 					System.out.println("  社員資本等変動計算書.pdf を出力しました。");
 				}
 
 				//帳簿・決算書の作成で警告メッセージがあれば出力します。
-				if(bs.getWarnings().size() > 0) {
+				if (bs.getWarnings().size() > 0) {
 					System.out.println();
-					for(String warning : bs.getWarnings()) {
+					for (String warning : bs.getWarnings()) {
 						System.out.println(warning);
 					}
 				}
@@ -199,48 +201,53 @@ public class Main {
 				//繰越処理
 				System.out.println("");
 				System.out.println("繰越処理を実行しています . . .");
-				
+
 				//開始仕訳
-				bs.createOpeningJournalEntries(new File("次年度の開始仕訳.yml"));
+				bs.createOpeningJournalEntries(outputDir.resolve("次年度の開始仕訳.yml"));
 				System.out.println("  次年度の開始仕訳.yml を出力しました。");
 			}
 
 			//終了
-			System.out.println("");
+			System.out.println();
 			System.out.println("すべての処理が終了しました。");
-			pause();
-			
+		} catch(ErrorMessage e) {
+			System.err.println("\r\n" + e.getMessage() + "\r\n");
 		} catch(Exception e) {
+			System.err.println();
 			e.printStackTrace();
-			pause();
 		}
+		pause();
 	}
 	
-	private static File getAccountTitleFile(File inputDir, File defaultDir) {
-		File file = new File(inputDir, "勘定科目.yml");
-		if(file.exists() && !file.isDirectory()) {
-			return file;
+	private static Path getAccountTitlePath(Path inputPath, Path defaultPath) {
+		Path path;
+
+		path = inputPath.resolve("勘定科目.yml");
+		if(Files.exists(path) && !Files.isDirectory(path)) {
+			return path;
 		}
-		
-		file = new File(defaultDir, "勘定科目.yml");
-		if(file.exists() && !file.isDirectory()) {
-			return file;
+
+		path = defaultPath.resolve("勘定科目.yml");
+		if(Files.exists(path) && !Files.isDirectory(path)) {
+			return path;
 		}
-		
+
 		return null;
 	}
 	
-	private static File getProportionalDivisionsFile(File inputDir, File defaultDir) {
-		File file = new File(inputDir, "家事按分.yml");
-		if(file.exists() && !file.isDirectory()) {
-			return file;
+	private static Path getProportionalDivisionsPath(Path inputPath, Path defaultPath) {
+		Path path;
+
+		path = inputPath.resolve("家事按分.yml");
+		if(Files.exists(path) && !Files.isDirectory(path)) {
+			return path;
 		}
-		
-		file = new File(defaultDir, "家事按分.yml");
-		if(file.exists() && !file.isDirectory()) {
-			return file;
+
+		path = defaultPath.resolve("家事按分.yml");
+		if(Files.exists(path) && !Files.isDirectory(path)) {
+			return path;
 		}
-		
+
 		return null;
 	}
 	
@@ -248,81 +255,14 @@ public class Main {
 	/** 仕訳データファイルから個人事業主かどうかを判定します。
 	 * 仕訳データファイルに元入金が含まれていれば個人事業主と判定します。
 	 * 
-	 * @param journalEntryFile 仕訳データファイル
+	 * @param journalEntryPath 仕訳データファイル
 	 * @return 仕訳データファイルに元入金がある場合は true、そうでなければ false を返します。
 	 * @throws IOException
 	 */
-	public static boolean isSoloProprietorship(File journalEntryFile) throws IOException {
-		String yaml = AutoDetectReader.readAll(journalEntryFile.toPath());
-		@SuppressWarnings("unchecked")
-		List<Object> list = (List<Object>)new YamlReader(yaml).read();
-
-		for(Object obj : list) {
-			if(obj instanceof Map) {
-				@SuppressWarnings("unchecked")
-				Map<String, Object> map = (Map<String, Object>)obj;
-				Object debtor = map.get("借方");
-				if(debtor instanceof List) {
-					@SuppressWarnings("unchecked")
-					List<Object> debtorList = (List<Object>)debtor;
-					for(int i = 0; i < debtorList.size(); i++) {
-						obj = debtorList.get(i);
-						if(obj instanceof Map) {
-							@SuppressWarnings("unchecked")
-							Map<String, Object> m = (Map<String, Object>)obj;
-							Object title = m.get("勘定科目");
-							if(title == null) {
-								title = map.get("科目");
-							}
-							if(title != null && title.equals("元入金")) {
-								return true;
-							}
-						}
-					}
-				} else if(debtor instanceof Map) {
-					@SuppressWarnings("unchecked")
-					Map<String, Object> m = (Map<String, Object>)debtor;
-					Object title = m.get("勘定科目");
-					if(title == null) {
-						title = map.get("科目");
-					}
-					if(title != null && title.equals("元入金")) {
-						return true;
-					}
-				}
-				Object creditor = map.get("貸方");
-				if(creditor instanceof List) {
-					@SuppressWarnings("unchecked")
-					List<Object> creditorList = (List<Object>)creditor;
-					for(int i = 0; i < creditorList.size(); i++) {
-						obj = creditorList.get(i);
-						if(obj instanceof Map) {
-							@SuppressWarnings("unchecked")
-							Map<String, Object> m = (Map<String, Object>)obj;
-							Object title = m.get("勘定科目");
-							if(title == null) {
-								title = map.get("科目");
-							}
-							if(title != null && title.equals("元入金")) {
-								return true;
-							}
-						}
-					}
-				} else if(creditor instanceof Map) {
-					@SuppressWarnings("unchecked")
-					Map<String, Object> m = (Map<String, Object>)creditor;
-					Object title = m.get("勘定科目");
-					if(title == null) {
-						title = map.get("科目");
-					}
-					if(title != null && title.equals("元入金")) {
-						return true;
-					}
-				}
-			}
-		}
-		return false;
-	}	
+	public static boolean isSoloProprietorship(Path journalEntryPath) throws IOException {
+		String yaml = AutoDetectReader.readAll(journalEntryPath);
+		return yaml.contains("元入金");
+	}
 	
 	private static void pause() {
 		System.out.println("続行するにはEnterキーを押してください . . .");

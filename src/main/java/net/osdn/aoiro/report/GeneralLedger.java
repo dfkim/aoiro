@@ -1,11 +1,11 @@
 package net.osdn.aoiro.report;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -555,7 +555,7 @@ public class GeneralLedger {
 	}
 	
 	
-	public void writeTo(File file) throws IOException {
+	public void writeTo(Path path) throws IOException {
 		prepare();
 
 		PdfBrewer brewer = new PdfBrewer();
@@ -563,7 +563,7 @@ public class GeneralLedger {
 		BrewerData pb = new BrewerData(printData, brewer.getFontLoader());
 		brewer.setTitle("総勘定元帳");
 		brewer.process(pb);
-		brewer.save(file);
+		brewer.save(path);
 	}
 	
 	/** 指定した勘定科目を含む仕訳データを取得します。

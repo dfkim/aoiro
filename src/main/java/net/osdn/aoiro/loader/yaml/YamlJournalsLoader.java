@@ -1,68 +1,57 @@
 package net.osdn.aoiro.loader.yaml;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.InvalidClassException;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
+import com.esotericsoftware.yamlbeans.YamlException;
 import com.esotericsoftware.yamlbeans.YamlReader;
 
+import com.esotericsoftware.yamlbeans.parser.Parser;
+import com.esotericsoftware.yamlbeans.tokenizer.Tokenizer;
 import net.osdn.aoiro.model.AccountTitle;
 import net.osdn.aoiro.model.Creditor;
 import net.osdn.aoiro.model.Debtor;
 import net.osdn.aoiro.model.JournalEntry;
 import net.osdn.util.io.AutoDetectReader;
 
+import static net.osdn.aoiro.ErrorMessage.error;
+
 /** YAMLファイルから仕訳をロードします。
  *
  */
 public class YamlJournalsLoader {
 
-	private DateTimeFormatter dateParser = DateTimeFormatter.ofPattern("y-M-d");
+	private static DateTimeFormatter dateParser = DateTimeFormatter.ofPattern("y-M-d");
 
 	private Map<String, AccountTitle> accountTitleByDisplayName;
 	private List<JournalEntry> journals = new ArrayList<JournalEntry>();
 
 	private List<String> warnings;
 
-	public YamlJournalsLoader(File file, Set<AccountTitle> accountTitles) throws IOException {
-		this(file, accountTitles, null);
+	public YamlJournalsLoader(Path path, Set<AccountTitle> accountTitles) throws IOException {
+		this(path, accountTitles, null);
 	}
 
-	public YamlJournalsLoader(File file, Set<AccountTitle> accountTitles, List<String> warnings) throws IOException {
+	public YamlJournalsLoader(Path path, Set<AccountTitle> accountTitles, List<String> warnings) throws IOException {
 		this.warnings = warnings;
 
 		this.accountTitleByDisplayName = new HashMap<String, AccountTitle>();
 		for(AccountTitle accountTitle : accountTitles) {
 			accountTitleByDisplayName.put(accountTitle.getDisplayName(), accountTitle);
 		}
-		
-		String yaml = AutoDetectReader.readAll(file.toPath());
-		@SuppressWarnings("unchecked")
-		List<Object> list = (List<Object>)new YamlReader(yaml).read();
 
-		if(list == null) {
-			return;
-		}
-
-		for(Object obj : list) {
-			if(obj instanceof Map) {
-				@SuppressWarnings("unchecked")
-				Map<String, Object> map = (Map<String, Object>)obj;
-				JournalEntry entry = parseJournalEntry(map);
-				journals.add(entry);
-			}
-		}
-		if(list.size() != journals.size()) {
-			throw new IllegalArgumentException("処理できないデータが見つかりました: 入力データ件数 " + list.size() + ", 処理されたデータ件数 " + journals.size());
+		try {
+			new ItemReader(path).read();
+		} catch(YamlException e) {
+			YamlBeansUtil.Message m = YamlBeansUtil.getMessage(e);
+			throw error(" [エラー] " + path + " (" + m.getLine() + "行目, " + m.getColumn() + "桁目)\r\n " + m.getMessage());
 		}
 	}
 	
@@ -73,202 +62,143 @@ public class YamlJournalsLoader {
 	public List<JournalEntry> getJournalEntries() {
 		return journals;
 	}
-	
-	private JournalEntry parseJournalEntry(Map<String, Object> map) {
-		LocalDate date = parseDate(map);
+
+	private static LocalDate parseDate(String s) {
+		s = s.replace('/', '-')
+				.replace('.', '-')
+				.replace('年', '-')
+				.replace('月', '-')
+				.replace('日', ' ')
+				.trim();
 		try {
-			String description = parseDescription(map);
-			List<Debtor> debtors = parseDebtors(map);
-			List<Creditor> creditors = parseCreditors(map);
-			
-			int debtorsAmount = 0;
-			for(Debtor debtor : debtors) {
-				debtorsAmount += debtor.getAmount();
+			return LocalDate.from(dateParser.parse(s));
+		} catch(Exception e) {
+			return null;
+		}
+	}
+
+	private static Long parseAmount(String s) {
+		s = s.replace(",", "").trim();
+		try {
+			return Long.parseLong(s);
+		} catch(Exception e) {
+			return null;
+		}
+	}
+
+	private class ItemReader extends YamlReader {
+
+		private Path path;
+
+		public ItemReader(Path path) throws IOException {
+			super(AutoDetectReader.readAll(path));
+			this.path = path;
+		}
+
+		@SuppressWarnings("unchecked")
+		@Override
+		public List<Item> read() throws YamlException {
+			return super.read(List.class, Item.class);
+		}
+
+		@SuppressWarnings("rawtypes")
+		@Override
+		protected Object readValue(Class type, Class elementType, Class defaultType) throws YamlException, Parser.ParserException, Tokenizer.TokenizerException {
+			if(type != Item.class) {
+				return super.readValue(type, elementType, defaultType);
 			}
-			int creditorsAmount = 0;
-			for(Creditor creditor : creditors) {
-				creditorsAmount += creditor.getAmount();
-			}
-			if(debtorsAmount != creditorsAmount) {
-				String message = "金額が一致していません: 借方金額 " + debtorsAmount + ", 貸方金額 " + creditorsAmount;
-				if(warnings != null) {
-					warnings.add(message);
-				} else {
-					throw new IllegalArgumentException(message);
+
+			YamlBeansUtil.Position pos = YamlBeansUtil.getPosition(this);
+			int line = pos.line + 1;
+			Object obj = super.readValue(type, elementType, defaultType);
+			if(obj instanceof Item) {
+				Item item = (Item)obj;
+				if(item.日付 == null) {
+					throw error(" [エラー] " + path + " (" + line + "行目)\r\n 日付が指定されていません。");
 				}
-			}
-			JournalEntry entry = new JournalEntry(date, description, debtors, creditors);
-			return entry;
-		} catch(IllegalArgumentException e) {
-			if(date == null) {
-				throw e;
-			} else {
-				String message = "[" + DateTimeFormatter.ISO_LOCAL_DATE.format(date) + "] " + e.getMessage();
-				throw new IllegalArgumentException(message, e);
-			}
-		}
-	}
-	
-	private LocalDate parseDate(Map<String, Object> map) {
-		LocalDate date = null;
-		Object obj = null;
-		try {
-			obj = map.get("日付");
-			String s = obj.toString()
-					.replace('/', '-')
-					.replace('.', '-')
-					.replace('年', '-')
-					.replace('月', '-')
-					.replace('日', ' ')
-					.trim();
-			date = LocalDate.from(dateParser.parse(s));
-		} catch(Exception e) {
-			String message = "不正な日付です: " + obj;
-			if(warnings != null) {
-				warnings.add(message);
-			} else {
-				throw new IllegalArgumentException(message, e);
-			}
-		}
-		return date;
-	}
-	
-	private String parseDescription(Map<String, Object> map) {
-		String description = "";
-		Object obj = null;
-		try {
-			obj = map.get("摘要");
-			description = obj.toString().trim();
-		} catch(Exception e) {
-			String message = "不正な摘要です: " + obj;
-			if(warnings != null) {
-				warnings.add(message);
-			} else {
-				throw new IllegalArgumentException(message, e);
-			}
-		}
-		return description;
-	}
-	
-	private List<Debtor> parseDebtors(Map<String, Object> map) {
-		List<Debtor> debtors = new ArrayList<Debtor>();
-		Object obj = null;
-		try {
-			obj = map.get("借方");
-			if(obj == null) {
-				throw new NullPointerException();
-			}
-			if(obj instanceof List) {
-				@SuppressWarnings("unchecked")
-				List<Object> list = (List<Object>)obj;
-				for(int i = 0; i < list.size(); i++) {
-					obj = list.get(i);
-					if(obj instanceof Map) {
-						@SuppressWarnings("unchecked")
-						Map<String, Object> m = (Map<String, Object>)obj;
-						Entry<AccountTitle, Long> accountWithAmount = parseAccountWithAmount(m);
-						if(accountWithAmount != null) {
-							AccountTitle account = accountWithAmount.getKey();
-							long amount = accountWithAmount.getValue();
-							Debtor debtor = new Debtor(account, amount);
-							debtors.add(debtor);
-						}
+				LocalDate date = parseDate(item.日付);
+				if(date == null) {
+					throw error(" [エラー] " + path + " (" + line + "行目)\r\n 日付の形式に誤りがあります: " + item.日付);
+				}
+
+				if(item.摘要 == null) {
+					throw error(" [エラー] " + path + " (" + line + "行目)\r\n 摘要が指定されていません。");
+				}
+				String description = item.摘要.trim();
+
+				if(item.借方 == null) {
+					throw error(" [エラー] " + path + " (" + line + "行目)\r\n 借方が指定されていません。");
+				}
+				List<Debtor> debtors = new ArrayList<Debtor>();
+				long debtorsAmount = 0;
+				for(ChildItem d : item.借方) {
+					if(d == null) {
+						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 借方が指定されていません。");
 					}
-				}
-			} else if(obj instanceof Map) {
-				@SuppressWarnings("unchecked")
-				Map<String, Object> m = (Map<String, Object>)obj;
-				Entry<AccountTitle, Long> accountWithAmount = parseAccountWithAmount(m);
-				if(accountWithAmount != null) {
-					AccountTitle account = accountWithAmount.getKey();
-					long amount = accountWithAmount.getValue();
-					Debtor debtor = new Debtor(account, amount);
-					debtors.add(debtor);
-				}
-			} else {
-				throw new InvalidClassException(obj.getClass().getName());
-			}
-		} catch(Exception e) {
-			String message = "不正な借方です: " + obj;
-			if(warnings != null) {
-				warnings.add(message);
-			} else {
-				throw new IllegalArgumentException(message, e);
-			}
-		}
-		return debtors;
-	}
-	
-	private List<Creditor> parseCreditors(Map<String, Object> map) {
-		List<Creditor> creditors = new ArrayList<Creditor>();
-		Object obj = null;
-		try {
-			obj = map.get("貸方");
-			if(obj == null) {
-				throw new NullPointerException();
-			}
-			if(obj instanceof List) {
-				@SuppressWarnings("unchecked")
-				List<Object> list = (List<Object>)obj;
-				for(int i = 0; i < list.size(); i++) {
-					obj = list.get(i);
-					if(obj instanceof Map) {
-						@SuppressWarnings("unchecked")
-						Map<String, Object> m = (Map<String, Object>)obj;
-						Entry<AccountTitle, Long> accountWithAmount = parseAccountWithAmount(m);
-						if(accountWithAmount != null) {
-							AccountTitle account = accountWithAmount.getKey();
-							long amount = accountWithAmount.getValue();
-							Creditor creditor = new Creditor(account, amount);
-							creditors.add(creditor);
-						}
+					if(d.勘定科目 == null) {
+						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 借方の勘定科目が指定されていません。");
 					}
+					AccountTitle accountTitle = accountTitleByDisplayName.get(d.勘定科目.trim());
+					if(accountTitle == null) {
+						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 借方に未定義の勘定科目が指定されました: " + d.勘定科目);
+					}
+					if(d.金額 == null) {
+						throw error(" [エラー] " + path + " (" + line + "行目\r\n 借方の金額が指定されていません。");
+					}
+					Long amount = parseAmount(d.金額);
+					if(amount == null) {
+						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 借方の金額は数値で指定してください: " + d.金額);
+					}
+					debtorsAmount += amount;
+					debtors.add(new Debtor(accountTitle, amount));
 				}
-			} else if(obj instanceof Map) {
-				@SuppressWarnings("unchecked")
-				Map<String, Object> m = (Map<String, Object>)obj;
-				Entry<AccountTitle, Long> accountWithAmount = parseAccountWithAmount(m);
-				if(accountWithAmount != null) {
-					AccountTitle account = accountWithAmount.getKey();
-					long amount = accountWithAmount.getValue();
-					Creditor creditor = new Creditor(account, amount);
-					creditors.add(creditor);
+
+				if(item.貸方 == null) {
+					throw error(" [エラー] " + path + " (" + line + "行目)\r\n 貸方が指定されていません。");
 				}
-			} else {
-				throw new InvalidClassException(obj.getClass().getName());
+				List<Creditor> creditors = new ArrayList<Creditor>();
+				long creditorsAmount = 0;
+				for(ChildItem c : item.貸方) {
+					if(c == null) {
+						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 貸方が指定されていません。");
+					}
+					if(c.勘定科目 == null) {
+						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 貸方の勘定科目が指定されていません。");
+					}
+					AccountTitle accountTitle = accountTitleByDisplayName.get(c.勘定科目.trim());
+					if(accountTitle == null) {
+						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 貸方に未定義の勘定科目が指定されました: " + c.勘定科目);
+					}
+					if(c.金額 == null) {
+						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 貸方の金額が指定されていません。");
+					}
+					Long amount = parseAmount(c.金額);
+					if(amount == null) {
+						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 貸方の金額は数値で指定してください: " + c.金額);
+					}
+					creditorsAmount += amount;
+					creditors.add(new Creditor(accountTitle, amount));
+				}
+
+				if(debtorsAmount != creditorsAmount) {
+					throw error(" [エラー] " + path + " (" + line + "行目)\r\n 借方と貸方の金額が一致していません: 借方金額 " + debtorsAmount + ", 貸方金額 " + creditorsAmount);
+				}
+				JournalEntry entry = new JournalEntry(date, description, debtors, creditors);
+				journals.add(entry);
 			}
-		} catch(Exception e) {
-			String message = "不正な貸方です " + obj;
-			if(warnings != null) {
-				warnings.add(message);
-			} else {
-				throw new IllegalArgumentException(message, e);
-			}
+			return obj;
 		}
-		return creditors;
 	}
-	
-	private Entry<AccountTitle, Long> parseAccountWithAmount(Map<String, Object> map) {
-		Object obj = map.get("勘定科目");
-		if(obj == null) {
-			obj = map.get("科目");
-		}
-		if(obj == null) {
-			throw new IllegalArgumentException("勘定科目が指定されていません");
-		}
-		String title = obj.toString().trim();
-		AccountTitle account = accountTitleByDisplayName.get(title);
-		if(account == null) {
-			throw new IllegalArgumentException("勘定科目が見つかりません: " + title);
-		}
-		
-		obj = map.get("金額");
-		if(obj == null) {
-			throw new IllegalArgumentException("金額が指定されていません");
-		}
-		String s = obj.toString().replace(",", "").trim();
-		long amount = Long.parseLong(s);
-		Entry<AccountTitle, Long> entry = new SimpleEntry<>(account, amount);
-		return entry;
+
+	private static class Item {
+		public String 日付;
+		public String 摘要;
+		public ChildItem[] 借方;
+		public ChildItem[] 貸方;
+	}
+
+	private static class ChildItem {
+		public String 勘定科目;
+		public String 金額;
 	}
 }
