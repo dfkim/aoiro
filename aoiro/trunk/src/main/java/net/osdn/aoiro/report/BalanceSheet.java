@@ -29,6 +29,7 @@ import net.osdn.aoiro.model.Creditor;
 import net.osdn.aoiro.model.Debtor;
 import net.osdn.aoiro.model.JournalEntry;
 import net.osdn.aoiro.model.Node;
+import net.osdn.aoiro.report.layout.BalanceSheetLayout;
 import net.osdn.pdf_brewer.BrewerData;
 import net.osdn.pdf_brewer.PdfBrewer;
 
@@ -41,12 +42,10 @@ public class BalanceSheet {
 	private static final int ROWS = 40;
 	private static final double ROW_HEIGHT = 6.0;
 	
-	private Node<Entry<List<AccountTitle>, Amount[]>> bsRoot;
+	private BalanceSheetLayout bsLayout;
 	private List<JournalEntry> journalEntries;
 	private boolean isSoloProprietorship;
-	private Set<String> signReversedNames;
-	private Set<String> alwaysShownNames;
-	private Set<String> hiddenNamesIfZero;
+
 	private LocalDate openingDate;
 	private LocalDate closingDate;
 	private Map<AccountTitle, Amount> openingBalances = new HashMap<AccountTitle, Amount>();
@@ -60,14 +59,11 @@ public class BalanceSheet {
 
 	private List<String> warnings = new ArrayList<String>();
 
-	public BalanceSheet(Node<Entry<List<AccountTitle>, Amount[]>> bsRoot, List<JournalEntry> journalEntries, boolean isSoloProprietorship, Set<String> signReversedNames, Set<String> alwaysShownNames, Set<String> hiddenNamesIfZero) throws IOException {
-		this.bsRoot = bsRoot;
+	public BalanceSheet(BalanceSheetLayout bsLayout, List<JournalEntry> journalEntries, boolean isSoloProprietorship) throws IOException {
+		this.bsLayout = bsLayout;
 		this.journalEntries = journalEntries;
 		this.isSoloProprietorship = isSoloProprietorship;
-		this.signReversedNames = signReversedNames != null ? signReversedNames : new HashSet<String>();
-		this.alwaysShownNames = alwaysShownNames != null ? alwaysShownNames : new HashSet<String>();
-		this.hiddenNamesIfZero = hiddenNamesIfZero != null ? hiddenNamesIfZero : new HashSet<String>();
-		
+
 		this.openingDate = AccountSettlement.getOpeningDate(journalEntries, isSoloProprietorship);
 		this.closingDate = AccountSettlement.getClosingDate(journalEntries, isSoloProprietorship);
 		
@@ -158,11 +154,11 @@ public class BalanceSheet {
 		*/
 		
 		//再帰集計
-		retrieve(bsRoot, journalEntries);
+		retrieve(bsLayout.getRoot(), journalEntries);
 		//dump(bsRoot);
 		
 		//リスト
-		for(Node<Entry<List<AccountTitle>, Amount[]>> child : bsRoot.getChildren()) {
+		for(Node<Entry<List<AccountTitle>, Amount[]>> child : bsLayout.getRoot().getChildren()) {
 			if(child.getName().equals("資産")) {
 				assetsList = getList(child);
 			} else if(child.getName().equals("負債")) {
@@ -418,11 +414,12 @@ public class BalanceSheet {
 				}
 			}
 			//対象の仕訳が存在しない科目は印字をスキップします。（ただし、常に表示する見出しに含まれていない場合に限る。）
-			if(openingAmount == null && closingAmount == null && !alwaysShownNames.contains(displayName)) {
+			if(openingAmount == null && closingAmount == null && !bsLayout.isAlwaysShown(displayName)) {
 				continue;
 			}
 			//期首・期末どちらもゼロで表示しない見出しに含まれている場合、印字をスキップします。
-			if((openingAmount == null || openingAmount.getValue() == 0) && (closingAmount == null || closingAmount.getValue() == 0) && hiddenNamesIfZero.contains(displayName)) {
+			if((openingAmount == null || openingAmount.getValue() == 0)
+					&& (closingAmount == null || closingAmount.getValue() == 0) && bsLayout.isHidden(displayName)) {
 				continue;
 			}
 			assetsRows++;
@@ -446,11 +443,12 @@ public class BalanceSheet {
 				}
 			}
 			//対象の仕訳が存在しない科目は印字をスキップします。（ただし、常に表示する見出しに含まれていない場合に限る。）
-			if(openingAmount == null && closingAmount == null && !alwaysShownNames.contains(displayName)) {
+			if(openingAmount == null && closingAmount == null && !bsLayout.isAlwaysShown(displayName)) {
 				continue;
 			}
 			//期首・期末どちらもゼロで表示しない見出しに含まれている場合、印字をスキップします。
-			if((openingAmount == null || openingAmount.getValue() == 0) && (closingAmount == null || closingAmount.getValue() == 0) && hiddenNamesIfZero.contains(displayName)) {
+			if((openingAmount == null || openingAmount.getValue() == 0)
+					&& (closingAmount == null || closingAmount.getValue() == 0)	&& bsLayout.isHidden(displayName)) {
 				continue;
 			}
 			liabilitiesRows++;
@@ -474,11 +472,12 @@ public class BalanceSheet {
 				}
 			}
 			//対象の仕訳が存在しない科目は印字をスキップします。（ただし、常に表示する見出しに含まれていない場合に限る。）
-			if(openingAmount == null && closingAmount == null && !alwaysShownNames.contains(displayName)) {
+			if(openingAmount == null && closingAmount == null && !bsLayout.isAlwaysShown(displayName)) {
 				continue;
 			}
 			//期首・期末どちらもゼロで表示しない見出しに含まれている場合、印字をスキップします。
-			if((openingAmount == null || openingAmount.getValue() == 0) && (closingAmount == null || closingAmount.getValue() == 0) && hiddenNamesIfZero.contains(displayName)) {
+			if((openingAmount == null || openingAmount.getValue() == 0)
+					&& (closingAmount == null || closingAmount.getValue() == 0) && bsLayout.isHidden(displayName)) {
 				continue;
 			}
 			equityRows++;
@@ -527,7 +526,7 @@ public class BalanceSheet {
 			String displayName = node.getName();
 			Amount openingAmount = node.getValue().getValue()[0];
 			Amount closingAmount = node.getValue().getValue()[1];
-			int sign = signReversedNames.contains(node.getName()) ? -1 : 1;
+			int sign = bsLayout.isSignReversed(node.getName()) ? -1 : 1;
 
 			// 事業主貸の期首欄には斜線を引きます。
 			if("事業主貸".equals(node.getName())) {
@@ -536,11 +535,12 @@ public class BalanceSheet {
 				printData.add("\t\t\\line -0 0.15 0 -0.15");
 			}
 			//対象の仕訳が存在しない科目は印字をスキップします。（ただし、常に表示する見出しに含まれていない場合に限る。）
-			if(openingAmount == null && closingAmount == null && !alwaysShownNames.contains(displayName)) {
+			if(openingAmount == null && closingAmount == null && !bsLayout.isAlwaysShown(displayName)) {
 				continue;
 			}
 			//期首・期末どちらもゼロで表示しない見出しに含まれている場合、印字をスキップします。
-			if((openingAmount == null || openingAmount.getValue() == 0) && (closingAmount == null || closingAmount.getValue() == 0) && hiddenNamesIfZero.contains(displayName)) {
+			if((openingAmount == null || openingAmount.getValue() == 0)
+					&& (closingAmount == null || closingAmount.getValue() == 0) && bsLayout.isHidden(displayName)) {
 				continue;
 			}
 			printData.add("\t\t\\box " + String.format("2 %.2f 35.5 %.2f", y, ROW_HEIGHT));
@@ -564,14 +564,15 @@ public class BalanceSheet {
 			String displayName = node.getName();
 			Amount openingAmount = node.getValue().getValue()[0];
 			Amount closingAmount = node.getValue().getValue()[1];
-			int sign = signReversedNames.contains(node.getName()) ? -1 : 1;
+			int sign = bsLayout.isSignReversed(node.getName()) ? -1 : 1;
 			
 			//対象の仕訳が存在しない科目は印字をスキップします。（ただし、常に表示する見出しに含まれていない場合に限る。）
-			if(openingAmount == null && closingAmount == null && !alwaysShownNames.contains(displayName)) {
+			if(openingAmount == null && closingAmount == null && !bsLayout.isAlwaysShown(displayName)) {
 				continue;
 			}
 			//期首・期末どちらもゼロで表示しない見出しに含まれている場合、印字をスキップします。
-			if((openingAmount == null || openingAmount.getValue() == 0) && (closingAmount == null || closingAmount.getValue() == 0) && hiddenNamesIfZero.contains(displayName)) {
+			if((openingAmount == null || openingAmount.getValue() == 0)
+					&& (closingAmount == null || closingAmount.getValue() == 0) && bsLayout.isHidden(displayName)) {
 				continue;
 			}
 			printData.add("\t\t\\box " + String.format("89.5 %.2f 35.5 %.2f", y, ROW_HEIGHT));
@@ -596,7 +597,7 @@ public class BalanceSheet {
 			String displayName = node.getName();
 			Amount openingAmount = node.getValue().getValue()[0];
 			Amount closingAmount = node.getValue().getValue()[1];
-			int sign = signReversedNames.contains(node.getName()) ? -1 : 1;
+			int sign = bsLayout.isSignReversed(node.getName()) ? -1 : 1;
 
 			// 事業主借および控除前の所得金額の期首欄には斜線を引きます。
 			if("事業主借".equals(node.getName()) || "控除前の所得金額".equals(node.getName())) {
@@ -605,11 +606,12 @@ public class BalanceSheet {
 				printData.add("\t\t\\line -0 0.15 0 -0.15");
 			}
 			//対象の仕訳が存在しない科目は印字をスキップします。（ただし、常に表示する見出しに含まれていない場合に限る。）
-			if(openingAmount == null && closingAmount == null && !alwaysShownNames.contains(displayName)) {
+			if(openingAmount == null && closingAmount == null && !bsLayout.isAlwaysShown(displayName)) {
 				continue;
 			}
 			//期首・期末どちらもゼロで表示しない見出しに含まれている場合、印字をスキップします。
-			if((openingAmount == null || openingAmount.getValue() == 0) && (closingAmount == null || closingAmount.getValue() == 0) && hiddenNamesIfZero.contains(displayName)) {
+			if((openingAmount == null || openingAmount.getValue() == 0)
+					&& (closingAmount == null || closingAmount.getValue() == 0) && bsLayout.isHidden(displayName)) {
 				continue;
 			}
 			printData.add("\t\t\\box " + String.format("89.5 %.2f 35.5 %.2f", y, ROW_HEIGHT));
@@ -699,7 +701,7 @@ public class BalanceSheet {
 
 	/** 次期開始仕訳を作成します。
 	 * 
-	 * @param file 次期開始仕訳を保存するファイル。nullを指定した場合、ファイル出力はおこないません。
+	 * @param path 次期開始仕訳を保存するファイル。nullを指定した場合、ファイル出力はおこないません。
 	 * @return 次期開始仕訳のYAML文字列
 	 * @throws IOException 
 	 */

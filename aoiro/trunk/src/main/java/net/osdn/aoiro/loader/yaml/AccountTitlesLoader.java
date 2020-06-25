@@ -1,7 +1,12 @@
 package net.osdn.aoiro.loader.yaml;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,6 +25,9 @@ import net.osdn.aoiro.model.AccountTitle;
 import net.osdn.aoiro.model.AccountType;
 import net.osdn.aoiro.model.Amount;
 import net.osdn.aoiro.model.Node;
+import net.osdn.aoiro.report.layout.BalanceSheetLayout;
+import net.osdn.aoiro.report.layout.ProfitAndLossLayout;
+import net.osdn.aoiro.report.layout.StatementOfChangesInEquityLayout;
 import net.osdn.util.io.AutoDetectReader;
 
 import static net.osdn.aoiro.ErrorMessage.error;
@@ -27,9 +35,11 @@ import static net.osdn.aoiro.ErrorMessage.error;
 /** YAMLファイルから勘定科目をロードします。
  *
  */
-public class YamlAccountTitlesLoader {
+public class AccountTitlesLoader {
+
 
 	/** システムで使用する決算勘定 */
+	/*
 	private static Map<String, AccountTitle> settlementAccountTitleByDisplayName = new HashMap<>();
 	
 	static {
@@ -38,45 +48,30 @@ public class YamlAccountTitlesLoader {
 		settlementAccountTitleByDisplayName.put(AccountTitle.RETAINED_EARNINGS.getDisplayName(), AccountTitle.RETAINED_EARNINGS);
 		settlementAccountTitleByDisplayName.put(AccountTitle.PRETAX_INCOME.getDisplayName(), AccountTitle.PRETAX_INCOME);
 	}
+	*/
 	
 	/** 勘定科目セット */
 	private Set<AccountTitle> accountTitles = new LinkedHashSet<>();
-	
-	/** 勘定科目名から勘定科目を取得するためのマップ */
-	private Map<String, AccountTitle> accountTitleByDisplayName = new HashMap<>();
 
-	/** 損益計算書(P/L)を集計するためのツリーを構成するルートノード */
-	private Node<Entry<List<AccountTitle>, Amount>> plRoot;
-	
-	/** 貸借対照表(B/S)を集計するためのツリーを構成するルートノード */
-	private Node<Entry<List<AccountTitle>, Amount[]>> bsRoot;
-	
-	/** 社員資本等変動計算書の縦軸(変動事由)を構成するマップ (LinkedHashMapが設定されるため順序が維持されます。 */
-	private Map<String, List<String>> ceReasons;
-	
-	/** 社員資本等変動計算書を集計するためのツリーを構成するルートノード */
-	private Node<List<AccountTitle>> ceRoot;
+	/** 損益計算書(P/L)を作成するための構成情報 */
+	private ProfitAndLossLayout plLayout = new ProfitAndLossLayout();
 
+	/** 貸借対照表(B/S)を作成するための構成情報 */
+	private BalanceSheetLayout bsLayout = new BalanceSheetLayout();
 
-	/** 損益計算書(P/L)で金額の符号を反転して表示する見出しのリスト */
-	private Set<String> plSignReversedNames = new HashSet<>();
+	/** 社員資本等変動計算書を作成するための構成情報 */
+	private StatementOfChangesInEquityLayout sceLayout = new StatementOfChangesInEquityLayout();
 
-	/** 貸借対照表(B/S)で金額の符号を反転して表示する見出しのリスト */
-	private Set<String> bsSignReversedNames = new HashSet<>();
+	/** 勘定科目名から勘定科目を取得するためのマップ。
+	 * このマップには勘定科目.ymlに定義された勘定科目だけでなくビルトイン決算勘定科目も含まれています。 */
+	private Map<String, AccountTitle> accountTitleByDisplayName = new HashMap<>() {{
+		put(AccountTitle.INCOME_SUMMARY.getDisplayName(), AccountTitle.INCOME_SUMMARY);
+		put(AccountTitle.BALANCE.getDisplayName(), AccountTitle.BALANCE);
+		put(AccountTitle.RETAINED_EARNINGS.getDisplayName(), AccountTitle.RETAINED_EARNINGS);
+		put(AccountTitle.PRETAX_INCOME.getDisplayName(), AccountTitle.PRETAX_INCOME);
+	}};
 
-	/** 損益計算書(P/L)に常に表示する見出しのリスト */
-	private Set<String> plAlwaysShownNames = new HashSet<>();
-	
-	/** 貸借対照表(B/S)に常に表示する見出しのリスト */
-	private Set<String> bsAlwaysShownNames = new HashSet<>();
-
-	/** ゼロの場合は損益計算書(P/L)に表示しない見出しのリスト */
-	private Set<String> plHiddenNamesIfZero = new HashSet<>();
-
-	/** ゼロの場合は貸借対照表(B/S)に表示しない見出しのリスト */
-	private Set<String> bsHiddenNamesIfZero = new HashSet<>();
-	
-	public YamlAccountTitlesLoader(Path path) throws IOException {
+	public AccountTitlesLoader(Path path) throws IOException {
 		String yaml = AutoDetectReader.readAll(path);
 		Object obj;
 
@@ -192,9 +187,9 @@ public class YamlAccountTitlesLoader {
 		} else {
 			@SuppressWarnings("unchecked")
 			Map<String, Object> map = (Map<String, Object>)obj;
-			Node<Entry<List<AccountTitle>, Amount>> plRoot = new Node<Entry<List<AccountTitle>, Amount>>(-1, "損益計算書");
-			plRoot.setValue(new AbstractMap.SimpleEntry<List<AccountTitle>, Amount>(new ArrayList<AccountTitle>(), null));
-			retrieve(plRoot, map, new NodeCallback<Entry<List<AccountTitle>, Amount>>() {
+			//Node<Entry<List<AccountTitle>, Amount>> plRoot = new Node<Entry<List<AccountTitle>, Amount>>(-1, "損益計算書");
+			plLayout.getRoot().setValue(new AbstractMap.SimpleEntry<List<AccountTitle>, Amount>(new ArrayList<AccountTitle>(), null));
+			retrieve(plLayout.getRoot(), map, new NodeCallback<Entry<List<AccountTitle>, Amount>>() {
 				@Override
 				public void initialize(Node<Entry<List<AccountTitle>, Amount>> node) {
 					node.setValue(new AbstractMap.SimpleEntry<List<AccountTitle>, Amount>(new ArrayList<AccountTitle>(), null));
@@ -205,7 +200,7 @@ public class YamlAccountTitlesLoader {
 				}
 				@Override
 				public AccountTitle findAccountTitle(String displayName) {
-					AccountTitle accountTitle = getAccountTitleByDisplayName(displayName);
+					AccountTitle accountTitle = accountTitleByDisplayName.get(displayName);
 					if(accountTitle == null) {
 						throw error(" [エラー] " + path + "\r\n 損益計算書に未定義の勘定科目が指定されています: " + displayName);
 					} else if(accountTitle.getType() == AccountType.Assets) {
@@ -218,7 +213,60 @@ public class YamlAccountTitlesLoader {
 					return accountTitle;
 				}
 			});
-			this.plRoot = plRoot;
+		}
+
+		obj = root.get("損益計算書の表示制御");
+		if(obj == null) {
+			// 気にしない
+		} else if(!(obj instanceof Map)) {
+			throw error(" [エラー] " + path + "\r\n 損益計算書の表示制御の形式に誤りがあります。");
+		} else {
+			@SuppressWarnings("unchecked")
+			Map<String, Object> map = (Map<String, Object>)obj;
+			Object obj2;
+			obj2 = map.get("符号を反転して表示する見出し");
+			if(obj2 == null) {
+				// 気にしない
+			} else if(!(obj2 instanceof List)) {
+				throw error(" [エラー] " + path + "\r\n 損益計算書の表示制御（符号を反転して表示する見出し）の形式に誤りがあります。");
+			} else {
+				@SuppressWarnings("unchecked")
+				List<Object> list = (List<Object>)obj2;
+				for(Object obj3 : list) {
+					if(obj3 != null) {
+						plLayout.getSignReversedNames().add(obj3.toString().trim());
+					}
+				}
+			}
+			obj2 = map.get("常に表示する見出し");
+			if(obj2 == null) {
+				// 気にしない
+			} else if(!(obj2 instanceof List)) {
+				throw error(" [エラー] " + path + "\r\n 損益計算書の表示制御（常に表示する見出し）の形式に誤りがあります。");
+			} else {
+				@SuppressWarnings("unchecked")
+				List<Object> list = (List<Object>)obj2;
+				for(Object obj3 : list) {
+					if(obj3 != null) {
+						plLayout.getAlwaysShownNames().add(obj3.toString().trim());
+					}
+				}
+			}
+
+			obj2 = map.get("ゼロなら表示しない見出し");
+			if(obj2 == null) {
+				// 気にしない
+			} else if(!(obj2 instanceof List)) {
+				throw error(" [エラー] " + path + "\r\n 損益計算書の表示制御（ゼロなら表示しない見出し）の形式に誤りがあります。");
+			} else {
+				@SuppressWarnings("unchecked")
+				List<Object> list = (List<Object>)obj2;
+				for(Object obj3 : list) {
+					if(obj3 != null) {
+						plLayout.getHiddenNamesIfZero().add(obj3.toString().trim());
+					}
+				}
+			}
 		}
 		
 		obj = root.get("貸借対照表");
@@ -229,9 +277,8 @@ public class YamlAccountTitlesLoader {
 		} else {
 			@SuppressWarnings("unchecked")
 			Map<String, Object> map = (Map<String, Object>)obj;
-			Node<Entry<List<AccountTitle>, Amount[]>> bsRoot = new Node<Entry<List<AccountTitle>, Amount[]>>(0, "貸借対照表");
-			bsRoot.setValue(new AbstractMap.SimpleEntry<List<AccountTitle>, Amount[]>(new ArrayList<AccountTitle>(), null));
-			retrieve(bsRoot, map, new NodeCallback<Entry<List<AccountTitle>, Amount[]>>() {
+			bsLayout.getRoot().setValue(new AbstractMap.SimpleEntry<List<AccountTitle>, Amount[]>(new ArrayList<AccountTitle>(), null));
+			retrieve(bsLayout.getRoot(), map, new NodeCallback<Entry<List<AccountTitle>, Amount[]>>() {
 				@Override
 				public void initialize(Node<Entry<List<AccountTitle>, Amount[]>> node) {
 					node.setValue(new AbstractMap.SimpleEntry<List<AccountTitle>, Amount[]>(new ArrayList<AccountTitle>(), null));
@@ -243,7 +290,7 @@ public class YamlAccountTitlesLoader {
 
 				@Override
 				public AccountTitle findAccountTitle(String displayName) {
-					AccountTitle accountTitle = getAccountTitleByDisplayName(displayName);
+					AccountTitle accountTitle = accountTitleByDisplayName.get(displayName);
 					if(accountTitle == null) {
 						throw error(" [エラー] " + path + "\r\n 貸借対照表に未定義の勘定科目が指定されています: " + displayName);
 					} else if(accountTitle.getType() == AccountType.Revenue) {
@@ -254,9 +301,62 @@ public class YamlAccountTitlesLoader {
 					return accountTitle;
 				}
 			});
-			this.bsRoot = bsRoot;
 		}
-		
+
+		obj = root.get("貸借対照表の表示制御");
+		if(obj == null) {
+			// 気にしない
+		} else if(!(obj instanceof Map)) {
+			throw error(" [エラー] " + path + "\r\n 貸借対照表の表示制御の形式に誤りがあります。");
+		} else {
+			@SuppressWarnings("unchecked")
+			Map<String, Object> map = (Map<String, Object>)obj;
+			Object obj2;
+			obj2 = map.get("符号を反転して表示する見出し");
+			if(obj2 == null) {
+				// 気にしない
+			} else if(!(obj2 instanceof List)) {
+				throw error(" [エラー] " + path + "\r\n 貸借対照表の表示制御（符号を反転して表示する見出し）の形式に誤りがあります。");
+			} else {
+				@SuppressWarnings("unchecked")
+				List<Object> list = (List<Object>)obj2;
+				for(Object obj3 : list) {
+					if(obj3 != null) {
+						bsLayout.getSignReversedNames().add(obj3.toString().trim());
+					}
+				}
+			}
+			obj2 = map.get("常に表示する見出し");
+			if(obj2 == null) {
+				// 気にしない
+			} else if(!(obj2 instanceof List)) {
+				throw error(" [エラー] " + path + "\r\n 貸借対照表の表示制御（常に表示する見出し）の形式に誤りがあります。");
+			} else {
+				@SuppressWarnings("unchecked")
+				List<Object> list = (List<Object>)obj2;
+				for(Object obj3 : list) {
+					if(obj3 != null) {
+						bsLayout.getAlwaysShownNames().add(obj3.toString().trim());
+					}
+				}
+			}
+
+			obj2 = map.get("ゼロなら表示しない見出し");
+			if(obj2 == null) {
+				// 気にしない
+			} else if(!(obj2 instanceof List)) {
+				throw error(" [エラー] " + path + "\r\n 貸借対照表の表示制御（ゼロなら表示しない見出し）の形式に誤りがあります。");
+			} else {
+				@SuppressWarnings("unchecked")
+				List<Object> list = (List<Object>)obj2;
+				for(Object obj3 : list) {
+					if(obj3 != null) {
+						bsLayout.getHiddenNamesIfZero().add(obj3.toString().trim());
+					}
+				}
+			}
+		}
+
 		obj = root.get("社員資本等変動計算書");
 		if(obj == null) {
 			// 社員資本等変動計算書は定義されていないくても構わない。
@@ -277,11 +377,12 @@ public class YamlAccountTitlesLoader {
 			} else {
 				@SuppressWarnings("unchecked")
 				Map<String, List<String>> map2 = (Map<String, List<String>>)obj2;
-				this.ceReasons = map2;
+				for(Entry<String, List<String>> entry : map2.entrySet()) {
+					sceLayout.getReasons().put(entry.getKey(), entry.getValue());
+				}
 			}
-			Node<List<AccountTitle>> ceRoot = new Node<List<AccountTitle>>(0, "社員資本等変動計算書");
-			ceRoot.setValue(new ArrayList<AccountTitle>());
-			retrieve(ceRoot, map, new NodeCallback<List<AccountTitle>>() {
+			sceLayout.getRoot().setValue(new ArrayList<AccountTitle>());
+			retrieve(sceLayout.getRoot(), map, new NodeCallback<List<AccountTitle>>() {
 				@Override
 				public void initialize(Node<List<AccountTitle>> node) {
 					node.setValue(new ArrayList<AccountTitle>());
@@ -292,16 +393,18 @@ public class YamlAccountTitlesLoader {
 				}
 				@Override
 				public AccountTitle findAccountTitle(String displayName) {
-					AccountTitle accountTitle = getAccountTitleByDisplayName(displayName);
+					AccountTitle accountTitle = accountTitleByDisplayName.get(displayName);
 					if(accountTitle == null) {
 						throw error(" [エラー] " + path + "\r\n 社員資本等変動計算書に未定義の勘定科目が指定されています: " + displayName);
 					}
 					return accountTitle;
 				}
 			});
-			this.ceRoot = ceRoot;
 		}
 
+		//
+		// 以下は古い定義形式です。（古い定義形式をサポートするために必要です。）
+		//
 		obj = root.get("符号を反転して表示する見出し");
 		if(obj == null) {
 			// 符号を反転して表示する見出しは定義はなくても構わない。
@@ -322,7 +425,7 @@ public class YamlAccountTitlesLoader {
 				List<Object> list = (List<Object>)obj2;
 				for(Object o : list) {
 					if(o != null) {
-						plSignReversedNames.add(o.toString().trim());
+						plLayout.getSignReversedNames().add(o.toString().trim());
 					}
 				}
 			}
@@ -337,7 +440,7 @@ public class YamlAccountTitlesLoader {
 				List<Object> list = (List<Object>)obj2;
 				for(Object o : list) {
 					if(o != null) {
-						bsSignReversedNames.add(o.toString().trim());
+						bsLayout.getSignReversedNames().add(o.toString().trim());
 					}
 				}
 			}
@@ -363,7 +466,7 @@ public class YamlAccountTitlesLoader {
 				List<Object> list = (List<Object>)obj2;
 				for(Object o : list) {
 					if(o != null) {
-						plAlwaysShownNames.add(o.toString().trim());
+						plLayout.getAlwaysShownNames().add(o.toString().trim());
 					}
 				}
 			}
@@ -378,7 +481,7 @@ public class YamlAccountTitlesLoader {
 				List<Object> list = (List<Object>)obj2;
 				for(Object o : list) {
 					if(o != null) {
-						bsAlwaysShownNames.add(o.toString().trim());
+						bsLayout.getAlwaysShownNames().add(o.toString().trim());
 					}
 				}
 			}
@@ -404,7 +507,7 @@ public class YamlAccountTitlesLoader {
 				List<Object> list = (List<Object>)obj2;
 				for(Object o : list) {
 					if(o != null) {
-						plHiddenNamesIfZero.add(o.toString().trim());
+						plLayout.getHiddenNamesIfZero().add(o.toString().trim());
 					}
 				}
 			}
@@ -419,7 +522,7 @@ public class YamlAccountTitlesLoader {
 				List<Object> list = (List<Object>)obj2;
 				for(Object o : list) {
 					if(o != null) {
-						bsHiddenNamesIfZero.add(o.toString().trim());
+						bsLayout.getHiddenNamesIfZero().add(o.toString().trim());
 					}
 				}
 			}
@@ -482,7 +585,7 @@ public class YamlAccountTitlesLoader {
 	public boolean validate() {
 		boolean valid = true;
 
-		Set<AccountTitle> plAccountTitles = retrieve(plRoot);
+		Set<AccountTitle> plAccountTitles = retrieve(plLayout.getRoot());
 		for(AccountTitle accountTitle : accountTitles) {
 			if(accountTitle.getType() == AccountType.Revenue && !plAccountTitles.contains(accountTitle)) {
 				System.out.println(" [警告] 損益計算書に「" + accountTitle.getDisplayName() + "」が含まれていません。");
@@ -494,7 +597,7 @@ public class YamlAccountTitlesLoader {
 			}
 		}
 
-		Set<AccountTitle> bsAccountTitles = retrieve(bsRoot);
+		Set<AccountTitle> bsAccountTitles = retrieve(bsLayout.getRoot());
 		for(AccountTitle accountTitle : accountTitles) {
 			if(accountTitle.getType() == AccountType.Assets && !bsAccountTitles.contains(accountTitle)) {
 				System.out.println(" [警告] 貸借対照表に「" + accountTitle.getDisplayName() + "」が含まれていません。");
@@ -516,114 +619,35 @@ public class YamlAccountTitlesLoader {
 
 		return valid;
 	}
-	
-	
+
 	public Set<AccountTitle> getAccountTitles() {
 		return accountTitles;
 	}
-	
-	/** 勘定科目名を指定して勘定科目を取得します。
-	 * このメソッドはシステムで自動作成される決算勘定科目も返します。
-	 * 
-	 * @param displayName 勘定科目名
-	 * @return 見つかった勘定科目を返します。見つからなかった場合は null を返します。
-	 */
-	public AccountTitle getAccountTitleByDisplayName(String displayName) {
-		AccountTitle accountTitle = accountTitleByDisplayName.get(displayName);
-		if(accountTitle == null) {
-			accountTitle = settlementAccountTitleByDisplayName.get(displayName);
-		}
-		return accountTitle;
-	}
-	
-	/** 損益計算書の勘定科目ツリールートノードを返します。
-	 * 
-	 * @return 損益計算書のルートノード
-	 */
-	public Node<Entry<List<AccountTitle>, Amount>> getProfitAndLossRoot() {
-		return plRoot;
-	}
 
-	/** 貸借対照表の勘定科目ツリールートノードを返します。
-	 * 
-	 * @return 貸借対照表のルートノード
-	 */
-	public Node<Entry<List<AccountTitle>, Amount[]>> getBalanceSheetRoot() {
-		return bsRoot;
-	}
-	
-	/** 社員資本等変動計算書の縦軸(変動事由)を構成するマップを返します。
-	 * このマップの実装クラスはLinkedHashMapであり要素の順序が維持されます。
-	 * 
-	 * @return 社員資本等変動計算書の縦軸(変動事由)を構成するマップ
-	 */
-	public Map<String, List<String>> getStateOfChangesInEquityReasons() {
-		return ceReasons;
-	}
-
-	/** 社員資本等変動計算書の横軸(勘定科目)のツリールートノードを返します。
-	 * 
-	 * @return 社員資本等変動計算書を集計するためのツリーを構成するルートノード
-	 */
-	public Node<List<AccountTitle>> getStateOfChangesInEquityRoot() {
-		return ceRoot;
-	}
-
-	/** 損益計算書で符号を反転して表示する見出しのセットを返します。
-	 * このセットに含まれる見出しは、金額の符号が反転して表示されます。
+	/** 損益計算書の構成情報を返します。
 	 *
-	 * @return 損益計算書で符号を反転して表示する見出しのセット
+	 * @return 損益計算書の構成情報
 	 */
-	public Set<String> getSignReversedNamesForProfitAndLoss() {
-		return plSignReversedNames;
+	public ProfitAndLossLayout getProfitAndLossLayout() {
+		return plLayout;
 	}
 
-	/** 貸借対照表で符号を反転して表示する見出しのセットを返します。
-	 * このセットに含まれる見出しは、金額の符号が反転して表示されます。
+	/** 貸借対照表の構成情報を返します。
 	 *
-	 * @return 貸借対照表で符号を反転して表示する見出しのセット
+	 * @return 貸借対照表の構成情報
 	 */
-	public Set<String> getSignReversedNamesForBalanceSheet() {
-		return bsSignReversedNames;
+	public BalanceSheetLayout getBalanceSheetLayout() {
+		return bsLayout;
 	}
 
-	/** 損益計算書に常に表示する見出しのセットを返します。
-	 * このセットに含まれる見出しは、対象となる仕訳が存在しない場合でも常に表示されます。
-	 * 
-	 * @return 損益計算書に常に表示する見出しのセット
-	 */
-	public Set<String> getAlwaysShownNamesForProfitAndLoss() {
-		return plAlwaysShownNames;
-	}
-
-	/** 貸借対照表に常に表示する見出しのセットを返します。
-	 * このセットに含まれる見出しは、対象となる仕訳が存在しない場合でも常に表示されます。
-	 * 
-	 * @return 貸借対照表に常に表示する見出しのセット
-	 */
-	public Set<String> getAlwaysShownNamesForBalanceSheet() {
-		return bsAlwaysShownNames;
-	}
-
-	/** ゼロの場合に損益計算書に表示しない見出しのセットを返します。
-	 * このセットに含まれる見出しは、合計がゼロのときは表示されません。
+	/** 社員資本等変動計算書の構成情報を返します。
 	 *
-	 * @return ゼロの場合に損益計算書に表示しない見出しセット
+	 * @return 社員資本等変動計算書の構成情報
 	 */
-	public Set<String> getHiddenNamesIfZeroForProfitAndLoss() {
-		return plHiddenNamesIfZero;
+	public StatementOfChangesInEquityLayout getStatementOfChangesInEquityLayout() {
+		return sceLayout;
 	}
 
-	/** ゼロの場合に貸借対照表に表示しない見出しのセットを返します。
-	 * このセットに含まれる見出しは、合計がゼロのときは表示されません。
-	 *
-	 * @return ゼロの場合に貸借対照表に表示しない見出しのセット
-	 */
-	public Set<String> getHiddenNamesIfZeroForBalanceSheet() {
-		return bsHiddenNamesIfZero;
-	}
-	
-	
 	/*
 	private <T> void dump(int indent, Node<List<AccountTitle>, T> node) {
 		StringBuilder sb = new StringBuilder();
@@ -652,5 +676,129 @@ public class YamlAccountTitlesLoader {
 		void initialize(Node<T> node);
 		void setAccountTitles(Node<T> node, List<AccountTitle> list);
 		AccountTitle findAccountTitle(String displayName);
+	}
+
+	/// save ///
+
+	public static synchronized void save(Path file, Set<AccountTitle> accountTitles, ProfitAndLossLayout plLayout, BalanceSheetLayout bsLayout, StatementOfChangesInEquityLayout sceLayout) throws IOException {
+		StringBuilder sb = new StringBuilder();
+
+		sb.append(getYaml(accountTitles));
+		sb.append(plLayout.getYaml());
+		sb.append(bsLayout.getYaml());
+		sb.append(sceLayout.getYaml());
+
+		Path tmpFile = null;
+		try {
+			Path dir = file.getParent();
+			if(Files.notExists(dir)) {
+				Files.createDirectories(dir);
+			}
+			tmpFile = dir.resolve("勘定科目.tmp");
+			Files.writeString(tmpFile, sb.toString(), StandardCharsets.UTF_8,
+					StandardOpenOption.CREATE,
+					StandardOpenOption.TRUNCATE_EXISTING,
+					StandardOpenOption.WRITE,
+					StandardOpenOption.SYNC);
+
+			Files.move(tmpFile, file,
+					StandardCopyOption.REPLACE_EXISTING,
+					StandardCopyOption.ATOMIC_MOVE);
+		} finally {
+			if(tmpFile != null) {
+				try { Files.deleteIfExists(tmpFile); } catch(Exception ignore) {}
+			}
+		}
+	}
+
+	public static String getYaml(Set<AccountTitle> accountTitles) {
+		StringBuilder sb = new StringBuilder();
+
+		List<String> assets = new ArrayList<>();
+		List<String> liabilities = new ArrayList<>();
+		List<String> equity = new ArrayList<>();
+		List<String> revenue = new ArrayList<>();
+		List<String> expense = new ArrayList<>();
+
+		for(AccountTitle accountTitle : accountTitles) {
+			switch (accountTitle.getType()) {
+				case Assets:
+					assets.add(accountTitle.getDisplayName());
+					break;
+				case Liabilities:
+					liabilities.add(accountTitle.getDisplayName());
+					break;
+				case NetAssets:
+					equity.add(accountTitle.getDisplayName());
+					break;
+				case Revenue:
+					revenue.add(accountTitle.getDisplayName());
+					break;
+				case Expense:
+					expense.add(accountTitle.getDisplayName());
+			}
+		}
+
+		sb.append("仕訳:\r\n");
+
+		sb.append("  資産: [");
+		for(int i = 0; i < assets.size(); i++) {
+			sb.append(assets.get(i));
+			if(i + 1 < assets.size()) {
+				sb.append(", ");
+			}
+		}
+		sb.append("]\r\n");
+
+		sb.append("  負債: [");
+		for(int i = 0; i < liabilities.size(); i++) {
+			sb.append(liabilities.get(i));
+			if(i + 1 < liabilities.size()) {
+				sb.append(", ");
+			}
+		}
+		sb.append("]\r\n");
+
+		// 個人か法人かを判定します。勘定科目「資本金」を含んでいる場合は法人、そうでなければ個人と判断します。
+		// 個人の場合は見出しを「資本」とし、法人の場合は見出しを「純資産」とします。
+		boolean isSoloProprietorship = true;
+		for(String name : equity) {
+			if(name.equals("資本金")) {
+				isSoloProprietorship = false;
+				break;
+			}
+		}
+		if(isSoloProprietorship) {
+			sb.append("  資本: [");
+		} else {
+			sb.append("  純資産: [");
+		}
+		for(int i = 0; i < equity.size(); i++) {
+			sb.append(equity.get(i));
+			if(i + 1 < equity.size()) {
+				sb.append(", ");
+			}
+		}
+		sb.append("]\r\n");
+
+		sb.append("  収益: [");
+		for(int i = 0; i < revenue.size(); i++) {
+			sb.append(revenue.get(i));
+			if(i + 1 < revenue.size()) {
+				sb.append(", ");
+			}
+		}
+		sb.append("]\r\n");
+
+		sb.append("  費用: [");
+		for(int i = 0; i < expense.size(); i++) {
+			sb.append(expense.get(i));
+			if(i + 1 < expense.size()) {
+				sb.append(", ");
+			}
+		}
+		sb.append("]\r\n");
+
+		return sb.toString();
 	}
 }

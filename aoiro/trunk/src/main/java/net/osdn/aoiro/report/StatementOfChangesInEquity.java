@@ -30,6 +30,7 @@ import net.osdn.aoiro.model.Creditor;
 import net.osdn.aoiro.model.Debtor;
 import net.osdn.aoiro.model.JournalEntry;
 import net.osdn.aoiro.model.Node;
+import net.osdn.aoiro.report.layout.StatementOfChangesInEquityLayout;
 import net.osdn.pdf_brewer.BrewerData;
 import net.osdn.pdf_brewer.PdfBrewer;
 
@@ -47,9 +48,8 @@ public class StatementOfChangesInEquity {
 		public double height;
 	}
 
-	private Map<String, List<String>> ceReasons;
-	private Node<List<AccountTitle>> ceRoot;
-	
+	private StatementOfChangesInEquityLayout sceLayout;
+
 	private LocalDate openingDate;
 	private LocalDate closingDate;
 	private Map<AccountTitle, Amount> openingBalances = new HashMap<>();
@@ -64,10 +64,9 @@ public class StatementOfChangesInEquity {
 	private List<String> pageData = new ArrayList<>();
 	private List<String> printData;
 	
-	public StatementOfChangesInEquity(Map<String, List<String>> ceReasons, Node<List<AccountTitle>> ceRoot, List<JournalEntry> journalEntries) throws IOException {
-		this.ceReasons = ceReasons;
-		this.ceRoot = ceRoot;
-		
+	public StatementOfChangesInEquity(StatementOfChangesInEquityLayout sceLayout, List<JournalEntry> journalEntries) throws IOException {
+		this.sceLayout = sceLayout;
+
 		this.openingDate = AccountSettlement.getOpeningDate(journalEntries, false);
 		this.closingDate = AccountSettlement.getClosingDate(journalEntries, false);
 		
@@ -182,7 +181,7 @@ public class StatementOfChangesInEquity {
 
 		{ //変動事由に含まれていない摘要が存在した場合は変動事由に追加します。
 			Set<String> descriptions = new HashSet<>();
-			for(List<String> list : ceReasons.values()) {
+			for(List<String> list : sceLayout.getReasons().values()) {
 				if(list != null) {
 					for(String s : list) {
 						descriptions.add(s);
@@ -191,13 +190,13 @@ public class StatementOfChangesInEquity {
 			}
 			for(String description : changes.keySet()) {
 				if(!descriptions.contains(description)) {
-					ceReasons.put(description, Arrays.asList(description));
+					sceLayout.getReasons().put(description, Arrays.asList(description));
 				}
 			}
 		}
 
 		// ヘッダー領域を計算します。
-		calculateHeaderRects(ceRoot);
+		calculateHeaderRects(sceLayout.getRoot());
 		
 		// 当期首残高
 		Node<Amount[]> openingRow = new Node<>(0, "当期首残高");
@@ -218,7 +217,7 @@ public class StatementOfChangesInEquity {
 		Node<Amount[]> totalChangesRow = new Node<>(0, "当期変動額合計");
 		totalChangesRow.setValue(new Amount[headerColumns]);
 		rows.add(totalChangesRow);
-		for(Entry<String, List<String>> ey : ceReasons.entrySet()) {
+		for(Entry<String, List<String>> ey : sceLayout.getReasons().entrySet()) {
 			Node<Amount[]> changeRow = new Node<>(1, "　" + ey.getKey());
 			changeRow.setValue(new Amount[headerColumns]);
 			rows.add(changeRow);
@@ -402,7 +401,7 @@ public class StatementOfChangesInEquity {
 		y += ROW_HEIGHT;
 		printData.add("\t\t\\line " + String.format("0 %.2f -0 %.2f", y, y));
 		printData.add("\t\t\\line-style thin dot");
-		for(int i = 0; i < ceReasons.keySet().size(); i++) {
+		for(int i = 0; i < sceLayout.getReasons().keySet().size(); i++) {
 			y += ROW_HEIGHT;
 			printData.add("\t\t\\line " + String.format("0 %.2f -0 %.2f", y, y));
 		}

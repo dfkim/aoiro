@@ -27,6 +27,7 @@ import net.osdn.aoiro.model.Creditor;
 import net.osdn.aoiro.model.Debtor;
 import net.osdn.aoiro.model.JournalEntry;
 import net.osdn.aoiro.model.Node;
+import net.osdn.aoiro.report.layout.ProfitAndLossLayout;
 import net.osdn.pdf_brewer.BrewerData;
 import net.osdn.pdf_brewer.PdfBrewer;
 
@@ -39,12 +40,10 @@ public class ProfitAndLoss {
 	private static final int ROWS = 40;
 	private static final double ROW_HEIGHT = 6.0;
 	
-	private Node<Entry<List<AccountTitle>, Amount>> plRoot;
+	private ProfitAndLossLayout plLayout;
 	private List<JournalEntry> journalEntries;
 	private boolean isSoloProprietorship;
-	private Set<String> signReversedNames;
-	private Set<String> alwaysShownNames;
-	private Set<String> hiddenNamesIfZero;
+
 	private LocalDate openingDate;
 	private LocalDate closingDate;
 	private Map<AccountTitle, Amount> incomeSummaries = new HashMap<>();
@@ -53,14 +52,11 @@ public class ProfitAndLoss {
 	private List<String> pageData = new ArrayList<>();
 	private List<String> printData;
 	
-	public ProfitAndLoss(Node<Entry<List<AccountTitle>, Amount>> plRoot, List<JournalEntry> journalEntries, boolean isSoloProprietorship, Set<String> signReversedNames, Set<String> alwaysShownNames, Set<String> hiddenNamesIfZero) throws IOException {
-		this.plRoot = plRoot;
+	public ProfitAndLoss(ProfitAndLossLayout plLayout, List<JournalEntry> journalEntries, boolean isSoloProprietorship) throws IOException {
+		this.plLayout = plLayout;
 		this.journalEntries = journalEntries;
 		this.isSoloProprietorship = isSoloProprietorship;
-		this.signReversedNames = signReversedNames != null ? signReversedNames : new HashSet<>();
-		this.alwaysShownNames = alwaysShownNames != null ? alwaysShownNames : new HashSet<>();
-		this.hiddenNamesIfZero = hiddenNamesIfZero != null ? hiddenNamesIfZero : new HashSet<>();
-		
+
 		this.openingDate = AccountSettlement.getOpeningDate(journalEntries, isSoloProprietorship);
 		this.closingDate = AccountSettlement.getClosingDate(journalEntries, isSoloProprietorship);
 
@@ -98,10 +94,10 @@ public class ProfitAndLoss {
 		}
 		
 		//再帰集計
-		retrieve(plRoot, journalEntries);
+		retrieve(plLayout.getRoot(), journalEntries);
 		
 		//リスト作成
-		list = createList(plRoot);
+		list = createList(plLayout.getRoot());
 		//list = getList(plRoot);
 
 		//月別集計
@@ -213,8 +209,8 @@ public class ProfitAndLoss {
 		}
 		map.put("雑収入", new Amount[2]);
 
-		Set<AccountTitle> salesAccounts = getGroupAccounts(plRoot, "売上");
-		Set<AccountTitle> purchaseAccounts = getGroupAccounts(plRoot, "仕入");
+		Set<AccountTitle> salesAccounts = getGroupAccounts(plLayout.getRoot(), "売上");
+		Set<AccountTitle> purchaseAccounts = getGroupAccounts(plLayout.getRoot(), "仕入");
 
 		for(JournalEntry entry : journalEntries) {
 			//開始仕訳と締切仕訳は集計に含めません。
@@ -330,11 +326,11 @@ public class ProfitAndLoss {
 
 			Amount amount = node.getValue().getValue();
 			//対象の仕訳が存在しない科目は印字をスキップします。（ただし、常に表示する見出しに含まれていない場合に限る。）
-			if(amount == null && !alwaysShownNames.contains(node.getName())) {
+			if(amount == null && !plLayout.isAlwaysShown(node.getName())) {
 				continue;
 			}
 			//ゼロなら表示しない見出しに含まれていて、ゼロの場合、印字をスキップします。
-			if((amount == null || amount.getValue() == 0) && hiddenNamesIfZero.contains(node.getName())) {
+			if((amount == null || amount.getValue() == 0) && plLayout.isHidden(node.getName())) {
 				continue;
 			}
 
@@ -347,7 +343,7 @@ public class ProfitAndLoss {
 				printData.add("\t\\line " + String.format("0 %.2f 95 %.2f", y, y));
 			}
 			
-			if(node.getLevel() == 0 || (plRoot.getChildren().size() == 1 && node.getLevel() == 1)) {
+			if(node.getLevel() == 0 || (plLayout.getRoot().getChildren().size() == 1 && node.getLevel() == 1)) {
 				printData.add("\t\t\\font serif 10 bold");
 			} else {
 				printData.add("\t\t\\font serif 10");
@@ -364,7 +360,7 @@ public class ProfitAndLoss {
 			if(amount != null) {
 				printData.add("\t\t\\box " + String.format("63 %.2f 27 %.2f", y, ROW_HEIGHT));
 				printData.add("\t\t\\align center right");
-				int sign = signReversedNames.contains(node.getName()) ? -1 : 1;
+				int sign = plLayout.isSignReversed(node.getName()) ? -1 : 1;
 				printData.add("\t\t\\text " + formatMoney(sign * amount.getValue()));
 			}
 			y += ROW_HEIGHT;

@@ -5,26 +5,25 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import net.osdn.aoiro.AccountSettlement;
 import net.osdn.aoiro.ErrorMessage;
 import net.osdn.aoiro.Util;
-import net.osdn.aoiro.loader.yaml.YamlAccountTitlesLoader;
-import net.osdn.aoiro.loader.yaml.YamlJournalsLoader;
-import net.osdn.aoiro.loader.yaml.YamlProportionalDivisionsLoader;
+import net.osdn.aoiro.loader.yaml.AccountTitlesLoader;
+import net.osdn.aoiro.loader.yaml.JournalEntriesLoader;
+import net.osdn.aoiro.loader.yaml.ProportionalDivisionsLoader;
 import net.osdn.aoiro.model.AccountTitle;
-import net.osdn.aoiro.model.Amount;
 import net.osdn.aoiro.model.JournalEntry;
-import net.osdn.aoiro.model.Node;
 import net.osdn.aoiro.model.ProportionalDivision;
 import net.osdn.aoiro.report.BalanceSheet;
 import net.osdn.aoiro.report.GeneralJournal;
 import net.osdn.aoiro.report.GeneralLedger;
 import net.osdn.aoiro.report.ProfitAndLoss;
 import net.osdn.aoiro.report.StatementOfChangesInEquity;
+import net.osdn.aoiro.report.layout.BalanceSheetLayout;
+import net.osdn.aoiro.report.layout.ProfitAndLossLayout;
+import net.osdn.aoiro.report.layout.StatementOfChangesInEquityLayout;
 import net.osdn.util.io.AutoDetectReader;
 
 import static net.osdn.aoiro.ErrorMessage.error;
@@ -102,7 +101,7 @@ public class Main {
 			}
 
 			System.out.println(" (" + (++processNumber) + ") 勘定科目 | " + accountTitlesPath);
-			YamlAccountTitlesLoader accountTitlesLoader = new YamlAccountTitlesLoader(accountTitlesPath);
+			AccountTitlesLoader accountTitlesLoader = new AccountTitlesLoader(accountTitlesPath);
 			Set<AccountTitle> accountTitles = accountTitlesLoader.getAccountTitles();
 
 			// 家事按分.yml
@@ -117,12 +116,12 @@ public class Main {
 			List<ProportionalDivision> proportionalDivisions = null;
 			if (proportionalDivisionsPath != null) {
 				System.out.println(" (" + (++processNumber) + ") 家事按分 | " + proportionalDivisionsPath);
-				YamlProportionalDivisionsLoader proportionalDivisionsLoader = new YamlProportionalDivisionsLoader(proportionalDivisionsPath, accountTitles);
+				ProportionalDivisionsLoader proportionalDivisionsLoader = new ProportionalDivisionsLoader(proportionalDivisionsPath, accountTitles);
 				proportionalDivisions = proportionalDivisionsLoader.getProportionalDivisions();
 			}
 
 			// 仕訳データ.yml
-			YamlJournalsLoader journalsLoader = new YamlJournalsLoader(journalEntryPath, accountTitles);
+			JournalEntriesLoader journalsLoader = new JournalEntriesLoader(journalEntryPath, accountTitles);
 			List<JournalEntry> journalEntries = journalsLoader.getJournalEntries();
 			System.out.println(" (" + (++processNumber) + ") 仕訳　　 | " + journalEntryPath + " (" + journalEntries.size() + "件)");
 			System.out.println();
@@ -162,30 +161,21 @@ public class Main {
 
 			if (!skipSettlement) {
 				//損益計算書
-				Node<Entry<List<AccountTitle>, Amount>> plRoot = accountTitlesLoader.getProfitAndLossRoot();
-				Set<String> plSignReversedNames = accountTitlesLoader.getSignReversedNamesForProfitAndLoss();
-				Set<String> plAlwaysShownNames = accountTitlesLoader.getAlwaysShownNamesForProfitAndLoss();
-				Set<String> plHiddenNamesIfZero = accountTitlesLoader.getHiddenNamesIfZeroForProfitAndLoss();
-				ProfitAndLoss pl = new ProfitAndLoss(plRoot, journalEntries, isSoloProprietorship,
-						plSignReversedNames, plAlwaysShownNames, plHiddenNamesIfZero);
+				ProfitAndLossLayout plLayout = accountTitlesLoader.getProfitAndLossLayout();
+				ProfitAndLoss pl = new ProfitAndLoss(plLayout, journalEntries, isSoloProprietorship);
 				pl.writeTo(outputDir.resolve("損益計算書.pdf"));
 				System.out.println("  損益計算書.pdf を出力しました。");
 
 				//貸借対照表
-				Node<Entry<List<AccountTitle>, Amount[]>> bsRoot = accountTitlesLoader.getBalanceSheetRoot();
-				Set<String> bsSignReversedNames = accountTitlesLoader.getSignReversedNamesForBalanceSheet();
-				Set<String> bsAlwaysShownNames = accountTitlesLoader.getAlwaysShownNamesForBalanceSheet();
-				Set<String> bsHiddenNamesIfZero = accountTitlesLoader.getHiddenNamesIfZeroForBalanceSheet();
-				BalanceSheet bs = new BalanceSheet(bsRoot, journalEntries, isSoloProprietorship,
-						bsSignReversedNames, bsAlwaysShownNames, bsHiddenNamesIfZero);
+				BalanceSheetLayout bsLayout = accountTitlesLoader.getBalanceSheetLayout();
+				BalanceSheet bs = new BalanceSheet(bsLayout, journalEntries, isSoloProprietorship);
 				bs.writeTo(outputDir.resolve("貸借対照表.pdf"));
 				System.out.println("  貸借対照表.pdf を出力しました。");
 
 				//社員資本等変動計算書
 				if (!isSoloProprietorship) {
-					Map<String, List<String>> ceReasons = accountTitlesLoader.getStateOfChangesInEquityReasons();
-					Node<List<AccountTitle>> ceRoot = accountTitlesLoader.getStateOfChangesInEquityRoot();
-					StatementOfChangesInEquity ce = new StatementOfChangesInEquity(ceReasons, ceRoot, journalEntries);
+					StatementOfChangesInEquityLayout sceLayout = accountTitlesLoader.getStatementOfChangesInEquityLayout();
+					StatementOfChangesInEquity ce = new StatementOfChangesInEquity(sceLayout, journalEntries);
 					ce.writeTo(outputDir.resolve("社員資本等変動計算書.pdf"));
 					System.out.println("  社員資本等変動計算書.pdf を出力しました。");
 				}
