@@ -1,7 +1,11 @@
 package net.osdn.aoiro.loader.yaml;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -22,12 +26,12 @@ import static net.osdn.aoiro.ErrorMessage.error;
 /** YAMLファイルから家事按分をロードします。
  * 
  */
-public class YamlProportionalDivisionsLoader {
+public class ProportionalDivisionsLoader {
 	
 	private Map<String, AccountTitle> accountTitleByDisplayName;
 	private List<ProportionalDivision> proportionalDivisions = new ArrayList<ProportionalDivision>();
 
-	public YamlProportionalDivisionsLoader(Path path, Set<AccountTitle> accountTitles) throws IOException {
+	public ProportionalDivisionsLoader(Path path, Set<AccountTitle> accountTitles) throws IOException {
 		this.accountTitleByDisplayName = new HashMap<String, AccountTitle>();
 		for(AccountTitle accountTitle : accountTitles) {
 			accountTitleByDisplayName.put(accountTitle.getDisplayName(), accountTitle);
@@ -106,5 +110,50 @@ public class YamlProportionalDivisionsLoader {
 	private static class Item {
 		public String 勘定科目;
 		public String 事業割合;
+	}
+
+	/// save ///
+
+	public static synchronized void save(Path file, List<ProportionalDivision> proportionalDivisions) throws IOException {
+		String yaml = getYaml(proportionalDivisions);
+
+		Path tmpFile = null;
+		try {
+			Path dir = file.getParent();
+			if(Files.notExists(dir)) {
+				Files.createDirectories(dir);
+			}
+			tmpFile = dir.resolve("家事按分.tmp");
+			Files.writeString(tmpFile, yaml, StandardCharsets.UTF_8,
+					StandardOpenOption.CREATE,
+					StandardOpenOption.TRUNCATE_EXISTING,
+					StandardOpenOption.WRITE,
+					StandardOpenOption.SYNC);
+
+			Files.move(tmpFile, file,
+					StandardCopyOption.REPLACE_EXISTING,
+					StandardCopyOption.ATOMIC_MOVE);
+
+		} finally {
+			if(tmpFile != null) {
+				try { Files.deleteIfExists(tmpFile); } catch(Exception ignore) {}
+			}
+		}
+	}
+
+	public static String getYaml(List<ProportionalDivision> proportionalDivisions) {
+		StringBuilder sb = new StringBuilder();
+
+		if(proportionalDivisions != null) {
+			for(ProportionalDivision proportionalDivision : proportionalDivisions) {
+				sb.append("- {勘定科目: ");
+				sb.append(proportionalDivision.getAccountTitle().getDisplayName());
+				sb.append(", 事業割合: ");
+				sb.append(proportionalDivision.getBusinessRatio() * 100.0);
+				sb.append("}\r\n");
+			}
+		}
+
+		return sb.toString();
 	}
 }

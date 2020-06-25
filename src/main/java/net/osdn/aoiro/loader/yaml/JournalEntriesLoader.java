@@ -1,7 +1,11 @@
 package net.osdn.aoiro.loader.yaml;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -26,7 +30,7 @@ import static net.osdn.aoiro.ErrorMessage.error;
 /** YAMLファイルから仕訳をロードします。
  *
  */
-public class YamlJournalsLoader {
+public class JournalEntriesLoader {
 
 	private static DateTimeFormatter dateParser = DateTimeFormatter.ofPattern("y-M-d");
 
@@ -35,11 +39,11 @@ public class YamlJournalsLoader {
 
 	private List<String> warnings;
 
-	public YamlJournalsLoader(Path path, Set<AccountTitle> accountTitles) throws IOException {
+	public JournalEntriesLoader(Path path, Set<AccountTitle> accountTitles) throws IOException {
 		this(path, accountTitles, null);
 	}
 
-	public YamlJournalsLoader(Path path, Set<AccountTitle> accountTitles, List<String> warnings) throws IOException {
+	public JournalEntriesLoader(Path path, Set<AccountTitle> accountTitles, List<String> warnings) throws IOException {
 		this.warnings = warnings;
 
 		this.accountTitleByDisplayName = new HashMap<String, AccountTitle>();
@@ -200,5 +204,46 @@ public class YamlJournalsLoader {
 	private static class ChildItem {
 		public String 勘定科目;
 		public String 金額;
+	}
+
+	/// save ///
+
+	public static synchronized void save(Path file, List<JournalEntry> journalEntries) throws IOException {
+		String yaml = getYaml(journalEntries);
+
+		Path tmpFile = null;
+		try {
+			Path dir = file.getParent();
+			if(Files.notExists(dir)) {
+				Files.createDirectories(dir);
+			}
+			tmpFile = dir.resolve("仕訳データ.tmp");
+			Files.writeString(tmpFile, yaml, StandardCharsets.UTF_8,
+					StandardOpenOption.CREATE,
+					StandardOpenOption.TRUNCATE_EXISTING,
+					StandardOpenOption.WRITE,
+					StandardOpenOption.SYNC);
+
+			Files.move(tmpFile, file,
+					StandardCopyOption.REPLACE_EXISTING,
+					StandardCopyOption.ATOMIC_MOVE);
+		} finally {
+			if(tmpFile != null) {
+				try { Files.deleteIfExists(tmpFile); } catch(Exception ignore) {}
+			}
+		}
+	}
+
+	public static String getYaml(List<JournalEntry> journalEntries) {
+		StringBuilder sb = new StringBuilder();
+
+		if(journalEntries != null) {
+			for(JournalEntry journalEntry : journalEntries) {
+				sb.append(journalEntry.getYaml());
+				sb.append("\r\n");
+			}
+		}
+
+		return sb.toString();
 	}
 }
