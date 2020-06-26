@@ -219,7 +219,7 @@ public class GeneralLedger {
 							printData.add("\t\t\\font serif 10");
 							printData.add("\t\t\\align center right");
 							printData.add("\t\t\\text " + String.format("%,d", counterpartAccount.getAmount()));
-							//資産、費用の場合は増加、負債、純資産、収益の場合は減少
+							//資産、費用の場合は増加、負債、資本（純資産）、収益の場合は減少
 							if(account.getAccountTitle().getType().getNormalBalance() == Debtor.class) {
 								accountTitleTotal += counterpartAccount.getAmount();
 							} else {
@@ -234,7 +234,7 @@ public class GeneralLedger {
 							printData.add("\t\t\\font serif 10");
 							printData.add("\t\t\\align center right");
 							printData.add("\t\t\\text " + String.format("%,d", counterpartAccount.getAmount()));
-							//負債、純資産、収益の場合は増加、資産、費用の場合は減少
+							//負債、資本（純資産）、収益の場合は増加、資産、費用の場合は減少
 							if(account.getAccountTitle().getType().getNormalBalance() == Creditor.class) {
 								accountTitleTotal += counterpartAccount.getAmount();
 							} else {
