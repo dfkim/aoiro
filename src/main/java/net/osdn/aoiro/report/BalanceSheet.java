@@ -14,11 +14,9 @@ import java.time.chrono.JapaneseChronology;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import net.osdn.aoiro.AccountSettlement;
 import net.osdn.aoiro.Util;
@@ -163,7 +161,7 @@ public class BalanceSheet {
 				assetsList = getList(child);
 			} else if(child.getName().equals("負債")) {
 				liabilitiesList = getList(child);
-			} else if(child.getName().equals("純資産") || child.getName().equals("資本")) {
+			} else if(child.getName().equals("資本") || child.getName().equals("純資産")) {
 				equityList = getList(child);
 			}
 		}
@@ -589,7 +587,7 @@ public class BalanceSheet {
 			}
 			y += ROW_HEIGHT;
 		}
-		//純資産(資本)
+		//資本（純資産）
 		y = (rows - equityList.size()) * ROW_HEIGHT;
 		printData.add("\t\\line " + String.format("87.7 %.2f -0 %.2f", y, y));
 		for(int i = 1; i < equityList.size(); i++) {
@@ -652,7 +650,7 @@ public class BalanceSheet {
 			}
 		}
 		if(liabilitiesList.size() > 0 || equityList.size() > 0) {
-			//合計(負債、純資産)
+			//合計（負債、資本）
 			String displayName = "合計";
 			int openingAmount = 0;
 			int closingAmount = 0;
@@ -715,7 +713,7 @@ public class BalanceSheet {
 		String nextOpeningDate = DateTimeFormatter.ISO_LOCAL_DATE.format(this.closingDate.plusDays(1));
 
 		if(isSoloProprietorship) {
-			//個人事業主の場合は、事業主貸(資産)、事業主借(負債)、所得金額(純資産)が次期の元入金に加算されます。
+			//個人事業主の場合は、事業主貸（資産）、事業主借（負債）、所得金額（資本）が次期の元入金に加算されます。
 			//事業主貸、事業主借を除く資産と負債を集計して次期開始仕訳を作成します。
 			//相手勘定科目はすべて元入金になります。
 			for(Entry<AccountTitle, Amount> e : closingBalances.entrySet()) {
@@ -791,7 +789,7 @@ public class BalanceSheet {
 					} else {
 						creditors.add(e);
 					}
-				} else if(accountTitle.getType() == AccountType.Liabilities || accountTitle.getType() == AccountType.NetAssets) {
+				} else if(accountTitle.getType() == AccountType.Liabilities || accountTitle.getType() == AccountType.Equity) {
 					if(amount.getValue() == 0) {
 						continue;
 					} else if(amount.getValue() > 0) {

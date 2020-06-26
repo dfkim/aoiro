@@ -81,7 +81,7 @@ public class StatementOfChangesInEquity {
 		for(JournalEntry entry : journalEntries) {
 			if(entry.isOpening()) { //当期首残高
 				for(Debtor debtor : entry.getDebtors()) {
-					if(debtor.getAccountTitle().getType() == AccountType.NetAssets) {
+					if(debtor.getAccountTitle().getType() == AccountType.Equity) {
 						Amount amount = openingBalances.get(debtor.getAccountTitle());
 						if(amount == null) {
 							amount = new Amount(debtor.getAccountTitle().getType().getNormalBalance(), 0);
@@ -95,7 +95,7 @@ public class StatementOfChangesInEquity {
 					}
 				}
 				for(Creditor creditor : entry.getCreditors()) {
-					if(creditor.getAccountTitle().getType() == AccountType.NetAssets) {
+					if(creditor.getAccountTitle().getType() == AccountType.Equity) {
 						Amount amount = openingBalances.get(creditor.getAccountTitle());
 						if(amount == null) {
 							amount = new Amount(creditor.getAccountTitle().getType().getNormalBalance(), 0);
@@ -110,7 +110,7 @@ public class StatementOfChangesInEquity {
 				}
 			} else if(entry.isBalance()) { //当期末残高
 				for(Debtor debtor : entry.getDebtors()) {
-					if(debtor.getAccountTitle().getType() == AccountType.NetAssets) {
+					if(debtor.getAccountTitle().getType() == AccountType.Equity) {
 						Amount amount = closingBalances.get(debtor.getAccountTitle());
 						if(amount == null) {
 							amount = new Amount(debtor.getAccountTitle().getType().getNormalBalance(), 0);
@@ -124,7 +124,7 @@ public class StatementOfChangesInEquity {
 					}
 				}
 				for(Creditor creditor : entry.getCreditors()) {
-					if(creditor.getAccountTitle().getType() == AccountType.NetAssets) {
+					if(creditor.getAccountTitle().getType() == AccountType.Equity) {
 						Amount amount = closingBalances.get(creditor.getAccountTitle());
 						if(amount == null) {
 							amount = new Amount(creditor.getAccountTitle().getType().getNormalBalance(), 0);
@@ -139,7 +139,7 @@ public class StatementOfChangesInEquity {
 				}
 			} else { //当期変動額
 				for(Debtor debtor : entry.getDebtors()) {
-					if(debtor.getAccountTitle().getType() == AccountType.NetAssets) {
+					if(debtor.getAccountTitle().getType() == AccountType.Equity) {
 						Map<AccountTitle, Amount> map = changes.get(entry.getDescription());
 						if(map == null) {
 							map = new HashMap<AccountTitle, Amount>();
@@ -158,7 +158,7 @@ public class StatementOfChangesInEquity {
 					}
 				}
 				for(Creditor creditor : entry.getCreditors()) {
-					if(creditor.getAccountTitle().getType() == AccountType.NetAssets) {
+					if(creditor.getAccountTitle().getType() == AccountType.Equity) {
 						Map<AccountTitle, Amount> map = changes.get(entry.getDescription());
 						if(map == null) {
 							map = new HashMap<AccountTitle, Amount>();

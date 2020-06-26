@@ -207,8 +207,8 @@ public class AccountSettlement {
 		//負債勘定科目
 		Set<AccountTitle> liabilitiesAccountTitles = new LinkedHashSet<>();
 		
-		//純資産勘定科目
-		Set<AccountTitle> netAssetsAccountTitles = new LinkedHashSet<>();
+		//資本（純資産）勘定科目
+		Set<AccountTitle> equityAccountTitles = new LinkedHashSet<>();
 		
 		//使用されている収益勘定科目と費用勘定科目を抽出します。
 		for(JournalEntry entry : journalEntries) {
@@ -521,28 +521,28 @@ public class AccountSettlement {
 			}
 		}
 		
-		//使用されている純資産勘定科目を抽出します。
+		//使用されている資本（純資産）勘定科目を抽出します。
 		for(JournalEntry entry : journalEntries) {
 			for(Creditor creditor : entry.getCreditors()) {
-				if(creditor.getAccountTitle().getType() == AccountType.NetAssets) {
-					netAssetsAccountTitles.add(creditor.getAccountTitle());
+				if(creditor.getAccountTitle().getType() == AccountType.Equity) {
+					equityAccountTitles.add(creditor.getAccountTitle());
 				}
 			}
 			for(Debtor debtor : entry.getDebtors()) {
-				if(debtor.getAccountTitle().getType() == AccountType.NetAssets) {
-					netAssetsAccountTitles.add(debtor.getAccountTitle());
+				if(debtor.getAccountTitle().getType() == AccountType.Equity) {
+					equityAccountTitles.add(debtor.getAccountTitle());
 				}
 			}
 		}
 		
-		//純資産（資本）の残高振替
+		//資本（純資産）の残高振替
 		{
 			List<Debtor> debtors = new ArrayList<>();
 			long debtorsTotal = 0;
 			List<Creditor> creditors = new ArrayList<>();
 			long creditorsTotal = 0;
 			
-			for(AccountTitle accountTitle : netAssetsAccountTitles) {
+			for(AccountTitle accountTitle : equityAccountTitles) {
 				long total = 0;
 				List<JournalEntry> entries = getJournalEntriesByAccount(journalEntries, accountTitle);
 				for(JournalEntry entry : entries) {

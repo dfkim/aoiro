@@ -1,7 +1,6 @@
 package net.osdn.aoiro.loader.yaml;
 
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -141,10 +140,10 @@ public class AccountTitlesLoader {
 				throw error(" [エラー] " + path + "\r\n 純資産の形式に誤りがあります。");
 			}
 			@SuppressWarnings("unchecked")
-			List<String> netAssets = (List<String>)obj2;
-			if(netAssets != null) {
-				for(String displayName : netAssets) {
-					AccountTitle accountTitle = new AccountTitle(AccountType.NetAssets, displayName);
+			List<String> equity = (List<String>)obj2;
+			if(equity != null) {
+				for(String displayName : equity) {
+					AccountTitle accountTitle = new AccountTitle(AccountType.Equity, displayName);
 					accountTitles.add(accountTitle);
 					accountTitleByDisplayName.put(displayName, accountTitle);
 				}
@@ -207,7 +206,7 @@ public class AccountTitlesLoader {
 						throw error(" [エラー] " + path + "\r\n 損益計算書に資産の勘定科目を指定することはできません: " + displayName);
 					} else if(accountTitle.getType() == AccountType.Liabilities) {
 						throw error(" [エラー] " + path + "\r\n 損益計算書に負債の勘定科目を指定することはできません: " + displayName);
-					} else if(accountTitle.getType() == AccountType.NetAssets) {
+					} else if(accountTitle.getType() == AccountType.Equity) {
 						throw error(" [エラー] " + path + "\r\n 損益計算書に資本（純資産）の勘定科目を指定することはできません: " + displayName);
 					}
 					return accountTitle;
@@ -607,7 +606,7 @@ public class AccountTitlesLoader {
 				System.out.println(" [警告] 貸借対照表に「" + accountTitle.getDisplayName() + "」が含まれていません。");
 				valid = false;
 			}
-			if(accountTitle.getType() == AccountType.NetAssets && !bsAccountTitles.contains(accountTitle)) {
+			if(accountTitle.getType() == AccountType.Equity && !bsAccountTitles.contains(accountTitle)) {
 				System.out.println(" [警告] 貸借対照表に「" + accountTitle.getDisplayName() + "」が含まれていません。");
 				valid = false;
 			}
@@ -728,7 +727,7 @@ public class AccountTitlesLoader {
 				case Liabilities:
 					liabilities.add(accountTitle.getDisplayName());
 					break;
-				case NetAssets:
+				case Equity:
 					equity.add(accountTitle.getDisplayName());
 					break;
 				case Revenue:
