@@ -34,37 +34,42 @@ public class JournalEntriesLoader {
 
 	private static DateTimeFormatter dateParser = DateTimeFormatter.ofPattern("y-M-d");
 
+	private Path path;
 	private Map<String, AccountTitle> accountTitleByDisplayName;
-	private List<JournalEntry> journals = new ArrayList<JournalEntry>();
 
-	private List<String> warnings;
-
-	public JournalEntriesLoader(Path path, Set<AccountTitle> accountTitles) throws IOException {
-		this(path, accountTitles, null);
-	}
-
-	public JournalEntriesLoader(Path path, Set<AccountTitle> accountTitles, List<String> warnings) throws IOException {
-		this.warnings = warnings;
+	public JournalEntriesLoader(Path path, Set<AccountTitle> accountTitles) {
+		this.path = path;
 
 		this.accountTitleByDisplayName = new HashMap<String, AccountTitle>();
 		for(AccountTitle accountTitle : accountTitles) {
 			accountTitleByDisplayName.put(accountTitle.getDisplayName(), accountTitle);
 		}
+	}
 
+	/** 仕訳リストを取得します。
+	 *
+	 * @return 仕訳リスト
+	 * @throws IOException I/Oエラーが発生した場合
+	 */
+	public List<JournalEntry> getJournalEntries() throws IOException {
+		return getJournalEntries(false);
+	}
+
+	/** 仕訳リストを取得します。
+	 *
+	 * @param ignoreWarnings 貸借金額の不一致など一部の警告を無視します。
+	 * @return 仕訳リスト
+	 * @throws IOException I/Oエラーが発生した場合
+	 */
+	public List<JournalEntry> getJournalEntries(boolean ignoreWarnings) throws IOException {
 		try {
-			new ItemReader(path).read();
+			ItemReader reader = new ItemReader(path, ignoreWarnings);
+			reader.read();
+			return reader.journalEntries;
 		} catch(YamlException e) {
 			YamlBeansUtil.Message m = YamlBeansUtil.getMessage(e);
 			throw error(" [エラー] " + path + " (" + m.getLine() + "行目, " + m.getColumn() + "桁目)\r\n " + m.getMessage());
 		}
-	}
-	
-	/** 仕訳リストを取得します。
-	 * 
-	 * @return 仕訳リスト
-	 */
-	public List<JournalEntry> getJournalEntries() {
-		return journals;
 	}
 
 	private static LocalDate parseDate(String s) {
@@ -93,10 +98,13 @@ public class JournalEntriesLoader {
 	private class ItemReader extends YamlReader {
 
 		private Path path;
+		private boolean ignoreWarnings;
+		private List<JournalEntry> journalEntries = new ArrayList<>();
 
-		public ItemReader(Path path) throws IOException {
+		public ItemReader(Path path, boolean ignoreWarnings) throws IOException {
 			super(AutoDetectReader.readAll(path));
 			this.path = path;
+			this.ignoreWarnings = ignoreWarnings;
 		}
 
 		@SuppressWarnings("unchecked")
@@ -184,11 +192,14 @@ public class JournalEntriesLoader {
 					creditors.add(new Creditor(accountTitle, amount));
 				}
 
-				if(debtorsAmount != creditorsAmount) {
-					throw error(" [エラー] " + path + " (" + line + "行目)\r\n 借方と貸方の金額が一致していません: 借方金額 " + debtorsAmount + ", 貸方金額 " + creditorsAmount);
+				if(!ignoreWarnings) {
+					// ignoreWarnings = true の場合、貸借金額の不一致はエラーとしません。
+					if(debtorsAmount != creditorsAmount) {
+						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 借方と貸方の金額が一致していません: 借方金額 " + debtorsAmount + ", 貸方金額 " + creditorsAmount);
+					}
 				}
 				JournalEntry entry = new JournalEntry(date, description, debtors, creditors);
-				journals.add(entry);
+				journalEntries.add(entry);
 			}
 			return obj;
 		}
@@ -208,7 +219,7 @@ public class JournalEntriesLoader {
 
 	/// save ///
 
-	public static synchronized void save(Path file, List<JournalEntry> journalEntries) throws IOException {
+	public static synchronized void write(Path file, List<JournalEntry> journalEntries) throws IOException {
 		String yaml = getYaml(journalEntries);
 
 		Path tmpFile = null;

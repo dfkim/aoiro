@@ -27,35 +27,38 @@ import static net.osdn.aoiro.ErrorMessage.error;
  * 
  */
 public class ProportionalDivisionsLoader {
-	
-	private Map<String, AccountTitle> accountTitleByDisplayName;
-	private List<ProportionalDivision> proportionalDivisions = new ArrayList<ProportionalDivision>();
 
-	public ProportionalDivisionsLoader(Path path, Set<AccountTitle> accountTitles) throws IOException {
+	private Path path;
+	private Map<String, AccountTitle> accountTitleByDisplayName;
+
+	public ProportionalDivisionsLoader(Path path, Set<AccountTitle> accountTitles) {
+		this.path = path;
+
 		this.accountTitleByDisplayName = new HashMap<String, AccountTitle>();
 		for(AccountTitle accountTitle : accountTitles) {
 			accountTitleByDisplayName.put(accountTitle.getDisplayName(), accountTitle);
 		}
+	}
 
+	/** 家事按分リストを取得します。
+	 * 
+	 * @return 家事按分リスト
+	 */
+	public List<ProportionalDivision> getProportionalDivisions() throws IOException {
 		try {
-			new ItemReader(path).read();
+			ItemReader reader = new ItemReader(path);
+			reader.read();
+			return reader.proportionalDivisions;
 		} catch(YamlException e) {
 			YamlBeansUtil.Message m = YamlBeansUtil.getMessage(e);
 			throw error(" [エラー] " + path + " (" + m.getLine() + "行目, " + m.getColumn() + "桁目)\r\n " + m.getMessage());
 		}
 	}
-	
-	/** 家事按分リストを取得します。
-	 * 
-	 * @return 家事按分リスト
-	 */
-	public List<ProportionalDivision> getProportionalDivisions() {
-		return proportionalDivisions;
-	}
 
 	private class ItemReader extends YamlReader {
 
 		private Path path;
+		private List<ProportionalDivision> proportionalDivisions = new ArrayList<>();
 
 		public ItemReader(Path path) throws IOException {
 			super(AutoDetectReader.readAll(path));
@@ -114,7 +117,7 @@ public class ProportionalDivisionsLoader {
 
 	/// save ///
 
-	public static synchronized void save(Path file, List<ProportionalDivision> proportionalDivisions) throws IOException {
+	public static synchronized void write(Path file, List<ProportionalDivision> proportionalDivisions) throws IOException {
 		String yaml = getYaml(proportionalDivisions);
 
 		Path tmpFile = null;

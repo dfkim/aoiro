@@ -36,21 +36,10 @@ import static net.osdn.aoiro.ErrorMessage.error;
  */
 public class AccountTitlesLoader {
 
+	private Path path;
 
-	/** システムで使用する決算勘定 */
-	/*
-	private static Map<String, AccountTitle> settlementAccountTitleByDisplayName = new HashMap<>();
-	
-	static {
-		settlementAccountTitleByDisplayName.put(AccountTitle.INCOME_SUMMARY.getDisplayName(), AccountTitle.INCOME_SUMMARY);
-		settlementAccountTitleByDisplayName.put(AccountTitle.BALANCE.getDisplayName(), AccountTitle.BALANCE);
-		settlementAccountTitleByDisplayName.put(AccountTitle.RETAINED_EARNINGS.getDisplayName(), AccountTitle.RETAINED_EARNINGS);
-		settlementAccountTitleByDisplayName.put(AccountTitle.PRETAX_INCOME.getDisplayName(), AccountTitle.PRETAX_INCOME);
-	}
-	*/
-	
 	/** 勘定科目セット */
-	private Set<AccountTitle> accountTitles = new LinkedHashSet<>();
+	private Set<AccountTitle> accountTitles;
 
 	/** 損益計算書(P/L)を作成するための構成情報 */
 	private ProfitAndLossLayout plLayout = new ProfitAndLossLayout();
@@ -70,7 +59,17 @@ public class AccountTitlesLoader {
 		put(AccountTitle.PRETAX_INCOME.getDisplayName(), AccountTitle.PRETAX_INCOME);
 	}};
 
-	public AccountTitlesLoader(Path path) throws IOException {
+	public AccountTitlesLoader(Path path) {
+		this.path = path;
+	}
+
+	private void read() throws IOException {
+		if(accountTitles != null) {
+			return;
+		}
+
+		accountTitles = new LinkedHashSet<>();
+
 		String yaml = AutoDetectReader.readAll(path);
 		Object obj;
 
@@ -619,31 +618,43 @@ public class AccountTitlesLoader {
 		return valid;
 	}
 
-	public Set<AccountTitle> getAccountTitles() {
+	/** 勘定科目のセットを取得します。
+	 *
+	 * @return 勘定科目のセット
+	 * @throws IOException I/Oエラーが発生した場合
+	 */
+	public Set<AccountTitle> getAccountTitles() throws IOException {
+		read();
 		return accountTitles;
 	}
 
 	/** 損益計算書の構成情報を返します。
 	 *
 	 * @return 損益計算書の構成情報
+	 * @throws IOException I/Oエラーが発生した場合
 	 */
-	public ProfitAndLossLayout getProfitAndLossLayout() {
+	public ProfitAndLossLayout getProfitAndLossLayout() throws IOException {
+		read();
 		return plLayout;
 	}
 
 	/** 貸借対照表の構成情報を返します。
 	 *
 	 * @return 貸借対照表の構成情報
+	 * @throws IOException I/Oエラーが発生した場合
 	 */
-	public BalanceSheetLayout getBalanceSheetLayout() {
+	public BalanceSheetLayout getBalanceSheetLayout() throws IOException {
+		read();
 		return bsLayout;
 	}
 
 	/** 社員資本等変動計算書の構成情報を返します。
 	 *
 	 * @return 社員資本等変動計算書の構成情報
+	 * @throws IOException I/Oエラーが発生した場合
 	 */
-	public StatementOfChangesInEquityLayout getStatementOfChangesInEquityLayout() {
+	public StatementOfChangesInEquityLayout getStatementOfChangesInEquityLayout() throws IOException {
+		read();
 		return sceLayout;
 	}
 
@@ -679,7 +690,7 @@ public class AccountTitlesLoader {
 
 	/// save ///
 
-	public static synchronized void save(Path file, Set<AccountTitle> accountTitles, ProfitAndLossLayout plLayout, BalanceSheetLayout bsLayout, StatementOfChangesInEquityLayout sceLayout) throws IOException {
+	public static synchronized void write(Path file, Set<AccountTitle> accountTitles, ProfitAndLossLayout plLayout, BalanceSheetLayout bsLayout, StatementOfChangesInEquityLayout sceLayout) throws IOException {
 		StringBuilder sb = new StringBuilder();
 
 		sb.append(getYaml(accountTitles));
