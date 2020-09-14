@@ -23,6 +23,7 @@ import java.util.Set;
 
 import net.osdn.aoiro.AccountSettlement;
 import net.osdn.aoiro.Util;
+import net.osdn.aoiro.cui.Main;
 import net.osdn.aoiro.model.AccountTitle;
 import net.osdn.aoiro.model.AccountType;
 import net.osdn.aoiro.model.Amount;
@@ -459,12 +460,13 @@ public class StatementOfChangesInEquity {
 	public void writeTo(Path path) throws IOException {
 		prepare();
 
-		PdfBrewer brewer = new PdfBrewer();
+		PdfBrewer brewer = new PdfBrewer(Main.fontLoader);
 		brewer.setCreator(Util.getPdfCreator());
 		BrewerData pb = new BrewerData(printData, brewer.getFontLoader());
 		brewer.setTitle("社員資本等変動計算書");
 		brewer.process(pb);
 		brewer.save(path);
+		brewer.close();
 	}
 	
 	private static String formatMoney(long amount) {
