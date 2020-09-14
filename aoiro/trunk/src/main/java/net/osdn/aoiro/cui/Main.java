@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -24,11 +25,14 @@ import net.osdn.aoiro.report.StatementOfChangesInEquity;
 import net.osdn.aoiro.report.layout.BalanceSheetLayout;
 import net.osdn.aoiro.report.layout.ProfitAndLossLayout;
 import net.osdn.aoiro.report.layout.StatementOfChangesInEquityLayout;
+import net.osdn.pdf_brewer.FontLoader;
 import net.osdn.util.io.AutoDetectReader;
 
 import static net.osdn.aoiro.ErrorMessage.error;
 
 public class Main {
+
+	public static FontLoader fontLoader;
 	
 	public static void main(String[] args) {
 
@@ -148,6 +152,12 @@ public class Main {
 
 			// 総勘定元帳
 			GeneralLedger generalLedger = new GeneralLedger(accountTitles, journalEntries, isSoloProprietorship, showMonthlyTotal);
+
+			Set<String> fontFileNames = new HashSet<String>();
+			fontFileNames.addAll(FontLoader.FILENAMES_YUGOTHIC);
+			fontFileNames.addAll(FontLoader.FILENAMES_YUMINCHO);
+			fontLoader = new FontLoader(FontLoader.getDefaultFontDir(), fontFileNames, null);
+
 
 			// 仕訳帳をファイルに出力します。
 			// この処理は総勘定元帳（GeneralLedger）を作成してから呼び出す必要があります。GeneralLedgerによって仕訳帳の「元丁」が設定されるからです。

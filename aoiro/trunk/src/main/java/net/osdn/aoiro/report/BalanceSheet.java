@@ -20,6 +20,7 @@ import java.util.Map.Entry;
 
 import net.osdn.aoiro.AccountSettlement;
 import net.osdn.aoiro.Util;
+import net.osdn.aoiro.cui.Main;
 import net.osdn.aoiro.model.AccountTitle;
 import net.osdn.aoiro.model.AccountType;
 import net.osdn.aoiro.model.Amount;
@@ -689,12 +690,13 @@ public class BalanceSheet {
 	public void writeTo(Path path) throws IOException {
 		prepare();
 
-		PdfBrewer brewer = new PdfBrewer();
+		PdfBrewer brewer = new PdfBrewer(Main.fontLoader);
 		brewer.setCreator(Util.getPdfCreator());
 		BrewerData pb = new BrewerData(printData, brewer.getFontLoader());
 		brewer.setTitle("貸借対照表");
 		brewer.process(pb);
 		brewer.save(path);
+		brewer.close();
 	}
 
 	/** 次期開始仕訳を作成します。

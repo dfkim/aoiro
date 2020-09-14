@@ -12,6 +12,7 @@ import java.util.List;
 
 import net.osdn.aoiro.AccountSettlement;
 import net.osdn.aoiro.Util;
+import net.osdn.aoiro.cui.Main;
 import net.osdn.aoiro.model.Creditor;
 import net.osdn.aoiro.model.Debtor;
 import net.osdn.aoiro.model.JournalEntry;
@@ -348,11 +349,12 @@ public class GeneralJournal {
 	public void writeTo(Path path) throws IOException {
 		prepare();
 
-		PdfBrewer brewer = new PdfBrewer();
+		PdfBrewer brewer = new PdfBrewer(Main.fontLoader);
 		brewer.setCreator(Util.getPdfCreator());
 		BrewerData pb = new BrewerData(printData, brewer.getFontLoader());
 		brewer.setTitle("仕訳帳");
 		brewer.process(pb);
 		brewer.save(path);
+		brewer.close();
 	}
 }

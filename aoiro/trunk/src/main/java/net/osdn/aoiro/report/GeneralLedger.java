@@ -14,6 +14,7 @@ import java.util.Set;
 
 import net.osdn.aoiro.AccountSettlement;
 import net.osdn.aoiro.Util;
+import net.osdn.aoiro.cui.Main;
 import net.osdn.aoiro.model.Account;
 import net.osdn.aoiro.model.AccountTitle;
 import net.osdn.aoiro.model.AccountType;
@@ -500,7 +501,24 @@ public class GeneralLedger {
 	public List<Account> getCounterpartAccounts(JournalEntry entry, Account account) {
 		List<Account> counterpartAccounts = new ArrayList<>(); //相手勘定科目
 
-		if(account.getAccountTitle().getDisplayName().equals("元入金")) {
+		// 相手勘定が1件で決算勘定の場合は必ず相手勘定科目を出力します。
+		boolean isCounterpartClosingAccount = false;
+		if(account instanceof Debtor) {
+			if(entry.getCreditors().size() == 1 && entry.getCreditors().get(0).getAccountTitle().isClosing()) {
+				isCounterpartClosingAccount = true;
+			}
+		} else if(account instanceof Creditor) {
+			if(entry.getDebtors().size() == 1 && entry.getDebtors().get(0).getAccountTitle().isClosing()) {
+				isCounterpartClosingAccount = true;
+			}
+		}
+		if(isCounterpartClosingAccount) {
+			if(account instanceof Debtor) {
+				counterpartAccounts.add(new Creditor(entry.getCreditors().get(0).getAccountTitle(), account.getAmount()));
+			} else if(account instanceof Creditor) {
+				counterpartAccounts.add(new Debtor(entry.getDebtors().get(0).getAccountTitle(), account.getAmount()));
+			}
+		} else if(account.getAccountTitle().getDisplayName().equals("元入金")) {
 			// 元入金の場合は相手勘定科目を「諸口」とせずに、相手勘定科目を個別に出力します。
 			// ただし、元入金側の勘定科目が2件以上ある場合は金額を算出できないので「諸口」とします。
 			// 元入金側の勘定科目が1件の場合は、元入金の金額と相手勘定科目の合計金額が一致しますが、
@@ -558,12 +576,13 @@ public class GeneralLedger {
 	public void writeTo(Path path) throws IOException {
 		prepare();
 
-		PdfBrewer brewer = new PdfBrewer();
+		PdfBrewer brewer = new PdfBrewer(Main.fontLoader);
 		brewer.setCreator(Util.getPdfCreator());
 		BrewerData pb = new BrewerData(printData, brewer.getFontLoader());
 		brewer.setTitle("総勘定元帳");
 		brewer.process(pb);
 		brewer.save(path);
+		brewer.close();
 	}
 	
 	/** 指定した勘定科目を含む仕訳データを取得します。
