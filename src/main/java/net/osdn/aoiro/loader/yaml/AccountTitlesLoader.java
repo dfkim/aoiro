@@ -24,6 +24,7 @@ import net.osdn.aoiro.model.AccountTitle;
 import net.osdn.aoiro.model.AccountType;
 import net.osdn.aoiro.model.Amount;
 import net.osdn.aoiro.model.Node;
+import net.osdn.aoiro.model.NodeUtil;
 import net.osdn.aoiro.report.layout.BalanceSheetLayout;
 import net.osdn.aoiro.report.layout.ProfitAndLossLayout;
 import net.osdn.aoiro.report.layout.StatementOfChangesInEquityLayout;
@@ -242,11 +243,23 @@ public class AccountTitlesLoader {
 			} else if(!(obj2 instanceof List)) {
 				throw error(" [エラー] " + path + "\r\n 損益計算書の表示制御（常に表示する見出し）の形式に誤りがあります。");
 			} else {
+				// 見出しごとの祖先（階層の親）を作成します。
+				Map<Node<Map.Entry<List<AccountTitle>, Amount>>, List<Node<Map.Entry<List<AccountTitle>, Amount>>>> ancestors = NodeUtil.createAncestors(plLayout.getRoot());
+
 				@SuppressWarnings("unchecked")
 				List<Object> list = (List<Object>)obj2;
 				for(Object obj3 : list) {
 					if(obj3 != null) {
-						plLayout.getAlwaysShownNames().add(obj3.toString().trim());
+						String name = obj3.toString().trim();
+						plLayout.getAlwaysShownNames().add(name);
+
+						// 見出し階層の子ノードが「常に表示する見出し」に設定されている場合、
+						// そのすべての親（祖先）も「常に表示する見出し」に設定します。
+						for(Node<Map.Entry<List<AccountTitle>, Amount>> node : NodeUtil.findByName(plLayout.getRoot(), name)) {
+							for(Node<Map.Entry<List<AccountTitle>, Amount>> ancestor : ancestors.get(node)) {
+								plLayout.getAlwaysShownNames().add(ancestor.getName());
+							}
+						}
 					}
 				}
 			}
