@@ -199,6 +199,7 @@ public class GeneralLedger {
 							printData.add("\t\t\\text " + counterpartAccount.getAccountTitle().getDisplayName());
 							//摘要欄に勘定科目だけではなく仕訳摘要も印字します。ただし、締切仕訳や仕訳摘要と勘定科目が同じ場合は印字しません。
 							if(!entry.isClosing()
+									&& !entry.getDescription().isBlank()
 									&& !entry.getDescription().equals(account.getAccountTitle().getDisplayName())
 									&& !entry.getDescription().equals(counterpartAccount.getAccountTitle().getDisplayName())) {
 								printData.add("\t\t\\font serif 6");

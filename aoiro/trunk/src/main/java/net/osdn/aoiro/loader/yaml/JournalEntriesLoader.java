@@ -125,11 +125,14 @@ public class JournalEntriesLoader {
 			Object obj = super.readValue(type, elementType, defaultType);
 			if(obj instanceof Item) {
 				Item item = (Item)obj;
-				if(item.日付 == null) {
+
+				if(item.日付 == null && ignoreWarnings == false) {
+					// ignoreWarnings = true の場合、日付が null でもエラーとしません。
 					throw error(" [エラー] " + path + " (" + line + "行目)\r\n 日付が指定されていません。");
 				}
 				LocalDate date = parseDate(item.日付);
-				if(date == null) {
+				if(date == null && ignoreWarnings == false) {
+					// ignoreWarnings = true の場合、日付が null でもエラーとしません。
 					throw error(" [エラー] " + path + " (" + line + "行目)\r\n 日付の形式に誤りがあります: " + item.日付);
 				}
 
@@ -192,12 +195,11 @@ public class JournalEntriesLoader {
 					creditors.add(new Creditor(accountTitle, amount));
 				}
 
-				if(!ignoreWarnings) {
+				if(debtorsAmount != creditorsAmount && ignoreWarnings == false) {
 					// ignoreWarnings = true の場合、貸借金額の不一致はエラーとしません。
-					if(debtorsAmount != creditorsAmount) {
-						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 借方と貸方の金額が一致していません: 借方金額 " + debtorsAmount + ", 貸方金額 " + creditorsAmount);
-					}
+					throw error(" [エラー] " + path + " (" + line + "行目)\r\n 借方と貸方の金額が一致していません: 借方金額 " + debtorsAmount + ", 貸方金額 " + creditorsAmount);
 				}
+
 				JournalEntry entry = new JournalEntry(date, description, debtors, creditors);
 				journalEntries.add(entry);
 			}
