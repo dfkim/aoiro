@@ -22,6 +22,9 @@ public class JournalEntry {
 	/** 貸方 */
 	private List<Creditor> creditors;
 
+	/** この仕訳のエラー */
+	private JournalEntryError error;
+
 	/** この仕訳のYAML文字列 */
 	private String yaml;
 
@@ -196,6 +199,66 @@ public class JournalEntry {
 		return false;
 	}
 
+	public boolean hasError() {
+		if(error == null) {
+			validate();
+		}
+		return error.getErrorType() != JournalEntryError.ErrorType.NO_ERROR;
+	}
+
+	public JournalEntryError getError() {
+		if(error == null) {
+			validate();
+		}
+		return error;
+	}
+
+	public JournalEntryError validate() {
+		if(date == null) {
+			error = JournalEntryError.NO_DATE;
+			return error;
+		}
+		if(description.isEmpty()) {
+			error = JournalEntryError.NO_DESCRIPTION;
+			return error;
+		}
+		if(debtors.size() == 0 && creditors.size() == 0) {
+			error = JournalEntryError.NO_ACCOUNT;
+			return error;
+		}
+		long debtorsAmount = 0;
+		for(Debtor debtor : debtors) {
+			if(debtor.getAmount() < 0) {
+				error = new JournalEntryError(JournalEntryError.ErrorType.NO_DEBTOR_AMOUNT, debtor.getAccountTitle());
+				return error;
+			}
+			debtorsAmount += debtor.getAmount();
+		}
+		long creditorsAmount = 0;
+		for(Creditor creditor : creditors) {
+			if(creditor.getAmount() < 0) {
+				error = new JournalEntryError(JournalEntryError.ErrorType.NO_CREDITOR_AMOUNT, creditor.getAccountTitle());
+				return error;
+			}
+			creditorsAmount += creditor.getAmount();
+		}
+		if(debtors.size() == 0) {
+			error = JournalEntryError.NO_DEBTOR;
+			return error;
+		}
+		if(creditors == null || creditors.size() == 0) {
+			error = JournalEntryError.NO_CREDITOR;
+			return error;
+		}
+		if(debtorsAmount != creditorsAmount) {
+			error = JournalEntryError.NOT_MATCH_AMOUNT;
+			return error;
+		}
+
+		error = JournalEntryError.NO_ERROR;
+		return error;
+	}
+
 	public String updateYaml() {
 		StringBuilder sb = new StringBuilder();
 
@@ -257,6 +320,19 @@ public class JournalEntry {
 			updateYaml();
 		}
 		return yaml;
+	}
+
+	@Override
+	public JournalEntry clone() {
+		List<Debtor> debtors = new ArrayList<Debtor>(this.debtors.size());
+		for(Debtor debtor : this.debtors) {
+			debtors.add(debtor.clone());
+		}
+		List<Creditor> creditors = new ArrayList<Creditor>(this.creditors.size());
+		for(Creditor creditor : this.creditors) {
+			creditors.add(creditor.clone());
+		}
+		return new JournalEntry(this.date, this.description, debtors, creditors);
 	}
 
 	@Override

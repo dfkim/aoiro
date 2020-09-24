@@ -164,7 +164,13 @@ public class JournalEntriesLoader {
 					if(amount == null) {
 						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 借方の金額は数値で指定してください: " + d.金額);
 					}
-					debtorsAmount += amount;
+					if(amount < 0 && ignoreWarnings == false) {
+						// ignoreWarnings = true の場合、金額がマイナスでもエラーとしません。（GUIで金額未入力のときに -1 を設定するためです。）
+						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 借方の金額にマイナスの数値を指定することはできません: " + d.金額);
+					}
+					if(amount > 0) {
+						debtorsAmount += amount;
+					}
 					debtors.add(new Debtor(accountTitle, amount));
 				}
 
@@ -191,7 +197,13 @@ public class JournalEntriesLoader {
 					if(amount == null) {
 						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 貸方の金額は数値で指定してください: " + c.金額);
 					}
-					creditorsAmount += amount;
+					if(amount < 0 && ignoreWarnings == false) {
+						// ignoreWarnings = true の場合、金額がマイナスでもエラーとしません。（GUIで金額未入力のときに -1 を設定するためです。）
+						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 貸方の金額にマイナスの数値を指定することはできません: " + c.金額);
+					}
+					if(amount > 0) {
+						creditorsAmount += amount;
+					}
 					creditors.add(new Creditor(accountTitle, amount));
 				}
 
