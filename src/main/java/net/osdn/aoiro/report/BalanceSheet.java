@@ -218,6 +218,24 @@ public class BalanceSheet {
 		}
 	}
 
+	// PDF出力に使用する資産のリストデータです。
+	// 貸借対照表を画面に表示するなどPDF出力とは別の用途で使用するのに役立ちます。
+	public List<Node<Entry<List<AccountTitle>, Amount[]>>> getAssetsList() {
+		return assetsList;
+	}
+
+	// PDF出力に使用する負債のリストデータです。
+	// 貸借対照表を画面に表示するなどPDF出力とは別の用途で使用するのに役立ちます。
+	public List<Node<Entry<List<AccountTitle>, Amount[]>>> getLiabilitiesList() {
+		return liabilitiesList;
+	}
+
+	// PDF出力に使用する資本（純資産）のリストデータです。
+	// 貸借対照表を画面に表示するなどPDF出力とは別の用途で使用するのに役立ちます。
+	public List<Node<Entry<List<AccountTitle>, Amount[]>>> getEquityList() {
+		return equityList;
+	}
+
 	public List<String> getWarnings() {
 		return warnings;
 	}
