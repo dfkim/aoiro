@@ -112,7 +112,19 @@ public class ProfitAndLoss {
 		}
 		r.close();
 	}
-	
+
+	// PDF出力に使用するリストデータです。
+	// 損益計算書を画面に表示するなどPDF出力とは別の用途で使用するのに役立ちます。
+	public List<Node<Entry<List<AccountTitle>, Amount>>> getList() {
+		return list;
+	}
+
+	// PDF出力に使用する月別集計データです。
+	// 損益計算書を画面に表示するなどPDF出力とは別の用途で使用するのに役立ちます。
+	public List<Entry<String, Amount[]>> getMonthlyTotals() {
+		return monthlyTotals;
+	}
+
 	private Amount retrieve(Node<Entry<List<AccountTitle>, Amount>> node, List<JournalEntry> journalEntries) {
 		Amount amount = null;
 		for(Node<Entry<List<AccountTitle>, Amount>> child : node.getChildren()) {
@@ -200,10 +212,12 @@ public class ProfitAndLoss {
 	//月別集計
 	protected List<Entry<String, Amount[]>> getMonthlyTotals(List<JournalEntry> journalEntries) {
 		Map<String, Amount[]> map = new LinkedHashMap<>();
-		YearMonth ym = YearMonth.from(this.openingDate);
-		for(int i = 0; i < 12; i++) {
-			String month = ym.plusMonths(i).getMonthValue() + "月";
-			map.put(month, new Amount[2]);
+		if(this.openingDate != null) {
+			YearMonth ym = YearMonth.from(this.openingDate);
+			for(int i = 0; i < 12; i++) {
+				String month = ym.plusMonths(i).getMonthValue() + "月";
+				map.put(month, new Amount[2]);
+			}
 		}
 		if(isSoloProprietorship) {
 			map.put("家事消費等", new Amount[2]);
