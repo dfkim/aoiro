@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.LocalDate;
@@ -33,6 +34,7 @@ import net.osdn.aoiro.model.JournalEntry;
 import net.osdn.aoiro.model.Node;
 import net.osdn.aoiro.report.layout.StatementOfChangesInEquityLayout;
 import net.osdn.pdf_brewer.BrewerData;
+import net.osdn.pdf_brewer.FontLoader;
 import net.osdn.pdf_brewer.PdfBrewer;
 
 public class StatementOfChangesInEquity {
@@ -64,6 +66,7 @@ public class StatementOfChangesInEquity {
 	
 	private List<String> pageData = new ArrayList<>();
 	private List<String> printData;
+	private FontLoader fontLoader;
 	
 	public StatementOfChangesInEquity(StatementOfChangesInEquityLayout sceLayout, List<JournalEntry> journalEntries) throws IOException {
 		this.sceLayout = sceLayout;
@@ -456,11 +459,20 @@ public class StatementOfChangesInEquity {
 			y += ROW_HEIGHT;
 		}
 	}
-	
+
+	public void setFontLoader(FontLoader fontLoader) {
+		this.fontLoader = fontLoader;
+	}
+
 	public void writeTo(Path path) throws IOException {
 		prepare();
 
-		PdfBrewer brewer = new PdfBrewer(Main.fontLoader);
+		PdfBrewer brewer;
+		if(fontLoader != null) {
+			brewer = new PdfBrewer(fontLoader);
+		} else {
+			brewer = new PdfBrewer();
+		}
 		brewer.setCreator(Util.getPdfCreator());
 		BrewerData pb = new BrewerData(printData, brewer.getFontLoader());
 		brewer.setTitle("社員資本等変動計算書");
@@ -468,7 +480,24 @@ public class StatementOfChangesInEquity {
 		brewer.save(path);
 		brewer.close();
 	}
-	
+
+	public void writeTo(OutputStream out) throws IOException {
+		prepare();
+
+		PdfBrewer brewer;
+		if(fontLoader != null) {
+			brewer = new PdfBrewer(fontLoader);
+		} else {
+			brewer = new PdfBrewer();
+		}
+		brewer.setCreator(Util.getPdfCreator());
+		BrewerData pb = new BrewerData(printData, brewer.getFontLoader());
+		brewer.setTitle("社員資本等変動計算書");
+		brewer.process(pb);
+		brewer.save(out);
+		brewer.close();
+	}
+
 	private static String formatMoney(long amount) {
 		if(MINUS_SIGN != null && amount < 0) {
 			return MINUS_SIGN + String.format("%,d", -amount);

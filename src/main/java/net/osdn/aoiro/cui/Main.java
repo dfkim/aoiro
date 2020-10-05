@@ -32,8 +32,6 @@ import static net.osdn.aoiro.ErrorMessage.error;
 
 public class Main {
 
-	public static FontLoader fontLoader;
-	
 	public static void main(String[] args) {
 
 		System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.NoOpLog");
@@ -156,16 +154,17 @@ public class Main {
 			Set<String> fontFileNames = new HashSet<String>();
 			fontFileNames.addAll(FontLoader.FILENAMES_YUGOTHIC);
 			fontFileNames.addAll(FontLoader.FILENAMES_YUMINCHO);
-			fontLoader = new FontLoader(FontLoader.getDefaultFontDir(), fontFileNames, null);
-
+			FontLoader fontLoader = new FontLoader(FontLoader.getDefaultFontDir(), fontFileNames, null);
 
 			// 仕訳帳をファイルに出力します。
 			// この処理は総勘定元帳（GeneralLedger）を作成してから呼び出す必要があります。GeneralLedgerによって仕訳帳の「元丁」が設定されるからです。
+			generalJournal.setFontLoader(fontLoader);
 			generalJournal.writeTo(outputDir.resolve("仕訳帳.pdf"));
 			System.out.println("  仕訳帳.pdf を出力しました。");
 
 			// 総勘定元帳をファイルに出力します。
 			// この処理は仕訳帳（GeneralJournal）を作成してから呼び出す必要があります。GeneralJournalによって総勘定元帳の「仕丁」が設定されるからです。
+			generalLedger.setFontLoader(fontLoader);
 			generalLedger.writeTo(outputDir.resolve("総勘定元帳.pdf"));
 			System.out.println("  総勘定元帳.pdf を出力しました。");
 
@@ -173,12 +172,14 @@ public class Main {
 				//損益計算書
 				ProfitAndLossLayout plLayout = accountTitlesLoader.getProfitAndLossLayout();
 				ProfitAndLoss pl = new ProfitAndLoss(plLayout, journalEntries, isSoloProprietorship);
+				pl.setFontLoader(fontLoader);
 				pl.writeTo(outputDir.resolve("損益計算書.pdf"));
 				System.out.println("  損益計算書.pdf を出力しました。");
 
 				//貸借対照表
 				BalanceSheetLayout bsLayout = accountTitlesLoader.getBalanceSheetLayout();
 				BalanceSheet bs = new BalanceSheet(bsLayout, journalEntries, isSoloProprietorship);
+				bs.setFontLoader(fontLoader);
 				bs.writeTo(outputDir.resolve("貸借対照表.pdf"));
 				System.out.println("  貸借対照表.pdf を出力しました。");
 
@@ -186,6 +187,7 @@ public class Main {
 				if (!isSoloProprietorship) {
 					StatementOfChangesInEquityLayout sceLayout = accountTitlesLoader.getStatementOfChangesInEquityLayout();
 					StatementOfChangesInEquity ce = new StatementOfChangesInEquity(sceLayout, journalEntries);
+					ce.setFontLoader(fontLoader);
 					ce.writeTo(outputDir.resolve("社員資本等変動計算書.pdf"));
 					System.out.println("  社員資本等変動計算書.pdf を出力しました。");
 				}
