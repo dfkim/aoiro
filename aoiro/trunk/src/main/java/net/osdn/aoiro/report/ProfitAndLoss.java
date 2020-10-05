@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.LocalDate;
@@ -30,6 +31,7 @@ import net.osdn.aoiro.model.JournalEntry;
 import net.osdn.aoiro.model.Node;
 import net.osdn.aoiro.report.layout.ProfitAndLossLayout;
 import net.osdn.pdf_brewer.BrewerData;
+import net.osdn.pdf_brewer.FontLoader;
 import net.osdn.pdf_brewer.PdfBrewer;
 
 /** 損益計算書(P/L)
@@ -52,6 +54,7 @@ public class ProfitAndLoss {
 	private List<Entry<String, Amount[]>> monthlyTotals;
 	private List<String> pageData = new ArrayList<>();
 	private List<String> printData;
+	private FontLoader fontLoader;
 	
 	public ProfitAndLoss(ProfitAndLossLayout plLayout, List<JournalEntry> journalEntries, boolean isSoloProprietorship) throws IOException {
 		this.plLayout = plLayout;
@@ -516,10 +519,19 @@ public class ProfitAndLoss {
 		printData.add("\t\t\\line " + String.format("150 0.2 150 %.2f", y + ROW_HEIGHT + ROW_HEIGHT));
 	}
 
+	public void setFontLoader(FontLoader fontLoader) {
+		this.fontLoader = fontLoader;
+	}
+
 	public void writeTo(Path path) throws IOException {
 		prepare();
 
-		PdfBrewer brewer = new PdfBrewer(Main.fontLoader);
+		PdfBrewer brewer;
+		if(fontLoader != null) {
+			brewer = new PdfBrewer(fontLoader);
+		} else {
+			brewer = new PdfBrewer();
+		}
 		brewer.setCreator(Util.getPdfCreator());
 		BrewerData pb = new BrewerData(printData, brewer.getFontLoader());
 		brewer.setTitle("損益計算書");
@@ -527,7 +539,24 @@ public class ProfitAndLoss {
 		brewer.save(path);
 		brewer.close();
 	}
-	
+
+	public void writeTo(OutputStream out) throws IOException {
+		prepare();
+
+		PdfBrewer brewer;
+		if(fontLoader != null) {
+			brewer = new PdfBrewer(fontLoader);
+		} else {
+			brewer = new PdfBrewer();
+		}
+		brewer.setCreator(Util.getPdfCreator());
+		BrewerData pb = new BrewerData(printData, brewer.getFontLoader());
+		brewer.setTitle("損益計算書");
+		brewer.process(pb);
+		brewer.save(out);
+		brewer.close();
+	}
+
 	private static String formatMoney(long amount) {
 		if(MINUS_SIGN != null && amount < 0) {
 			return MINUS_SIGN + String.format("%,d", -amount);

@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.LocalDate;
@@ -22,6 +23,7 @@ import net.osdn.aoiro.model.Creditor;
 import net.osdn.aoiro.model.Debtor;
 import net.osdn.aoiro.model.JournalEntry;
 import net.osdn.pdf_brewer.BrewerData;
+import net.osdn.pdf_brewer.FontLoader;
 import net.osdn.pdf_brewer.PdfBrewer;
 
 /** 総勘定元帳
@@ -40,6 +42,7 @@ public class GeneralLedger {
 	
 	private List<String> pageData = new ArrayList<>();
 	private List<String> printData;
+	private FontLoader fontLoader;
 	
 	public GeneralLedger(Set<AccountTitle> accountTitles, List<JournalEntry> journalEntries, boolean isSoloProprietorship, boolean showMonthlyTotal) throws IOException {
 		this.accountTitles = new LinkedHashSet<>(accountTitles);
@@ -572,12 +575,20 @@ public class GeneralLedger {
 		}
 		return counterpartAccounts;
 	}
-	
+
+	public void setFontLoader(FontLoader fontLoader) {
+		this.fontLoader = fontLoader;
+	}
 	
 	public void writeTo(Path path) throws IOException {
 		prepare();
 
-		PdfBrewer brewer = new PdfBrewer(Main.fontLoader);
+		PdfBrewer brewer;
+		if(fontLoader != null) {
+			brewer = new PdfBrewer(fontLoader);
+		} else {
+			brewer = new PdfBrewer();
+		}
 		brewer.setCreator(Util.getPdfCreator());
 		BrewerData pb = new BrewerData(printData, brewer.getFontLoader());
 		brewer.setTitle("総勘定元帳");
@@ -585,7 +596,24 @@ public class GeneralLedger {
 		brewer.save(path);
 		brewer.close();
 	}
-	
+
+	public void writeTo(OutputStream out) throws IOException {
+		prepare();
+
+		PdfBrewer brewer;
+		if(fontLoader != null) {
+			brewer = new PdfBrewer(fontLoader);
+		} else {
+			brewer = new PdfBrewer();
+		}
+		brewer.setCreator(Util.getPdfCreator());
+		BrewerData pb = new BrewerData(printData, brewer.getFontLoader());
+		brewer.setTitle("総勘定元帳");
+		brewer.process(pb);
+		brewer.save(out);
+		brewer.close();
+	}
+
 	/** 指定した勘定科目を含む仕訳データを取得します。
 	 * 
 	 * @param accountTitle 勘定科目

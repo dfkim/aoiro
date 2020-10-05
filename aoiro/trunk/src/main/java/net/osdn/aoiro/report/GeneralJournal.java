@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.LocalDate;
@@ -17,6 +18,7 @@ import net.osdn.aoiro.model.Creditor;
 import net.osdn.aoiro.model.Debtor;
 import net.osdn.aoiro.model.JournalEntry;
 import net.osdn.pdf_brewer.BrewerData;
+import net.osdn.pdf_brewer.FontLoader;
 import net.osdn.pdf_brewer.PdfBrewer;
 
 /** 仕訳帳
@@ -33,6 +35,7 @@ public class GeneralJournal {
 	
 	private List<String> pageData = new ArrayList<String>();
 	private List<String> printData;
+	private FontLoader fontLoader;
 	
 	public GeneralJournal(List<JournalEntry> journalEntries, boolean isSoloProprietorship) throws IOException {
 		this.entries = journalEntries;
@@ -345,16 +348,42 @@ public class GeneralJournal {
 		
 		return rowsRequired;
 	}
-	
+
+	public void setFontLoader(FontLoader fontLoader) {
+		this.fontLoader = fontLoader;
+	}
+
 	public void writeTo(Path path) throws IOException {
 		prepare();
 
-		PdfBrewer brewer = new PdfBrewer(Main.fontLoader);
+		PdfBrewer brewer;
+		if(fontLoader != null) {
+			brewer = new PdfBrewer(fontLoader);
+		} else {
+			brewer = new PdfBrewer();
+		}
 		brewer.setCreator(Util.getPdfCreator());
 		BrewerData pb = new BrewerData(printData, brewer.getFontLoader());
 		brewer.setTitle("仕訳帳");
 		brewer.process(pb);
 		brewer.save(path);
+		brewer.close();
+	}
+
+	public void writeTo(OutputStream out) throws IOException {
+		prepare();
+
+		PdfBrewer brewer;
+		if(fontLoader != null) {
+			brewer = new PdfBrewer(fontLoader);
+		} else {
+			brewer = new PdfBrewer();
+		}
+		brewer.setCreator(Util.getPdfCreator());
+		BrewerData pb = new BrewerData(printData, brewer.getFontLoader());
+		brewer.setTitle("仕訳帳");
+		brewer.process(pb);
+		brewer.save(out);
 		brewer.close();
 	}
 }

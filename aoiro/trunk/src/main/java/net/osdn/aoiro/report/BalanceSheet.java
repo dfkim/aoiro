@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -30,6 +31,7 @@ import net.osdn.aoiro.model.JournalEntry;
 import net.osdn.aoiro.model.Node;
 import net.osdn.aoiro.report.layout.BalanceSheetLayout;
 import net.osdn.pdf_brewer.BrewerData;
+import net.osdn.pdf_brewer.FontLoader;
 import net.osdn.pdf_brewer.PdfBrewer;
 
 /** 貸借対照表
@@ -55,6 +57,7 @@ public class BalanceSheet {
 	
 	private List<String> pageData = new ArrayList<String>();
 	private List<String> printData;
+	private FontLoader fontLoader;
 
 	private List<String> warnings = new ArrayList<String>();
 
@@ -705,15 +708,41 @@ public class BalanceSheet {
 		}
 	}
 
+	public void setFontLoader(FontLoader fontLoader) {
+		this.fontLoader = fontLoader;
+	}
+
 	public void writeTo(Path path) throws IOException {
 		prepare();
 
-		PdfBrewer brewer = new PdfBrewer(Main.fontLoader);
+		PdfBrewer brewer;
+		if(fontLoader != null) {
+			brewer = new PdfBrewer(fontLoader);
+		} else {
+			brewer = new PdfBrewer();
+		}
 		brewer.setCreator(Util.getPdfCreator());
 		BrewerData pb = new BrewerData(printData, brewer.getFontLoader());
 		brewer.setTitle("貸借対照表");
 		brewer.process(pb);
 		brewer.save(path);
+		brewer.close();
+	}
+
+	public void writeTo(OutputStream out) throws IOException {
+		prepare();
+
+		PdfBrewer brewer;
+		if(fontLoader != null) {
+			brewer = new PdfBrewer(fontLoader);
+		} else {
+			brewer = new PdfBrewer();
+		}
+		brewer.setCreator(Util.getPdfCreator());
+		BrewerData pb = new BrewerData(printData, brewer.getFontLoader());
+		brewer.setTitle("貸借対照表");
+		brewer.process(pb);
+		brewer.save(out);
 		brewer.close();
 	}
 
