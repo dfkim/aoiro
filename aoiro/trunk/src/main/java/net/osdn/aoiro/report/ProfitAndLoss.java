@@ -22,7 +22,6 @@ import java.util.Set;
 
 import net.osdn.aoiro.AccountSettlement;
 import net.osdn.aoiro.Util;
-import net.osdn.aoiro.cui.Main;
 import net.osdn.aoiro.model.AccountTitle;
 import net.osdn.aoiro.model.Amount;
 import net.osdn.aoiro.model.Creditor;
@@ -55,7 +54,8 @@ public class ProfitAndLoss {
 	private List<String> pageData = new ArrayList<>();
 	private List<String> printData;
 	private FontLoader fontLoader;
-	
+	private boolean bindingMarginEnabled = true;
+
 	public ProfitAndLoss(ProfitAndLossLayout plLayout, List<JournalEntry> journalEntries, boolean isSoloProprietorship) throws IOException {
 		this.plLayout = plLayout;
 		this.journalEntries = journalEntries;
@@ -315,16 +315,25 @@ public class ProfitAndLoss {
 		String closingDate = dtf.format(this.closingDate).replace(" 1 年", "元年");
 		
 		printData = new ArrayList<String>();
-		printData.add("\\media A4");
+		if(bindingMarginEnabled) {
+			printData.add("\\media A4");
 
-		//穴あけパンチの位置を合わせるための中心線を先頭ページのみ印字します。
-		printData.add("\\line-style thin dot");
-		printData.add("\\line 0 148.5 5 148.5");
-		
-		printData.add("\\box 15 0 0 0");
-		printData.add("\\line-style thin dot");
-		printData.add("\\line 0 0 0 -0");
-		printData.add("\\box 25 0 -10 -10");
+			//穴あけパンチの位置を合わせるための中心線を先頭ページのみ印字します。
+			printData.add("\\line-style thin dot");
+			printData.add("\\line 0 148.5 5 148.5");
+
+			printData.add("\\box 15 0 0 0");
+			printData.add("\\line-style thin dot");
+			printData.add("\\line 0 0 0 -0");
+			printData.add("\\box 25 0 -10 -10");
+		} else {
+			// 綴じ代なしの場合は15mm分だけ横幅を短くして195mmとします。(A4本来の横幅は210mm)
+			// 穴あけパンチ用の中心線も出力しません。
+			printData.add("\\media 195 297");
+
+			printData.add("\\box 10 0 -10 -10");
+		}
+
 		printData.addAll(pageData);
 
 		//日付
@@ -521,6 +530,10 @@ public class ProfitAndLoss {
 
 	public void setFontLoader(FontLoader fontLoader) {
 		this.fontLoader = fontLoader;
+	}
+
+	public void setBindingMarginEnabled(boolean enabled) {
+		this.bindingMarginEnabled = enabled;
 	}
 
 	public void writeTo(Path path) throws IOException {

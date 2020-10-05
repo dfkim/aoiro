@@ -15,7 +15,6 @@ import java.util.Set;
 
 import net.osdn.aoiro.AccountSettlement;
 import net.osdn.aoiro.Util;
-import net.osdn.aoiro.cui.Main;
 import net.osdn.aoiro.model.Account;
 import net.osdn.aoiro.model.AccountTitle;
 import net.osdn.aoiro.model.AccountType;
@@ -43,7 +42,9 @@ public class GeneralLedger {
 	private List<String> pageData = new ArrayList<>();
 	private List<String> printData;
 	private FontLoader fontLoader;
-	
+	private boolean bindingMarginEnabled = true;
+	private boolean pageNumberEnabled = true;
+
 	public GeneralLedger(Set<AccountTitle> accountTitles, List<JournalEntry> journalEntries, boolean isSoloProprietorship, boolean showMonthlyTotal) throws IOException {
 		this.accountTitles = new LinkedHashSet<>(accountTitles);
 		this.accountTitles.add(AccountTitle.INCOME_SUMMARY);
@@ -83,12 +84,18 @@ public class GeneralLedger {
 		AccountTitle currentAccountTitle = null;
 		
 		printData = new ArrayList<String>();
-		printData.add("\\media A4");
-		
-		//穴あけパンチの位置を合わせるための中心線を先頭ページのみ印字します。
-		printData.add("\\line-style thin dot");
-		printData.add("\\line 0 148.5 5 148.5");
-		
+		if(bindingMarginEnabled) {
+			printData.add("\\media A4");
+
+			//穴あけパンチの位置を合わせるための中心線を先頭ページのみ印字します。
+			printData.add("\\line-style thin dot");
+			printData.add("\\line 0 148.5 5 148.5");
+		} else {
+			// 綴じ代なしの場合は15mm分だけ横幅を短くして195mmとします。(A4本来の横幅は210mm)
+			// 穴あけパンチ用の中心線も出力しません。
+			printData.add("\\media 195 297");
+		}
+
 		for(AccountTitle accountTitle : accountTitles) {
 			int restOfRows = 0;
 			int currentRow = 0;
@@ -375,7 +382,29 @@ public class GeneralLedger {
 		if(pageNumber >= 2) {
 			printData.add("\\new-page");
 		}
-		if(pageNumber % 2 == 1) {
+		if(!bindingMarginEnabled) {
+			//綴じ代なし
+			printData.add("\\box 10 0 -10 -10");
+
+			//テンプレート
+			printData.addAll(pageData);
+
+			if(pageNumberEnabled) {
+				if(pageNumber % 2 == 1) {
+					//ページ番号(奇数ページ)
+					printData.add("\t\\box 0 0 -3 22");
+					printData.add("\t\\font serif 10.5");
+					printData.add("\t\\align bottom right");
+					printData.add("\t\\text " + pageNumber);
+				} else {
+					//ページ番号(偶数ページ)
+					printData.add("\t\\box 3 0 10 22");
+					printData.add("\t\\font serif 10.5");
+					printData.add("\t\\align bottom left");
+					printData.add("\t\\text " + pageNumber);
+				}
+			}
+		} else if(pageNumber % 2 == 1) {
 			//綴じ代(奇数ページ)
 			printData.add("\\box 15 0 0 0");
 			printData.add("\\line-style thin dot");
@@ -385,11 +414,13 @@ public class GeneralLedger {
 			//テンプレート
 			printData.addAll(pageData);
 
-			//ページ番号(奇数ページ)
-			printData.add("\t\\box 0 0 -3 22");
-			printData.add("\t\\font serif 10.5");
-			printData.add("\t\\align bottom right");
-			printData.add("\t\\text " + pageNumber);
+			if(pageNumberEnabled) {
+				//ページ番号(奇数ページ)
+				printData.add("\t\\box 0 0 -3 22");
+				printData.add("\t\\font serif 10.5");
+				printData.add("\t\\align bottom right");
+				printData.add("\t\\text " + pageNumber);
+			}
 		} else {
 			//綴じ代(偶数ページ)
 			printData.add("\\box 0 0 -15 0");
@@ -400,11 +431,13 @@ public class GeneralLedger {
 			//テンプレート
 			printData.addAll(pageData);
 
-			//ページ番号(偶数ページ)
-			printData.add("\t\\box 3 0 10 22");
-			printData.add("\t\\font serif 10.5");
-			printData.add("\t\\align bottom left");
-			printData.add("\t\\text " + pageNumber);
+			if(pageNumberEnabled) {
+				//ページ番号(偶数ページ)
+				printData.add("\t\\box 3 0 10 22");
+				printData.add("\t\\font serif 10.5");
+				printData.add("\t\\align bottom left");
+				printData.add("\t\\text " + pageNumber);
+			}
 		}
 		//勘定科目
 		printData.add("\t\\box 0 16 -0 9");
@@ -579,7 +612,15 @@ public class GeneralLedger {
 	public void setFontLoader(FontLoader fontLoader) {
 		this.fontLoader = fontLoader;
 	}
-	
+
+	public void setBindingMarginEnabled(boolean enabled) {
+		this.bindingMarginEnabled = enabled;
+	}
+
+	public void setPageNumberEnabled(boolean enabled) {
+		this.pageNumberEnabled = enabled;
+	}
+
 	public void writeTo(Path path) throws IOException {
 		prepare();
 

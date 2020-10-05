@@ -21,7 +21,6 @@ import java.util.Map.Entry;
 
 import net.osdn.aoiro.AccountSettlement;
 import net.osdn.aoiro.Util;
-import net.osdn.aoiro.cui.Main;
 import net.osdn.aoiro.model.AccountTitle;
 import net.osdn.aoiro.model.AccountType;
 import net.osdn.aoiro.model.Amount;
@@ -58,6 +57,7 @@ public class BalanceSheet {
 	private List<String> pageData = new ArrayList<String>();
 	private List<String> printData;
 	private FontLoader fontLoader;
+	private boolean bindingMarginEnabled = true;
 
 	private List<String> warnings = new ArrayList<String>();
 
@@ -309,16 +309,25 @@ public class BalanceSheet {
 		String closingDay = Integer.toString(this.closingDate.getDayOfMonth());
 
 		printData = new ArrayList<String>();
-		printData.add("\\media A4");
+		if(bindingMarginEnabled) {
+			printData.add("\\media A4");
 
-		//穴あけパンチの位置を合わせるための中心線を先頭ページのみ印字します。
-		printData.add("\\line-style thin dot");
-		printData.add("\\line 0 148.5 5 148.5");
+			//穴あけパンチの位置を合わせるための中心線を先頭ページのみ印字します。
+			printData.add("\\line-style thin dot");
+			printData.add("\\line 0 148.5 5 148.5");
 
-		printData.add("\\box 15 0 0 0");
-		printData.add("\\line-style thin dot");
-		printData.add("\\line 0 0 0 -0");
-		printData.add("\\box 25 0 -10 -10");
+			printData.add("\\box 15 0 0 0");
+			printData.add("\\line-style thin dot");
+			printData.add("\\line 0 0 0 -0");
+			printData.add("\\box 25 0 -10 -10");
+		} else {
+			// 綴じ代なしの場合は15mm分だけ横幅を短くして195mmとします。(A4本来の横幅は210mm)
+			// 穴あけパンチ用の中心線も出力しません。
+			printData.add("\\media 195 297");
+
+			printData.add("\\box 10 0 -10 -10");
+		}
+
 		printData.addAll(pageData);
 
 		//日付
@@ -710,6 +719,10 @@ public class BalanceSheet {
 
 	public void setFontLoader(FontLoader fontLoader) {
 		this.fontLoader = fontLoader;
+	}
+
+	public void setBindingMarginEnabled(boolean enabled) {
+		this.bindingMarginEnabled = enabled;
 	}
 
 	public void writeTo(Path path) throws IOException {
