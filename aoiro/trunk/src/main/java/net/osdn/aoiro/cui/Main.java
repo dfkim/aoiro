@@ -173,9 +173,6 @@ public class Main {
 				ProfitAndLossLayout plLayout = accountTitlesLoader.getProfitAndLossLayout();
 				ProfitAndLoss pl = new ProfitAndLoss(plLayout, journalEntries, isSoloProprietorship);
 				pl.setFontLoader(fontLoader);
-
-				//FIXME: testing
-				pl.setBindingMarginEnabled(false);
 				pl.writeTo(outputDir.resolve("損益計算書.pdf"));
 				System.out.println("  損益計算書.pdf を出力しました。");
 
@@ -183,9 +180,6 @@ public class Main {
 				BalanceSheetLayout bsLayout = accountTitlesLoader.getBalanceSheetLayout();
 				BalanceSheet bs = new BalanceSheet(bsLayout, journalEntries, isSoloProprietorship);
 				bs.setFontLoader(fontLoader);
-
-				//FIXME: testing
-				bs.setBindingMarginEnabled(false);
 				bs.writeTo(outputDir.resolve("貸借対照表.pdf"));
 				System.out.println("  貸借対照表.pdf を出力しました。");
 
