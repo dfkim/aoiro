@@ -251,7 +251,7 @@ public class GeneralJournal {
 				printData.add("\t\t\t\\align center right");
 				printData.add("\t\t\t\\text " + String.format("%,d", debtor.getAmount()));
 				//元丁
-				if(debtor.getLedgerPageNumber() >= 0) {
+				if(debtor.getLedgerPageNumber() >= 1) {
 					printData.add("\t\t\t\\box " + String.format("93 %.2f 8 %.2f", y, ROW_HEIGHT));
 					printData.add("\t\t\t\\align center");
 					printData.add("\t\t\t\\text " + debtor.getLedgerPageNumber());
@@ -270,7 +270,7 @@ public class GeneralJournal {
 				printData.add("\t\t\t\\align center right");
 				printData.add("\t\t\t\\text " + String.format("%,d", creditor.getAmount()));
 				//元丁
-				if(creditor.getLedgerPageNumber() >= 0) {
+				if(creditor.getLedgerPageNumber() >= 1) {
 					printData.add("\t\t\t\\box " + String.format("93 0 8 %.2f", ROW_HEIGHT));
 					printData.add("\t\t\t\\align center");
 					printData.add("\t\t\t\\text " + creditor.getLedgerPageNumber());
@@ -291,7 +291,7 @@ public class GeneralJournal {
 					printData.add("\t\t\t\\align center right");
 					printData.add("\t\t\t\\text " + String.format("%,d", creditor.getAmount()));
 					//元丁
-					if(creditor.getLedgerPageNumber() >= 0) {
+					if(creditor.getLedgerPageNumber() >= 1) {
 						printData.add("\t\t\t\\box " + String.format("93 %.2f 8 %.2f", y, ROW_HEIGHT));
 						printData.add("\t\t\t\\align center");
 						printData.add("\t\t\t\\text " + creditor.getLedgerPageNumber());
