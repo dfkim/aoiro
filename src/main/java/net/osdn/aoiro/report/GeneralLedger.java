@@ -78,6 +78,10 @@ public class GeneralLedger {
 		//writeToを呼び出してPDFを作成する前にprepareを呼び出しておく必要があります。
 		prepare();
 	}
+
+	public List<JournalEntry> getJournalEntries() {
+		return entries;
+	}
 	
 	protected void prepare() {
 		int pageNumber = 0;

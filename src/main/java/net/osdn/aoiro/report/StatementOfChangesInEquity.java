@@ -51,6 +51,7 @@ public class StatementOfChangesInEquity {
 	}
 
 	private StatementOfChangesInEquityLayout sceLayout;
+	private List<JournalEntry> journalEntries;
 
 	private LocalDate openingDate;
 	private LocalDate closingDate;
@@ -70,6 +71,7 @@ public class StatementOfChangesInEquity {
 
 	public StatementOfChangesInEquity(StatementOfChangesInEquityLayout sceLayout, List<JournalEntry> journalEntries) throws IOException {
 		this.sceLayout = sceLayout;
+		this.journalEntries = journalEntries;
 
 		this.openingDate = AccountSettlement.getOpeningDate(journalEntries, false);
 		this.closingDate = AccountSettlement.getClosingDate(journalEntries, false);
@@ -268,6 +270,10 @@ public class StatementOfChangesInEquity {
 				amount.increase(e.getValue());
 			}
 		}
+	}
+
+	public List<JournalEntry> getJournalEntries() {
+		return journalEntries;
 	}
 
 	protected List<Integer> getColumnIndexes(AccountTitle accountTitle) {
