@@ -96,9 +96,9 @@ public class ProfitAndLoss {
 				}
 			}
 		}
-		
+
 		//再帰集計
-		retrieve(plLayout.getRoot(), journalEntries);
+		retrieve(plLayout.getRoot());
 		
 		//リスト作成
 		list = createList(plLayout.getRoot());
@@ -116,6 +116,14 @@ public class ProfitAndLoss {
 		r.close();
 	}
 
+	public List<JournalEntry> getJournalEntries() {
+		return journalEntries;
+	}
+
+	public Map<AccountTitle, Amount> getIncomeSummaries() {
+		return incomeSummaries;
+	}
+
 	// PDF出力に使用するリストデータです。
 	// 損益計算書を画面に表示するなどPDF出力とは別の用途で使用するのに役立ちます。
 	public List<Node<Entry<List<AccountTitle>, Amount>>> getList() {
@@ -128,10 +136,10 @@ public class ProfitAndLoss {
 		return monthlyTotals;
 	}
 
-	private Amount retrieve(Node<Entry<List<AccountTitle>, Amount>> node, List<JournalEntry> journalEntries) {
+	private Amount retrieve(Node<Entry<List<AccountTitle>, Amount>> node) {
 		Amount amount = null;
 		for(Node<Entry<List<AccountTitle>, Amount>> child : node.getChildren()) {
-			Amount a = retrieve(child, journalEntries);
+			Amount a = retrieve(child);
 			if(a != null) {
 				if(amount == null) {
 					amount = new Amount(a.getNormalBalance(), a.getValue());

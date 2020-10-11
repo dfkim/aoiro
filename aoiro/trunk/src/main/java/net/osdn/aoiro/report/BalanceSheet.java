@@ -221,6 +221,18 @@ public class BalanceSheet {
 		}
 	}
 
+	public List<JournalEntry> getJournalEntries() {
+		return journalEntries;
+	}
+
+	public Map<AccountTitle, Amount> getOpeningBalances() {
+		return openingBalances;
+	}
+
+	public Map<AccountTitle, Amount> getClosingBalances() {
+		return closingBalances;
+	}
+
 	// PDF出力に使用する資産のリストデータです。
 	// 貸借対照表を画面に表示するなどPDF出力とは別の用途で使用するのに役立ちます。
 	public List<Node<Entry<List<AccountTitle>, Amount[]>>> getAssetsList() {
