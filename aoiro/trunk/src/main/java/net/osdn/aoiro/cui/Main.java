@@ -204,8 +204,8 @@ public class Main {
 				System.out.println("");
 				System.out.println("繰越処理を実行しています . . .");
 
-				//開始仕訳
-				bs.createOpeningJournalEntries(outputDir.resolve("次年度の開始仕訳.yml"));
+				//次年度の開始仕訳
+				bs.createNextOpeningJournalEntries(outputDir.resolve("次年度の開始仕訳.yml"));
 				System.out.println("  次年度の開始仕訳.yml を出力しました。");
 			}
 

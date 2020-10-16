@@ -9,6 +9,8 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.chrono.JapaneseChronology;
@@ -777,14 +779,17 @@ public class BalanceSheet {
 	 * @return 次期開始仕訳のYAML文字列
 	 * @throws IOException 
 	 */
-	public String createOpeningJournalEntries(Path path) throws IOException {
+	public String createNextOpeningJournalEntries(Path path) throws IOException {
 		List<Entry<AccountTitle, Amount>> debtors = new ArrayList<>();
 		long debtorsTotal = 0;
 		List<Entry<AccountTitle, Amount>> creditors = new ArrayList<>();
 		long creditorsTotal = 0;
 		
 		StringBuilder sb = new StringBuilder();
-		String nextOpeningDate = DateTimeFormatter.ISO_LOCAL_DATE.format(this.closingDate.plusDays(1));
+		String nextOpeningDate = null;
+		if(this.closingDate != null) {
+			nextOpeningDate = DateTimeFormatter.ISO_LOCAL_DATE.format(this.closingDate.plusDays(1));
+		}
 
 		if(isSoloProprietorship) {
 			//個人事業主の場合は、事業主貸（資産）、事業主借（負債）、所得金額（資本）が次期の元入金に加算されます。
@@ -946,9 +951,25 @@ public class BalanceSheet {
 		
 		String s = sb.toString();
 		
-		if(path != null) {
-			try(Writer writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
-				writer.write(s);
+		if(path != null && Files.isDirectory(path.getParent())) {
+			Path tmpFile = null;
+			try {
+				Path dir = path.getParent();
+				// 会計年度フォルダーが存在する場合のみ次年度の開始仕訳を作成します。
+				tmpFile = dir.resolve("次年度の開始仕訳.tmp");
+				Files.writeString(tmpFile, s, StandardCharsets.UTF_8,
+						StandardOpenOption.CREATE,
+						StandardOpenOption.TRUNCATE_EXISTING,
+						StandardOpenOption.WRITE,
+						StandardOpenOption.SYNC);
+
+				Files.move(tmpFile, path,
+						StandardCopyOption.REPLACE_EXISTING,
+						StandardCopyOption.ATOMIC_MOVE);
+			} finally {
+				if(tmpFile != null) {
+					try { Files.deleteIfExists(tmpFile); } catch(Exception ignore) {}
+				}
 			}
 		}
 		
