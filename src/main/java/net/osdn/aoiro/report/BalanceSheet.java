@@ -907,6 +907,7 @@ public class BalanceSheet {
 		}
 		
 		//期末商品棚卸高 を 期首商品棚卸高として開始仕訳に追加します。
+		// ただし、自動作成された期首商品棚卸高の振替仕訳は開始仕訳としては扱われません。（isOpeningはfalseを返します。）
 		for(JournalEntry entry : journalEntries) {
 			if(entry.isClosing()) {
 				continue;
@@ -914,7 +915,7 @@ public class BalanceSheet {
 			for(Creditor creditor : entry.getCreditors()) {
 				if(creditor.getAccountTitle().getDisplayName().equals("期末商品棚卸高")) {
 					sb.append("- 日付: " + nextOpeningDate + "\r\n");
-					sb.append("  摘要: 前期繰越\r\n");
+					sb.append("  摘要: 期首棚卸\r\n");
 					sb.append("  借方: [ {勘定科目: 期首商品棚卸高, 金額: " + creditor.getAmount() + "} ]\r\n");
 					sb.append("  貸方: [ ");
 					for(int i = 0; i < entry.getDebtors().size(); i++) {
@@ -932,7 +933,7 @@ public class BalanceSheet {
 			for(Debtor debtor : entry.getDebtors()) {
 				if(debtor.getAccountTitle().getDisplayName().equals("期末商品棚卸高")) {
 					sb.append("- 日付: " + nextOpeningDate + "\r\n");
-					sb.append("  摘要: 前期繰越\r\n");
+					sb.append("  摘要: 期首棚卸\r\n");
 					sb.append("  借方: [ ");
 					for(int i = 0; i < entry.getCreditors().size(); i++) {
 						Creditor creditor = entry.getCreditors().get(i);
