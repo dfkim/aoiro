@@ -85,4 +85,15 @@ public class YamlBeansUtil {
 			return this.message;
 		}
 	}
+
+	public static String escape(String s) {
+		return s.replace("\\", "_BACKSLASH_") // Backslash
+				.replace("\b", "\\b")   // Backspace
+				.replace("\f", "\\f")   // Form feed
+				.replace("\n", "\\n")   // New line
+				.replace("\r", "\\r")   // Carriage return
+				.replace("\t", "\\t")   // Tab
+				.replace("\"", "\\\"")  // Double quote
+				.replace("_BACKSLASH_", "\\\\");
+	}
 }

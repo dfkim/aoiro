@@ -1,5 +1,6 @@
 package net.osdn.aoiro.report.layout;
 
+import net.osdn.aoiro.loader.yaml.YamlBeansUtil;
 import net.osdn.aoiro.model.AccountTitle;
 import net.osdn.aoiro.model.Node;
 
@@ -42,19 +43,22 @@ public class StatementOfChangesInEquityLayout {
 
 		StringBuilder out = new StringBuilder();
 
-		out.append("社員資本等変動計算書:\r\n");
+		out.append("\"社員資本等変動計算書\" :\r\n");
 
-		out.append("  変動事由:\r\n");
+		out.append("  \"変動事由\" :\r\n");
 		for(Entry<String, List<String>> entry : getReasons().entrySet()) {
 			String name = entry.getKey();
 			List<String> list = entry.getValue();
 			out.append("    ");
-			out.append(name);
-			out.append(":");
+			out.append("\"");
+			out.append(YamlBeansUtil.escape(name));
+			out.append("\" :");
 			if(list != null && list.size() > 0) {
 				out.append(" [");
 				for(int i = 0; i < list.size(); i++) {
-					out.append(list.get(i));
+					out.append("\"");
+					out.append(YamlBeansUtil.escape(list.get(i)));
+					out.append("\"");
 					if(i + 1 < list.size()) {
 						out.append(", ");
 					}
@@ -77,12 +81,15 @@ public class StatementOfChangesInEquityLayout {
 
 		String indent = "  ".repeat(node.getLevel() + 0);
 		out.append(indent);
-		out.append(node.getName());
-		out.append(":");
+		out.append("\"");
+		out.append(YamlBeansUtil.escape(node.getName()));
+		out.append("\" :");
 		if(accountTitles.size() > 0) {
 			out.append(" [");
 			for(int i = 0; i < accountTitles.size(); i++) {
-				out.append(accountTitles.get(i).getDisplayName());
+				out.append("\"");
+				out.append(YamlBeansUtil.escape(accountTitles.get(i).getDisplayName()));
+				out.append("\"");
 				if(i + 1 < accountTitles.size()) {
 					out.append(", ");
 				}
