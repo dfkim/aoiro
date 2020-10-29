@@ -762,20 +762,24 @@ public class AccountTitlesLoader {
 			}
 		}
 
-		sb.append("仕訳:\r\n");
+		sb.append("\"仕訳\":\r\n");
 
-		sb.append("  資産: [");
+		sb.append("  \"資産\" : [");
 		for(int i = 0; i < assets.size(); i++) {
-			sb.append(assets.get(i));
+			sb.append("\"");
+			sb.append(YamlBeansUtil.escape(assets.get(i)));
+			sb.append("\"");
 			if(i + 1 < assets.size()) {
 				sb.append(", ");
 			}
 		}
 		sb.append("]\r\n");
 
-		sb.append("  負債: [");
+		sb.append("  \"負債\" : [");
 		for(int i = 0; i < liabilities.size(); i++) {
-			sb.append(liabilities.get(i));
+			sb.append("\"");
+			sb.append(YamlBeansUtil.escape(liabilities.get(i)));
+			sb.append("\"");
 			if(i + 1 < liabilities.size()) {
 				sb.append(", ");
 			}
@@ -792,30 +796,36 @@ public class AccountTitlesLoader {
 			}
 		}
 		if(isSoloProprietorship) {
-			sb.append("  資本: [");
+			sb.append("  \"資本\" : [");
 		} else {
-			sb.append("  純資産: [");
+			sb.append("  \"純資産\" : [");
 		}
 		for(int i = 0; i < equity.size(); i++) {
-			sb.append(equity.get(i));
+			sb.append("\"");
+			sb.append(YamlBeansUtil.escape(equity.get(i)));
+			sb.append("\"");
 			if(i + 1 < equity.size()) {
 				sb.append(", ");
 			}
 		}
 		sb.append("]\r\n");
 
-		sb.append("  収益: [");
+		sb.append("  \"収益\" : [");
 		for(int i = 0; i < revenue.size(); i++) {
-			sb.append(revenue.get(i));
+			sb.append("\"");
+			sb.append(YamlBeansUtil.escape(revenue.get(i)));
+			sb.append("\"");
 			if(i + 1 < revenue.size()) {
 				sb.append(", ");
 			}
 		}
 		sb.append("]\r\n");
 
-		sb.append("  費用: [");
+		sb.append("  \"費用\" : [");
 		for(int i = 0; i < expense.size(); i++) {
-			sb.append(expense.get(i));
+			sb.append("\"");
+			sb.append(YamlBeansUtil.escape(expense.get(i)));
+			sb.append("\"");
 			if(i + 1 < expense.size()) {
 				sb.append(", ");
 			}

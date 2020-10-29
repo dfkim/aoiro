@@ -1,5 +1,7 @@
 package net.osdn.aoiro.model;
 
+import net.osdn.aoiro.loader.yaml.YamlBeansUtil;
+
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -273,7 +275,7 @@ public class JournalEntry {
 
 		sb.append("  \"摘要\" : \"");
 		if(description != null) {
-			sb.append(description);
+			sb.append(YamlBeansUtil.escape(description));
 		}
 		sb.append("\"\r\n");
 
@@ -283,7 +285,7 @@ public class JournalEntry {
 			sb.append("{\"勘定科目\" : ");
 			AccountTitle accountTitle = debtor.getAccountTitle();
 			String displayName = accountTitle != null ? accountTitle.getDisplayName() : null;
-			sb.append(displayName != null ? ("\"" + displayName + "\"") : "null");
+			sb.append(displayName != null ? ("\"" + YamlBeansUtil.escape(displayName) + "\"") : "null");
 			sb.append(", \"金額\" : ");
 			sb.append(Long.toString(debtor.getAmount()));
 			if(i + 1 < debtors.size()) {
@@ -300,7 +302,7 @@ public class JournalEntry {
 			sb.append("{\"勘定科目\" : ");
 			AccountTitle accountTitle = creditor.getAccountTitle();
 			String displayName = accountTitle != null ? accountTitle.getDisplayName() : null;
-			sb.append(displayName != null ? ("\"" + displayName + "\"") : "null");
+			sb.append(displayName != null ? ("\"" + YamlBeansUtil.escape(displayName) + "\"") : "null");
 			sb.append(", \"金額\" : ");
 			sb.append(Long.toString(creditor.getAmount()));
 			if(i + 1 < creditors.size()) {

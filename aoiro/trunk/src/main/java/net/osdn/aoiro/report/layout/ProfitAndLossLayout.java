@@ -1,5 +1,6 @@
 package net.osdn.aoiro.report.layout;
 
+import net.osdn.aoiro.loader.yaml.YamlBeansUtil;
 import net.osdn.aoiro.model.AccountTitle;
 import net.osdn.aoiro.model.Amount;
 import net.osdn.aoiro.model.Node;
@@ -78,32 +79,38 @@ public class ProfitAndLossLayout {
 		retrieve(out, getRoot());
 
 		out.append("\r\n");
-		out.append("損益計算書の表示制御:\r\n");
+		out.append("\"損益計算書の表示制御\" :\r\n");
 
-		out.append("  符号を反転して表示する見出し: [");
+		out.append("  \"符号を反転して表示する見出し\" : [");
 		Iterator<String> it1 = getSignReversedNames().iterator();
 		while(it1.hasNext()) {
-			out.append(it1.next());
+			out.append("\"");
+			out.append(YamlBeansUtil.escape(it1.next()));
+			out.append("\"");
 			if(it1.hasNext()) {
 				out.append(", ");
 			}
 		}
 		out.append("]\r\n");
 
-		out.append("  常に表示する見出し: [");
+		out.append("  \"常に表示する見出し\" : [");
 		Iterator<String> it2 = getAlwaysShownNames().iterator();
 		while(it2.hasNext()) {
-			out.append(it2.next());
+			out.append("\"");
+			out.append(YamlBeansUtil.escape(it2.next()));
+			out.append("\"");
 			if(it2.hasNext()) {
 				out.append(", ");
 			}
 		}
 		out.append("]\r\n");
 
-		out.append("  ゼロなら表示しない見出し: [");
+		out.append("  \"ゼロなら表示しない見出し\" : [");
 		Iterator<String> it3 = getHiddenNamesIfZero().iterator();
 		while(it3.hasNext()) {
-			out.append(it3.next());
+			out.append("\"");
+			out.append(YamlBeansUtil.escape(it3.next()));
+			out.append("\"");
 			if(it3.hasNext()) {
 				out.append(", ");
 			}
@@ -119,12 +126,15 @@ public class ProfitAndLossLayout {
 
 		String indent = "  ".repeat(node.getLevel() + 1);
 		out.append(indent);
-		out.append(node.getName());
-		out.append(":");
+		out.append("\"");
+		out.append(YamlBeansUtil.escape(node.getName()));
+		out.append("\" : ");
 		if(accountTitles.size() > 0) {
 			out.append(" [");
 			for(int i = 0; i < accountTitles.size(); i++) {
+				out.append("\"");
 				out.append(accountTitles.get(i).getDisplayName());
+				out.append("\"");
 				if(i + 1 < accountTitles.size()) {
 					out.append(", ");
 				}

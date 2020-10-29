@@ -149,9 +149,9 @@ public class ProportionalDivisionsLoader {
 
 		if(proportionalDivisions != null) {
 			for(ProportionalDivision proportionalDivision : proportionalDivisions) {
-				sb.append("- {勘定科目: ");
-				sb.append(proportionalDivision.getAccountTitle().getDisplayName());
-				sb.append(", 事業割合: ");
+				sb.append("- { \"勘定科目\" : \"");
+				sb.append(YamlBeansUtil.escape(proportionalDivision.getAccountTitle().getDisplayName()));
+				sb.append("\", \"事業割合\" : ");
 				sb.append(proportionalDivision.getBusinessRatio() * 100.0);
 				sb.append("}\r\n");
 			}
