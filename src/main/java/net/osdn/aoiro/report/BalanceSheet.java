@@ -23,6 +23,7 @@ import java.util.Map.Entry;
 
 import net.osdn.aoiro.AccountSettlement;
 import net.osdn.aoiro.Util;
+import net.osdn.aoiro.loader.yaml.YamlBeansUtil;
 import net.osdn.aoiro.model.AccountTitle;
 import net.osdn.aoiro.model.AccountType;
 import net.osdn.aoiro.model.Amount;
@@ -773,10 +774,11 @@ public class BalanceSheet {
 		brewer.close();
 	}
 
-	/** 次期開始仕訳を作成します。
-	 * 
-	 * @param path 次期開始仕訳を保存するファイル。nullを指定した場合、ファイル出力はおこないません。
-	 * @return 次期開始仕訳のYAML文字列
+	/** 次年度の開始仕訳を作成します。
+	 * このメソッドはJSON文字列がエスケープされます。
+	 *
+	 * @param path 次年度の開始仕訳を保存するファイル。nullを指定した場合、ファイル出力はおこないません。
+	 * @return 次年度の開始仕訳のYAML文字列
 	 * @throws IOException 
 	 */
 	public String createNextOpeningJournalEntries(Path path) throws IOException {
@@ -785,6 +787,212 @@ public class BalanceSheet {
 		List<Entry<AccountTitle, Amount>> creditors = new ArrayList<>();
 		long creditorsTotal = 0;
 		
+		StringBuilder sb = new StringBuilder();
+		String nextOpeningDate = null;
+		if(this.closingDate != null) {
+			nextOpeningDate = DateTimeFormatter.ISO_LOCAL_DATE.format(this.closingDate.plusDays(1));
+		}
+
+		if(isSoloProprietorship) {
+			//個人事業主の場合は、事業主貸（資産）、事業主借（負債）、所得金額（資本）が次期の元入金に加算されます。
+			//事業主貸、事業主借を除く資産と負債を集計して次期開始仕訳を作成します。
+			//相手勘定科目はすべて元入金になります。
+			for(Entry<AccountTitle, Amount> e : closingBalances.entrySet()) {
+				AccountTitle accountTitle = e.getKey();
+				Amount amount = e.getValue();
+				if(accountTitle.getDisplayName().equals("事業主貸") || accountTitle.getDisplayName().equals("事業主借")) {
+					continue;
+				}
+				if(accountTitle.getType() == AccountType.Assets) {
+					if(amount.getValue() == 0) {
+						continue;
+					} else if(amount.getValue() > 0) {
+						debtors.add(e);
+						debtorsTotal += amount.getValue();
+					} else {
+						creditors.add(e);
+						creditorsTotal -= amount.getValue();
+					}
+				} else if(accountTitle.getType() == AccountType.Liabilities) {
+					if(amount.getValue() == 0) {
+						continue;
+					} else if(amount.getValue() > 0) {
+						creditors.add(e);
+						creditorsTotal += amount.getValue();
+					} else {
+						debtors.add(e);
+						debtorsTotal -= amount.getValue();
+					}
+				}
+			}
+			if(debtors.size() > 0) {
+				sb.append("- \"日付\" : \"" + nextOpeningDate + "\"\r\n");
+				sb.append("  \"摘要\" : \"元入金\"\r\n");
+				sb.append("  \"借方\" : [ ");
+				for(int i = 0; i < debtors.size(); i++) {
+					AccountTitle accountTitle = debtors.get(i).getKey();
+					Amount amount = debtors.get(i).getValue();
+					sb.append("{ \"勘定科目\" : \"" + YamlBeansUtil.escape(accountTitle.getDisplayName()) + "\", \"金額\" : " + Math.abs(amount.getValue()) + " }");
+					if(i + 1 < debtors.size()) {
+						sb.append(", ");
+					}
+				}
+				sb.append(" ]\r\n");
+				sb.append("  \"貸方\" : [ { \"勘定科目\" : \"元入金\", \"金額\" : " + debtorsTotal + " } ]\r\n");
+				sb.append("\r\n");
+			}
+			if(creditors.size() > 0) {
+				sb.append("- \"日付\" : \"" + nextOpeningDate + "\"\r\n");
+				sb.append("  \"摘要\" : \"元入金\"\r\n");
+				sb.append("  \"借方\" : [ { \"勘定科目\" : \"元入金\", \"金額\" : " + creditorsTotal + " } ]\r\n");
+				sb.append("  \"貸方\" : [ ");
+				for(int i = 0; i < creditors.size(); i++) {
+					AccountTitle accountTitle = creditors.get(i).getKey();
+					Amount amount = creditors.get(i).getValue();
+					sb.append("{ \"勘定科目\" : \"" + YamlBeansUtil.escape(accountTitle.getDisplayName()) + "\", \"金額\" : " + Math.abs(amount.getValue()) + " }");
+					if(i + 1 < creditors.size()) {
+						sb.append(", ");
+					}
+				}
+				sb.append(" ]\r\n");
+				sb.append("\r\n");
+			}
+		} else {
+			//法人の場合は資産、負債、純資産をすべて繰り越します。
+			for(Entry<AccountTitle, Amount> e : closingBalances.entrySet()) {
+				AccountTitle accountTitle = e.getKey();
+				Amount amount = e.getValue();
+				if(accountTitle.getType() == AccountType.Assets) {
+					if(amount.getValue() == 0) {
+						continue;
+					} else if(amount.getValue() > 0) {
+						debtors.add(e);
+					} else {
+						creditors.add(e);
+					}
+				} else if(accountTitle.getType() == AccountType.Liabilities || accountTitle.getType() == AccountType.Equity) {
+					if(amount.getValue() == 0) {
+						continue;
+					} else if(amount.getValue() > 0) {
+						creditors.add(e);
+					} else {
+						debtors.add(e);
+					}
+				}
+			}
+			
+			if(debtors.size() > 0 && creditors.size() > 0) {
+				sb.append("- \"日付\" : \"" + nextOpeningDate + "\"\r\n");
+				sb.append("  \"摘要\" : \"前期繰越\"\r\n");
+				sb.append("  \"借方\" : [ ");
+				for(int i = 0; i < debtors.size(); i++) {
+					AccountTitle accountTitle = debtors.get(i).getKey();
+					Amount amount = debtors.get(i).getValue();
+					sb.append("{ \"勘定科目\" : \"" + YamlBeansUtil.escape(accountTitle.getDisplayName()) + "\", \"金額\" : " + Math.abs(amount.getValue()) + " }");
+					if(i + 1 < debtors.size()) {
+						sb.append(", ");
+					}
+				}
+				sb.append(" ]\r\n");
+				sb.append("  \"貸方\" : [ ");
+				for(int i = 0; i < creditors.size(); i++) {
+					AccountTitle accountTitle = creditors.get(i).getKey();
+					Amount amount = creditors.get(i).getValue();
+					sb.append("{ \"勘定科目\" : \"" + YamlBeansUtil.escape(accountTitle.getDisplayName()) + "\", \"金額\" : " + Math.abs(amount.getValue()) + " }");
+					if(i + 1 < creditors.size()) {
+						sb.append(", ");
+					}
+				}
+				sb.append(" ]\r\n");
+				sb.append("\r\n");
+			}
+		}
+		
+		//期末商品棚卸高 を 期首商品棚卸高として開始仕訳に追加します。
+		// ただし、自動作成された期首商品棚卸高の振替仕訳は開始仕訳としては扱われません。（isOpeningはfalseを返します。）
+		for(JournalEntry entry : journalEntries) {
+			if(entry.isClosing()) {
+				continue;
+			}
+			for(Creditor creditor : entry.getCreditors()) {
+				if(creditor.getAccountTitle().getDisplayName().equals("期末商品棚卸高")) {
+					sb.append("- \"日付\" : \"" + nextOpeningDate + "\"\r\n");
+					sb.append("  \"摘要\" : \"期首棚卸\"\r\n");
+					sb.append("  \"借方\" : [ { \"勘定科目\" : \"期首商品棚卸高\", \"金額\" : " + creditor.getAmount() + " } ]\r\n");
+					sb.append("  \"貸方\" : [ ");
+					for(int i = 0; i < entry.getDebtors().size(); i++) {
+						Debtor debtor = entry.getDebtors().get(i);
+						sb.append("{ \"勘定科目\" : \"" + YamlBeansUtil.escape(debtor.getAccountTitle().getDisplayName()) + "\", \"金額\": " + debtor.getAmount() + " }");
+						if(i + 1 < entry.getDebtors().size()) {
+							sb.append(", ");
+						}
+					}
+					sb.append(" ]\r\n");
+					sb.append("\r\n");
+					break;
+				}
+			}
+			for(Debtor debtor : entry.getDebtors()) {
+				if(debtor.getAccountTitle().getDisplayName().equals("期末商品棚卸高")) {
+					sb.append("- \"日付\" : \"" + nextOpeningDate + "\"\r\n");
+					sb.append("  \"摘要\" : \"期首棚卸\"\r\n");
+					sb.append("  \"借方\" : [ ");
+					for(int i = 0; i < entry.getCreditors().size(); i++) {
+						Creditor creditor = entry.getCreditors().get(i);
+						sb.append("{ \"勘定科目\" : \"" + YamlBeansUtil.escape(creditor.getAccountTitle().getDisplayName()) + "\", \"金額\" : " + creditor.getAmount() + " }");
+						if(i + 1 < entry.getCreditors().size()) {
+							sb.append(", ");
+						}
+					}
+					sb.append(" ]\r\n");
+					sb.append("\r\n");
+					break;
+				}
+			}
+		}
+		
+		
+		String s = sb.toString();
+		
+		if(path != null && Files.isDirectory(path.getParent())) {
+			Path tmpFile = null;
+			try {
+				Path dir = path.getParent();
+				// 会計年度フォルダーが存在する場合のみ次年度の開始仕訳を作成します。
+				tmpFile = dir.resolve("次年度の開始仕訳.tmp");
+				Files.writeString(tmpFile, s, StandardCharsets.UTF_8,
+						StandardOpenOption.CREATE,
+						StandardOpenOption.TRUNCATE_EXISTING,
+						StandardOpenOption.WRITE,
+						StandardOpenOption.SYNC);
+
+				Files.move(tmpFile, path,
+						StandardCopyOption.REPLACE_EXISTING,
+						StandardCopyOption.ATOMIC_MOVE);
+			} finally {
+				if(tmpFile != null) {
+					try { Files.deleteIfExists(tmpFile); } catch(Exception ignore) {}
+				}
+			}
+		}
+		
+		return s;
+	}
+
+	/** 次年度の開始仕訳を作成します。（互換用）
+	 * このメソッドで次年度の開始仕訳を作成するとJSON文字列はエスケープされません。
+	 * このメソッドはCUIで利用します。
+	 *
+	 * @param path 次年度の開始仕訳を保存するファイル。nullを指定した場合、ファイル出力はおこないません。
+	 * @return 次年度の次期開始仕訳のYAML文字列
+	 * @throws IOException
+	 */
+	public String createNextOpeningJournalEntriesCompat(Path path) throws IOException {
+		List<Entry<AccountTitle, Amount>> debtors = new ArrayList<>();
+		long debtorsTotal = 0;
+		List<Entry<AccountTitle, Amount>> creditors = new ArrayList<>();
+		long creditorsTotal = 0;
+
 		StringBuilder sb = new StringBuilder();
 		String nextOpeningDate = null;
 		if(this.closingDate != null) {
@@ -878,7 +1086,7 @@ public class BalanceSheet {
 					}
 				}
 			}
-			
+
 			if(debtors.size() > 0 && creditors.size() > 0) {
 				sb.append("- 日付: " + nextOpeningDate + "\r\n");
 				sb.append("  摘要: 前期繰越\r\n");
@@ -905,7 +1113,7 @@ public class BalanceSheet {
 				sb.append("\r\n");
 			}
 		}
-		
+
 		//期末商品棚卸高 を 期首商品棚卸高として開始仕訳に追加します。
 		// ただし、自動作成された期首商品棚卸高の振替仕訳は開始仕訳としては扱われません。（isOpeningはfalseを返します。）
 		for(JournalEntry entry : journalEntries) {
@@ -948,10 +1156,10 @@ public class BalanceSheet {
 				}
 			}
 		}
-		
-		
+
+
 		String s = sb.toString();
-		
+
 		if(path != null && Files.isDirectory(path.getParent())) {
 			Path tmpFile = null;
 			try {
@@ -973,10 +1181,10 @@ public class BalanceSheet {
 				}
 			}
 		}
-		
+
 		return s;
 	}
-	
+
 	private static String formatMoney(long amount) {
 		if(MINUS_SIGN != null && amount < 0) {
 			return MINUS_SIGN + String.format("%,d", -amount);
