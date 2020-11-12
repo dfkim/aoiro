@@ -17,24 +17,26 @@
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-本ソフトウェアの配布物には以下の著作物が含まれています。
-これらのソフトウェアに貢献されたすべての方々に心から感謝します。
+本ソフトウェアの配布物には、本ソフトウェアとは異なるライセンス条件で再配布され
+る以下の著作物が含まれています。これらのソフトウェアに貢献されたすべての方々に
+心から感謝します。
+
+
+* Liberica JDK
+  https://bell-sw.com/java11
+
+  Liberica JDK is distribution of the OpenJDK built by BellSoft LTD.
+  OpenJDK code itself is licensed under GPL v2 with Classpath Exception.
+  https://openjdk.java.net/legal/gplv2+ce.html
+
 
 * Apache PDFBox - A Java PDF Library
   https://pdfbox.apache.org/
-  
-  Copyright © 2009–2019 The Apache Software Foundation.
+
+  Copyright © 2009-2020 The Apache Software Foundation.
 
   Apache PDFBox is published under the Apache License v2.0.
   https://www.apache.org/licenses/LICENSE-2.0
-
-
-* freemarker
-  https://freemarker.apache.org/
-
-  Apache FreeMarker is Free software
-  licensed under the Apache License, Version 2.0.
-  https://freemarker.apache.org/docs/app_license.html
 
 
 * Java Native Access (JNA)
