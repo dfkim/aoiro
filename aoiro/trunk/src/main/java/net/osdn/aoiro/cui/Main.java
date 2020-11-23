@@ -1,5 +1,6 @@
 package net.osdn.aoiro.cui;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -152,9 +153,22 @@ public class Main {
 			GeneralLedger generalLedger = new GeneralLedger(accountTitles, journalEntries, isSoloProprietorship, showMonthlyTotal);
 
 			Set<String> fontFileNames = new HashSet<String>();
-			fontFileNames.addAll(FontLoader.FILENAMES_YUGOTHIC);
-			fontFileNames.addAll(FontLoader.FILENAMES_YUMINCHO);
-			FontLoader fontLoader = new FontLoader(FontLoader.getDefaultFontDir(), fontFileNames, null);
+			//
+			File fontDir;
+			if(Files.isDirectory(Util.getApplicationDirectory().resolve("fonts"))) {
+				// for generic
+				fontDir = Util.getApplicationDirectory().resolve("fonts").toFile();
+				fontFileNames.addAll(FontLoader.FILENAMES_NOTO_GOTHIC);
+				fontFileNames.addAll(FontLoader.FILENAMES_NOTO_MINCHO);
+				fontFileNames.addAll(FontLoader.FILENAMES_IPA_GOTHIC);
+				fontFileNames.addAll(FontLoader.FILENAMES_IPA_MINCHO);
+			} else {
+				// for Windows
+				fontDir = FontLoader.getDefaultFontDir();
+				fontFileNames.addAll(FontLoader.FILENAMES_YUGOTHIC);
+				fontFileNames.addAll(FontLoader.FILENAMES_YUMINCHO);
+			}
+			FontLoader fontLoader = new FontLoader(fontDir, fontFileNames, null);
 
 			// 仕訳帳をファイルに出力します。
 			// この処理は総勘定元帳（GeneralLedger）を作成してから呼び出す必要があります。GeneralLedgerによって仕訳帳の「元丁」が設定されるからです。
