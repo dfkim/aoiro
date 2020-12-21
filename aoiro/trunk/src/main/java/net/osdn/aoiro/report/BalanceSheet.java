@@ -356,22 +356,22 @@ public class BalanceSheet {
 		printData.add("\t\\align center");
 		printData.add("\t\\text " + openingDate + " ～ " + closingDate);
 		printData.add("\t\\box 0 31 -0 6");
-		printData.add("\t\\align center right");
-		printData.add("\t\t\\box 34.5 0 6 -0");
+		printData.add("\t\\align center center");
+		printData.add("\t\t\\box 37.0 0 5 -0");
 		printData.add("\t\t\\text " + openingMonth);
-		printData.add("\t\t\\box 42.2 0 6 -0");
+		printData.add("\t\t\\box 44.7 0 5 -0");
 		printData.add("\t\t\\text " + openingDay);
-		printData.add("\t\t\\box 122.0 0 6 -0");
+		printData.add("\t\t\\box 124.5 0 5 -0");
 		printData.add("\t\t\\text " + openingMonth);
-		printData.add("\t\t\\box 129.7 0 6 -0");
+		printData.add("\t\t\\box 132.2 0 5 -0");
 		printData.add("\t\t\\text " + openingDay);
-		printData.add("\t\t\\box 60.5 0 6 -0");
+		printData.add("\t\t\\box 63.0 0 5 -0");
 		printData.add("\t\t\\text " + closingMonth);
-		printData.add("\t\t\\box 68.2 0 6 -0");
+		printData.add("\t\t\\box 70.7 0 5 -0");
 		printData.add("\t\t\\text " + closingDay);
-		printData.add("\t\t\\box 148.0 0 6 -0");
+		printData.add("\t\t\\box 150.5 0 5 -0");
 		printData.add("\t\t\\text " + closingMonth);
-		printData.add("\t\t\\box 155.7 0 6 -0");
+		printData.add("\t\t\\box 158.2 0 5 -0");
 		printData.add("\t\t\\text " + closingDay);
 
 		//負債・資本の部のタイトル変更
