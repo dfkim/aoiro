@@ -5,6 +5,7 @@ import net.osdn.aoiro.model.AccountTitle;
 import net.osdn.aoiro.model.Amount;
 import net.osdn.aoiro.model.Node;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -72,9 +73,13 @@ public class BalanceSheetLayout {
 	}
 
 	public String getYaml() {
+		return getYaml(null);
+	}
+
+	public String getYaml(Set<AccountTitle> filter) {
 		StringBuilder out = new StringBuilder();
 
-		retrieve(out, getRoot());
+		retrieve(out, getRoot(), filter);
 
 		out.append("\r\n");
 		out.append("\"貸借対照表の表示制御\" :\r\n");
@@ -119,8 +124,18 @@ public class BalanceSheetLayout {
 		return out.toString();
 	}
 
-	private void retrieve(StringBuilder out, Node<Entry<List<AccountTitle>, Amount[]>> node) {
+	private void retrieve(StringBuilder out, Node<Entry<List<AccountTitle>, Amount[]>> node, Set<AccountTitle> filter) {
 		List<AccountTitle> accountTitles = node.getValue().getKey();
+
+		if(filter != null) {
+			List<AccountTitle> tmp = new ArrayList<>();
+			for(AccountTitle accountTitle : accountTitles) {
+				if(filter.contains(accountTitle)) {
+					tmp.add(accountTitle);
+				}
+			}
+			accountTitles = tmp;
+		}
 
 		String indent = "  ".repeat(node.getLevel() + 0);
 		out.append(indent);
@@ -128,7 +143,7 @@ public class BalanceSheetLayout {
 		out.append(YamlBeansUtil.escape(node.getName()));
 		out.append("\" :");
 		if(accountTitles.size() > 0) {
-			out.append(" [");
+			out.append(" [ ");
 			for(int i = 0; i < accountTitles.size(); i++) {
 				out.append("\"");
 				out.append(accountTitles.get(i).getDisplayName());
@@ -137,12 +152,15 @@ public class BalanceSheetLayout {
 					out.append(", ");
 				}
 			}
-			out.append("]");
+			out.append(" ]");
 		}
 		out.append("\r\n");
 
-		for(Node<Entry<List<AccountTitle>, Amount[]>> child : node.getChildren()) {
-			retrieve(out, child);
+		// このノードに勘定科目が定義されていない場合に限り、下位ノードを持つことができます。
+		if(accountTitles.size() == 0) {
+			for(Node<Entry<List<AccountTitle>, Amount[]>> child : node.getChildren()) {
+				retrieve(out, child, filter);
+			}
 		}
 	}
 }

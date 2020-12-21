@@ -145,15 +145,22 @@ public class ProportionalDivisionsLoader {
 	}
 
 	public static String getYaml(List<ProportionalDivision> proportionalDivisions) {
+		return getYaml(proportionalDivisions, null);
+	}
+
+	public static String getYaml(List<ProportionalDivision> proportionalDivisions, Set<AccountTitle> filter) {
 		StringBuilder sb = new StringBuilder();
 
 		if(proportionalDivisions != null) {
 			for(ProportionalDivision proportionalDivision : proportionalDivisions) {
+				if(filter != null && !filter.contains(proportionalDivision.getAccountTitle())) {
+					continue;
+				}
 				sb.append("- { \"勘定科目\" : \"");
 				sb.append(YamlBeansUtil.escape(proportionalDivision.getAccountTitle().getDisplayName()));
 				sb.append("\", \"事業割合\" : ");
 				sb.append(proportionalDivision.getBusinessRatio() * 100.0);
-				sb.append("}\r\n");
+				sb.append(" }\r\n");
 			}
 		}
 

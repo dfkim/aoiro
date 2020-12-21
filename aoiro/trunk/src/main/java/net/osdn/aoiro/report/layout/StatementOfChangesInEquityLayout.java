@@ -4,10 +4,12 @@ import net.osdn.aoiro.loader.yaml.YamlBeansUtil;
 import net.osdn.aoiro.model.AccountTitle;
 import net.osdn.aoiro.model.Node;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 /** 社員資本等変動計算書を作成するための構成情報 */
 public class StatementOfChangesInEquityLayout {
@@ -37,6 +39,10 @@ public class StatementOfChangesInEquityLayout {
 	}
 
 	public String getYaml() {
+		return getYaml(null);
+	}
+
+	public String getYaml(Set<AccountTitle> filter) {
 		if(getRoot().getChildren().size() == 0) {
 			return "";
 		}
@@ -69,15 +75,25 @@ public class StatementOfChangesInEquityLayout {
 		}
 
 		for(Node<List<AccountTitle>> child : getRoot().getChildren()) {
-			retrieve(out, child);
+			retrieve(out, child, filter);
 		}
 
 		out.append("\r\n\r\n");
 		return out.toString();
 	}
 
-	private void retrieve(StringBuilder out, Node<List<AccountTitle>> node) {
+	private void retrieve(StringBuilder out, Node<List<AccountTitle>> node, Set<AccountTitle> filter) {
 		List<AccountTitle> accountTitles = node.getValue();
+
+		if(filter != null) {
+			List<AccountTitle> tmp = new ArrayList<>();
+			for(AccountTitle accountTitle : accountTitles) {
+				if(filter.contains(accountTitle)) {
+					tmp.add(accountTitle);
+				}
+			}
+			accountTitles = tmp;
+		}
 
 		String indent = "  ".repeat(node.getLevel() + 0);
 		out.append(indent);
@@ -85,7 +101,7 @@ public class StatementOfChangesInEquityLayout {
 		out.append(YamlBeansUtil.escape(node.getName()));
 		out.append("\" :");
 		if(accountTitles.size() > 0) {
-			out.append(" [");
+			out.append(" [ ");
 			for(int i = 0; i < accountTitles.size(); i++) {
 				out.append("\"");
 				out.append(YamlBeansUtil.escape(accountTitles.get(i).getDisplayName()));
@@ -94,12 +110,15 @@ public class StatementOfChangesInEquityLayout {
 					out.append(", ");
 				}
 			}
-			out.append("]");
+			out.append(" ]");
 		}
 		out.append("\r\n");
 
-		for(Node<List<AccountTitle>> child : node.getChildren()) {
-			retrieve(out, child);
+		// このノードに勘定科目が定義されていない場合に限り、下位ノードを持つことができます。
+		if(accountTitles.size() == 0) {
+			for(Node<List<AccountTitle>> child : node.getChildren()) {
+				retrieve(out, child, filter);
+			}
 		}
 	}
 }
