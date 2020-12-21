@@ -282,16 +282,16 @@ public class JournalEntry {
 		sb.append("  \"借方\" : [ ");
 		for(int i = 0; i < debtors.size(); i++) {
 			Debtor debtor = debtors.get(i);
-			sb.append("{\"勘定科目\" : ");
+			sb.append("{ \"勘定科目\" : ");
 			AccountTitle accountTitle = debtor.getAccountTitle();
 			String displayName = accountTitle != null ? accountTitle.getDisplayName() : null;
 			sb.append(displayName != null ? ("\"" + YamlBeansUtil.escape(displayName) + "\"") : "null");
 			sb.append(", \"金額\" : ");
 			sb.append(Long.toString(debtor.getAmount()));
 			if(i + 1 < debtors.size()) {
-				sb.append("}, ");
+				sb.append(" }, ");
 			} else {
-				sb.append("} ");
+				sb.append(" } ");
 			}
 		}
 		sb.append("]\r\n");
@@ -299,16 +299,16 @@ public class JournalEntry {
 		sb.append("  \"貸方\" : [ ");
 		for(int i = 0; i < creditors.size(); i++) {
 			Creditor creditor = creditors.get(i);
-			sb.append("{\"勘定科目\" : ");
+			sb.append("{ \"勘定科目\" : ");
 			AccountTitle accountTitle = creditor.getAccountTitle();
 			String displayName = accountTitle != null ? accountTitle.getDisplayName() : null;
 			sb.append(displayName != null ? ("\"" + YamlBeansUtil.escape(displayName) + "\"") : "null");
 			sb.append(", \"金額\" : ");
 			sb.append(Long.toString(creditor.getAmount()));
 			if(i + 1 < creditors.size()) {
-				sb.append("}, ");
+				sb.append(" }, ");
 			} else {
-				sb.append("} ");
+				sb.append(" } ");
 			}
 		}
 		sb.append("]\r\n");

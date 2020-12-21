@@ -703,13 +703,19 @@ public class AccountTitlesLoader {
 
 	/// save ///
 
+	public static synchronized void write(Path file, Set<AccountTitle> accountTitles, ProfitAndLossLayout plLayout, BalanceSheetLayout bsLayout) throws IOException {
+		write(file, accountTitles, plLayout, bsLayout, null);
+	}
+
 	public static synchronized void write(Path file, Set<AccountTitle> accountTitles, ProfitAndLossLayout plLayout, BalanceSheetLayout bsLayout, StatementOfChangesInEquityLayout sceLayout) throws IOException {
 		StringBuilder sb = new StringBuilder();
 
 		sb.append(getYaml(accountTitles));
-		sb.append(plLayout.getYaml());
-		sb.append(bsLayout.getYaml());
-		sb.append(sceLayout.getYaml());
+		sb.append(plLayout.getYaml(accountTitles));
+		sb.append(bsLayout.getYaml(accountTitles));
+		if(sceLayout != null) {
+			sb.append(sceLayout.getYaml(accountTitles));
+		}
 
 		Path tmpFile = null;
 		try {
@@ -764,7 +770,7 @@ public class AccountTitlesLoader {
 
 		sb.append("\"仕訳\":\r\n");
 
-		sb.append("  \"資産\" : [");
+		sb.append("  \"資産\" : [ ");
 		for(int i = 0; i < assets.size(); i++) {
 			sb.append("\"");
 			sb.append(YamlBeansUtil.escape(assets.get(i)));
@@ -773,9 +779,9 @@ public class AccountTitlesLoader {
 				sb.append(", ");
 			}
 		}
-		sb.append("]\r\n");
+		sb.append(" ]\r\n");
 
-		sb.append("  \"負債\" : [");
+		sb.append("  \"負債\" : [ ");
 		for(int i = 0; i < liabilities.size(); i++) {
 			sb.append("\"");
 			sb.append(YamlBeansUtil.escape(liabilities.get(i)));
@@ -784,7 +790,7 @@ public class AccountTitlesLoader {
 				sb.append(", ");
 			}
 		}
-		sb.append("]\r\n");
+		sb.append(" ]\r\n");
 
 		// 個人か法人かを判定します。勘定科目「資本金」を含んでいる場合は法人、そうでなければ個人と判断します。
 		// 個人の場合は見出しを「資本」とし、法人の場合は見出しを「純資産」とします。
@@ -796,9 +802,9 @@ public class AccountTitlesLoader {
 			}
 		}
 		if(isSoloProprietorship) {
-			sb.append("  \"資本\" : [");
+			sb.append("  \"資本\" : [ ");
 		} else {
-			sb.append("  \"純資産\" : [");
+			sb.append("  \"純資産\" : [ ");
 		}
 		for(int i = 0; i < equity.size(); i++) {
 			sb.append("\"");
@@ -808,9 +814,9 @@ public class AccountTitlesLoader {
 				sb.append(", ");
 			}
 		}
-		sb.append("]\r\n");
+		sb.append(" ]\r\n");
 
-		sb.append("  \"収益\" : [");
+		sb.append("  \"収益\" : [ ");
 		for(int i = 0; i < revenue.size(); i++) {
 			sb.append("\"");
 			sb.append(YamlBeansUtil.escape(revenue.get(i)));
@@ -819,9 +825,9 @@ public class AccountTitlesLoader {
 				sb.append(", ");
 			}
 		}
-		sb.append("]\r\n");
+		sb.append(" ]\r\n");
 
-		sb.append("  \"費用\" : [");
+		sb.append("  \"費用\" : [ ");
 		for(int i = 0; i < expense.size(); i++) {
 			sb.append("\"");
 			sb.append(YamlBeansUtil.escape(expense.get(i)));
@@ -830,7 +836,7 @@ public class AccountTitlesLoader {
 				sb.append(", ");
 			}
 		}
-		sb.append("]\r\n");
+		sb.append(" ]\r\n");
 
 		return sb.toString();
 	}
