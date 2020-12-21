@@ -24,6 +24,7 @@ import java.util.Map.Entry;
 import net.osdn.aoiro.AccountSettlement;
 import net.osdn.aoiro.Util;
 import net.osdn.aoiro.loader.yaml.YamlBeansUtil;
+import net.osdn.aoiro.model.Account;
 import net.osdn.aoiro.model.AccountTitle;
 import net.osdn.aoiro.model.AccountType;
 import net.osdn.aoiro.model.Amount;
@@ -159,7 +160,7 @@ public class BalanceSheet {
 		*/
 		
 		//再帰集計
-		retrieve(bsLayout.getRoot(), journalEntries);
+		retrieve(null, bsLayout.getRoot(), journalEntries);
 		//dump(bsRoot);
 		
 		//リスト
@@ -258,24 +259,30 @@ public class BalanceSheet {
 		return warnings;
 	}
 
-	private Amount[] retrieve(Node<Entry<List<AccountTitle>, Amount[]>> node, List<JournalEntry> journalEntries) {
+	private Amount[] retrieve(Class<? extends Account> normalBalance, Node<Entry<List<AccountTitle>, Amount[]>> node, List<JournalEntry> journalEntries) {
+		if(normalBalance == null && node.getLevel() == 1) {
+			if(node.getName().equals("資産")) {
+				normalBalance = Debtor.class;
+			} else if(node.getName().equals("負債") || node.getName().equals("資本") || node.getName().equals("純資産")) {
+				normalBalance = Creditor.class;
+			}
+		}
+
 		Amount openingBalance = null;
 		Amount closingBalance = null;
 		for(Node<Entry<List<AccountTitle>, Amount[]>> child : node.getChildren()) {
-			Amount[] a = retrieve(child, journalEntries);
+			Amount[] a = retrieve(normalBalance, child, journalEntries);
 			if(a[0] != null) {
 				if(openingBalance == null) {
-					openingBalance = new Amount(a[0].getNormalBalance(), a[0].getValue());
-				} else {
-					openingBalance.increase(a[0]);
+					openingBalance = new Amount(normalBalance != null ? normalBalance : a[0].getNormalBalance(), 0);
 				}
+				openingBalance.increase(a[0]);
 			}
 			if(a[1] != null) {
 				if(closingBalance == null) {
-					closingBalance = new Amount(a[1].getNormalBalance(), a[1].getValue());
-				} else {
-					closingBalance.increase(a[1]);
+					closingBalance = new Amount(normalBalance != null ? normalBalance : a[1].getNormalBalance(), 0);
 				}
+				closingBalance.increase(a[1]);
 			}
 		}
 		if(node.getValue().getKey() != null) {
@@ -283,18 +290,16 @@ public class BalanceSheet {
 				Amount o = openingBalances.get(accountTitle);
 				if(o != null) {
 					if(openingBalance == null) {
-						openingBalance = new Amount(o.getNormalBalance(), o.getValue());
-					} else {
-						openingBalance.increase(o);
+						openingBalance = new Amount(normalBalance != null ? normalBalance : o.getNormalBalance(), 0);
 					}
+					openingBalance.increase(o);
 				}
 				Amount c = closingBalances.get(accountTitle);
 				if(c != null) {
 					if(closingBalance == null) {
-						closingBalance = new Amount(c.getNormalBalance(), c.getValue());
-					} else {
-						closingBalance.increase(c);
+						closingBalance = new Amount(normalBalance != null ? normalBalance : o.getNormalBalance(), 0);
 					}
+					closingBalance.increase(c);
 				}
 			}
 		}
