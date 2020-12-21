@@ -31,25 +31,40 @@
 		\box 87.5 0 35.5 -0
 		\text 科　　目
 
-		\align center right
 		\box 35.5 0 26 -0
+		\align center left
 		\font sans-serif 9
-		\text 月　 日 
+		\text 　　月　 日
+		\align center right
+		\font sans-serif 9
+		\text 　
 		\font sans-serif 7
-		\text (期首)　
+		\text （期首）
 		\box 61.5 0 26 -0
+		\align center left
 		\font sans-serif 9
-		\text 月　 日 
+		\text 　　月　 日
+		\align center right
+		\font sans-serif 9
+		\text 　
 		\font sans-serif 7
-		\text (期末)　
+		\text （期末）
 		\box 123 0 26 -0
+		\align center left
 		\font sans-serif 9
-		\text 月　 日 
+		\text 　　月　 日
+		\align center right
+		\font sans-serif 9
+		\text 　
 		\font sans-serif 7
-		\text (期首)　
+		\text （期首）
 		\box 149 0 26 -0
+		\align center left
 		\font sans-serif 9
-		\text 月　 日 
+		\text 　　月　 日
+		\align center right
+		\font sans-serif 9
+		\text 　
 		\font sans-serif 7
-		\text (期末)　
+		\text （期末）
 
