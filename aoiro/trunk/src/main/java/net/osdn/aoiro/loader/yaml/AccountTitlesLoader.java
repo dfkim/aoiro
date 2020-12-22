@@ -75,7 +75,7 @@ public class AccountTitlesLoader {
 		this.path = path;
 	}
 
-	private void read() throws IOException {
+	private void read(boolean skipErrors) throws IOException {
 		if(accountTitles != null) {
 			return;
 		}
@@ -227,12 +227,24 @@ public class AccountTitlesLoader {
 				public AccountTitle findAccountTitle(String displayName) {
 					AccountTitle accountTitle = accountTitleByDisplayName.get(displayName);
 					if(accountTitle == null) {
+						if(skipErrors) {
+							return null;
+						}
 						throw error(" [エラー] " + path + "\r\n 損益計算書に未定義の勘定科目が指定されています: " + displayName);
 					} else if(accountTitle.getType() == AccountType.Assets) {
+						if(skipErrors) {
+							return null;
+						}
 						throw error(" [エラー] " + path + "\r\n 損益計算書に資産の勘定科目を指定することはできません: " + displayName);
 					} else if(accountTitle.getType() == AccountType.Liabilities) {
+						if(skipErrors) {
+							return null;
+						}
 						throw error(" [エラー] " + path + "\r\n 損益計算書に負債の勘定科目を指定することはできません: " + displayName);
 					} else if(accountTitle.getType() == AccountType.Equity) {
+						if(skipErrors) {
+							return null;
+						}
 						throw error(" [エラー] " + path + "\r\n 損益計算書に資本（純資産）の勘定科目を指定することはできません: " + displayName);
 					}
 					return accountTitle;
@@ -329,10 +341,19 @@ public class AccountTitlesLoader {
 				public AccountTitle findAccountTitle(String displayName) {
 					AccountTitle accountTitle = accountTitleByDisplayName.get(displayName);
 					if(accountTitle == null) {
+						if(skipErrors) {
+							return null;
+						}
 						throw error(" [エラー] " + path + "\r\n 貸借対照表に未定義の勘定科目が指定されています: " + displayName);
 					} else if(accountTitle.getType() == AccountType.Revenue) {
+						if(skipErrors) {
+							return null;
+						}
 						throw error(" [エラー] " + path + "\r\n 貸借対照表に収益の勘定科目を指定することはできません: " + displayName);
 					} else if(accountTitle.getType() == AccountType.Expense) {
+						if(skipErrors) {
+							return null;
+						}
 						throw error(" [エラー] " + path + "\r\n 貸借対照表に費用の勘定科目を指定することはできません: " + displayName);
 					}
 					return accountTitle;
@@ -432,6 +453,9 @@ public class AccountTitlesLoader {
 				public AccountTitle findAccountTitle(String displayName) {
 					AccountTitle accountTitle = accountTitleByDisplayName.get(displayName);
 					if(accountTitle == null) {
+						if(skipErrors) {
+							return null;
+						}
 						throw error(" [エラー] " + path + "\r\n 社員資本等変動計算書に未定義の勘定科目が指定されています: " + displayName);
 					}
 					return accountTitle;
@@ -581,9 +605,11 @@ public class AccountTitlesLoader {
 				String displayName = ((String)value).trim();
 				if(displayName.length() > 0) {
 					AccountTitle accountTitle = callback.findAccountTitle(displayName);
-					List<AccountTitle> list = new LinkedList<AccountTitle>();
-					list.add(accountTitle);
-					callback.setAccountTitles(node, list);
+					if(accountTitle != null) {
+						List<AccountTitle> list = new LinkedList<AccountTitle>();
+						list.add(accountTitle);
+						callback.setAccountTitles(node, list);
+					}
 				}
 			} else if(value instanceof Map) {
 				@SuppressWarnings("unchecked")
@@ -596,7 +622,9 @@ public class AccountTitlesLoader {
 				for(Object obj : l) {
 					String displayName = obj.toString().trim();
 					AccountTitle accountTitle = callback.findAccountTitle(displayName);
-					list.add(accountTitle);
+					if(accountTitle != null) {
+						list.add(accountTitle);
+					}
 				}
 				callback.setAccountTitles(node, list);
 			}
@@ -663,7 +691,18 @@ public class AccountTitlesLoader {
 	 * @throws IOException I/Oエラーが発生した場合
 	 */
 	public Set<AccountTitle> getAccountTitles() throws IOException {
-		read();
+		read(false);
+		return accountTitles;
+	}
+
+	/** 勘定科目のセットを取得します。
+	 *
+	 * @param skipErrors
+	 * @return 勘定科目のセット
+	 * @throws IOException I/Oエラーが発生した場合
+	 */
+	public Set<AccountTitle> getAccountTitles(boolean skipErrors) throws IOException {
+		read(skipErrors);
 		return accountTitles;
 	}
 
@@ -673,7 +712,18 @@ public class AccountTitlesLoader {
 	 * @throws IOException I/Oエラーが発生した場合
 	 */
 	public ProfitAndLossLayout getProfitAndLossLayout() throws IOException {
-		read();
+		read(false);
+		return plLayout;
+	}
+
+	/** 損益計算書の構成情報を返します。
+	 *
+	 * @param skipErrors
+	 * @return 損益計算書の構成情報
+	 * @throws IOException I/Oエラーが発生した場合
+	 */
+	public ProfitAndLossLayout getProfitAndLossLayout(boolean skipErrors) throws IOException {
+		read(skipErrors);
 		return plLayout;
 	}
 
@@ -683,7 +733,18 @@ public class AccountTitlesLoader {
 	 * @throws IOException I/Oエラーが発生した場合
 	 */
 	public BalanceSheetLayout getBalanceSheetLayout() throws IOException {
-		read();
+		read(false);
+		return bsLayout;
+	}
+
+	/** 貸借対照表の構成情報を返します。
+	 *
+	 * @param skipErrors
+	 * @return 貸借対照表の構成情報
+	 * @throws IOException I/Oエラーが発生した場合
+	 */
+	public BalanceSheetLayout getBalanceSheetLayout(boolean skipErrors) throws IOException {
+		read(skipErrors);
 		return bsLayout;
 	}
 
@@ -693,7 +754,18 @@ public class AccountTitlesLoader {
 	 * @throws IOException I/Oエラーが発生した場合
 	 */
 	public StatementOfChangesInEquityLayout getStatementOfChangesInEquityLayout() throws IOException {
-		read();
+		read(false);
+		return sceLayout;
+	}
+
+	/** 社員資本等変動計算書の構成情報を返します。
+	 *
+	 * @param skipErrors
+	 * @return 社員資本等変動計算書の構成情報
+	 * @throws IOException I/Oエラーが発生した場合
+	 */
+	public StatementOfChangesInEquityLayout getStatementOfChangesInEquityLayout(boolean skipErrors) throws IOException {
+		read(skipErrors);
 		return sceLayout;
 	}
 
@@ -864,6 +936,7 @@ public class AccountTitlesLoader {
 		}
 		sb.append(" ]\r\n");
 
+		sb.append("\r\n\r\n");
 		return sb.toString();
 	}
 }
