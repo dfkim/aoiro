@@ -52,18 +52,19 @@ public class JournalEntriesLoader {
 	 * @throws IOException I/Oエラーが発生した場合
 	 */
 	public List<JournalEntry> getJournalEntries() throws IOException {
-		return getJournalEntries(false);
+		return getJournalEntries(false, false);
 	}
 
 	/** 仕訳リストを取得します。
 	 *
-	 * @param ignoreWarnings 貸借金額の不一致など一部の警告を無視します。
+	 * @param ignoreWarnings 貸借金額の不一致など一部の警告を無視します。（警告のある仕訳も結果のリストに含まれます。）
+	 * @param skipErrors 未定義の勘定科目が使われているなどのエラーを無視します。（エラーのある仕訳は結果のリストに含まれません。）
 	 * @return 仕訳リスト
 	 * @throws IOException I/Oエラーが発生した場合
 	 */
-	public List<JournalEntry> getJournalEntries(boolean ignoreWarnings) throws IOException {
+	public List<JournalEntry> getJournalEntries(boolean ignoreWarnings, boolean skipErrors) throws IOException {
 		try {
-			ItemReader reader = new ItemReader(path, ignoreWarnings);
+			ItemReader reader = new ItemReader(path, ignoreWarnings, skipErrors);
 			reader.read();
 			return reader.journalEntries;
 		} catch(YamlException e) {
@@ -99,12 +100,14 @@ public class JournalEntriesLoader {
 
 		private Path path;
 		private boolean ignoreWarnings;
+		private boolean skipErrors;
 		private List<JournalEntry> journalEntries = new ArrayList<>();
 
-		public ItemReader(Path path, boolean ignoreWarnings) throws IOException {
+		public ItemReader(Path path, boolean ignoreWarnings, boolean skipErrors) throws IOException {
 			super(AutoDetectReader.readAll(path));
 			this.path = path;
 			this.ignoreWarnings = ignoreWarnings;
+			this.skipErrors = skipErrors;
 		}
 
 		@SuppressWarnings("unchecked")
@@ -128,45 +131,72 @@ public class JournalEntriesLoader {
 
 				if(item.日付 == null && ignoreWarnings == false) {
 					// ignoreWarnings = true の場合、日付が null でもエラーとしません。
-					throw error(" [エラー] " + path + " (" + line + "行目)\r\n 日付が指定されていません。");
+					if(!skipErrors) {
+						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 日付が指定されていません。");
+					}
 				}
 				LocalDate date = parseDate(item.日付);
 				if(date == null && ignoreWarnings == false) {
 					// ignoreWarnings = true の場合、日付が null でもエラーとしません。
-					throw error(" [エラー] " + path + " (" + line + "行目)\r\n 日付の形式に誤りがあります: " + item.日付);
+					if(!skipErrors) {
+						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 日付の形式に誤りがあります: " + item.日付);
+					}
 				}
 
 				if(item.摘要 == null) {
-					throw error(" [エラー] " + path + " (" + line + "行目)\r\n 摘要が指定されていません。");
+					if(!skipErrors) {
+						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 摘要が指定されていません。");
+					}
+					item.摘要 = "";
 				}
 				String description = item.摘要.trim();
 
 				if(item.借方 == null) {
-					throw error(" [エラー] " + path + " (" + line + "行目)\r\n 借方が指定されていません。");
+					if(!skipErrors) {
+						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 借方が指定されていません。");
+					}
+					item.借方 = new ChildItem[0];
 				}
 				List<Debtor> debtors = new ArrayList<Debtor>();
 				long debtorsAmount = 0;
 				for(ChildItem d : item.借方) {
 					if(d == null) {
-						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 借方が指定されていません。");
+						if(!skipErrors) {
+							throw error(" [エラー] " + path + " (" + line + "行目)\r\n 借方が指定されていません。");
+						}
+						continue;
 					}
 					if(d.勘定科目 == null) {
-						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 借方の勘定科目が指定されていません。");
+						if(!skipErrors) {
+							throw error(" [エラー] " + path + " (" + line + "行目)\r\n 借方の勘定科目が指定されていません。");
+						}
+						continue;
 					}
 					AccountTitle accountTitle = accountTitleByDisplayName.get(d.勘定科目.trim());
 					if(accountTitle == null) {
-						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 借方に未定義の勘定科目が指定されました: " + d.勘定科目);
+						if(!skipErrors) {
+							throw error(" [エラー] " + path + " (" + line + "行目)\r\n 借方に未定義の勘定科目が指定されました: " + d.勘定科目);
+						}
+						continue;
 					}
 					if(d.金額 == null) {
-						throw error(" [エラー] " + path + " (" + line + "行目\r\n 借方の金額が指定されていません。");
+						if(!skipErrors) {
+							throw error(" [エラー] " + path + " (" + line + "行目\r\n 借方の金額が指定されていません。");
+						}
+						d.金額 = "-1";
 					}
 					Long amount = parseAmount(d.金額);
 					if(amount == null) {
-						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 借方の金額は数値で指定してください: " + d.金額);
+						if(!skipErrors) {
+							throw error(" [エラー] " + path + " (" + line + "行目)\r\n 借方の金額は数値で指定してください: " + d.金額);
+						}
+						amount = -1L;
 					}
 					if(amount < 0 && ignoreWarnings == false) {
 						// ignoreWarnings = true の場合、金額がマイナスでもエラーとしません。（GUIで金額未入力のときに -1 を設定するためです。）
-						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 借方の金額にマイナスの数値を指定することはできません: " + d.金額);
+						if(!skipErrors) {
+							throw error(" [エラー] " + path + " (" + line + "行目)\r\n 借方の金額にマイナスの数値を指定することはできません: " + d.金額);
+						}
 					}
 					if(amount > 0) {
 						debtorsAmount += amount;
@@ -175,31 +205,51 @@ public class JournalEntriesLoader {
 				}
 
 				if(item.貸方 == null) {
-					throw error(" [エラー] " + path + " (" + line + "行目)\r\n 貸方が指定されていません。");
+					if(!skipErrors) {
+						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 貸方が指定されていません。");
+					}
+					item.貸方 = new ChildItem[0];
 				}
 				List<Creditor> creditors = new ArrayList<Creditor>();
 				long creditorsAmount = 0;
 				for(ChildItem c : item.貸方) {
 					if(c == null) {
-						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 貸方が指定されていません。");
+						if(!skipErrors) {
+							throw error(" [エラー] " + path + " (" + line + "行目)\r\n 貸方が指定されていません。");
+						}
+						continue;
 					}
 					if(c.勘定科目 == null) {
-						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 貸方の勘定科目が指定されていません。");
+						if(!skipErrors) {
+							throw error(" [エラー] " + path + " (" + line + "行目)\r\n 貸方の勘定科目が指定されていません。");
+						}
+						continue;
 					}
 					AccountTitle accountTitle = accountTitleByDisplayName.get(c.勘定科目.trim());
 					if(accountTitle == null) {
-						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 貸方に未定義の勘定科目が指定されました: " + c.勘定科目);
+						if(!skipErrors) {
+							throw error(" [エラー] " + path + " (" + line + "行目)\r\n 貸方に未定義の勘定科目が指定されました: " + c.勘定科目);
+						}
+						continue;
 					}
 					if(c.金額 == null) {
-						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 貸方の金額が指定されていません。");
+						if(!skipErrors) {
+							throw error(" [エラー] " + path + " (" + line + "行目)\r\n 貸方の金額が指定されていません。");
+						}
+						c.金額 = "-1";
 					}
 					Long amount = parseAmount(c.金額);
 					if(amount == null) {
-						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 貸方の金額は数値で指定してください: " + c.金額);
+						if(!skipErrors) {
+							throw error(" [エラー] " + path + " (" + line + "行目)\r\n 貸方の金額は数値で指定してください: " + c.金額);
+						}
+						amount = -1L;
 					}
 					if(amount < 0 && ignoreWarnings == false) {
 						// ignoreWarnings = true の場合、金額がマイナスでもエラーとしません。（GUIで金額未入力のときに -1 を設定するためです。）
-						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 貸方の金額にマイナスの数値を指定することはできません: " + c.金額);
+						if(!skipErrors) {
+							throw error(" [エラー] " + path + " (" + line + "行目)\r\n 貸方の金額にマイナスの数値を指定することはできません: " + c.金額);
+						}
 					}
 					if(amount > 0) {
 						creditorsAmount += amount;
@@ -209,7 +259,9 @@ public class JournalEntriesLoader {
 
 				if(debtorsAmount != creditorsAmount && ignoreWarnings == false) {
 					// ignoreWarnings = true の場合、貸借金額の不一致はエラーとしません。
-					throw error(" [エラー] " + path + " (" + line + "行目)\r\n 借方と貸方の金額が一致していません: 借方金額 " + debtorsAmount + ", 貸方金額 " + creditorsAmount);
+					if(!skipErrors) {
+						throw error(" [エラー] " + path + " (" + line + "行目)\r\n 借方と貸方の金額が一致していません: 借方金額 " + debtorsAmount + ", 貸方金額 " + creditorsAmount);
+					}
 				}
 
 				JournalEntry entry = new JournalEntry(date, description, debtors, creditors);

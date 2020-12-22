@@ -47,11 +47,22 @@ public class GeneralLedger {
 
 	public GeneralLedger(Set<AccountTitle> accountTitles, List<JournalEntry> journalEntries, boolean isSoloProprietorship, boolean showMonthlyTotal) throws IOException {
 		this.accountTitles = new LinkedHashSet<>(accountTitles);
+
+		// ビルトインの勘定科目（損益・控除前の所得金額・繰越利益剰余金・残高）を総勘定元帳のページ後半にまとめるために
+		// ビルトインの勘定科目は一度、取り除いて(remove)、追加(add) することで LinkedHashSet の後に再配置します。
+		this.accountTitles.remove(AccountTitle.INCOME_SUMMARY);
 		this.accountTitles.add(AccountTitle.INCOME_SUMMARY);
+
+		this.accountTitles.remove(AccountTitle.RETAINED_EARNINGS);
 		this.accountTitles.add(AccountTitle.RETAINED_EARNINGS);
+
+		this.accountTitles.remove(AccountTitle.PRETAX_INCOME);
 		this.accountTitles.add(AccountTitle.PRETAX_INCOME);
+
+		this.accountTitles.remove(AccountTitle.BALANCE);
 		this.accountTitles.add(AccountTitle.BALANCE);
-		
+
+
 		this.entries = journalEntries;
 		this.showMonthlyTotal = showMonthlyTotal;
 		

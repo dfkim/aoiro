@@ -51,13 +51,24 @@ public class AccountTitlesLoader {
 	/** 社員資本等変動計算書を作成するための構成情報 */
 	private StatementOfChangesInEquityLayout sceLayout = new StatementOfChangesInEquityLayout();
 
+	/** ビルトインの勘定科目 */
+	private Map<String, AccountTitle> builtinAccountTitles = new HashMap<>() {{
+		// 損益
+		put(AccountTitle.INCOME_SUMMARY.getDisplayName(), AccountTitle.INCOME_SUMMARY);
+		// 残高
+		put(AccountTitle.BALANCE.getDisplayName(), AccountTitle.BALANCE);
+		// 控除前の所得金額
+		put(AccountTitle.PRETAX_INCOME.getDisplayName(), AccountTitle.PRETAX_INCOME);
+		// 繰越利益剰余金
+		put(AccountTitle.RETAINED_EARNINGS.getDisplayName(), AccountTitle.RETAINED_EARNINGS);
+	}};
+
 	/** 勘定科目名から勘定科目を取得するためのマップ。
 	 * このマップには勘定科目.ymlに定義された勘定科目だけでなくビルトイン決算勘定科目も含まれています。 */
 	private Map<String, AccountTitle> accountTitleByDisplayName = new HashMap<>() {{
-		put(AccountTitle.INCOME_SUMMARY.getDisplayName(), AccountTitle.INCOME_SUMMARY);
-		put(AccountTitle.BALANCE.getDisplayName(), AccountTitle.BALANCE);
-		put(AccountTitle.RETAINED_EARNINGS.getDisplayName(), AccountTitle.RETAINED_EARNINGS);
-		put(AccountTitle.PRETAX_INCOME.getDisplayName(), AccountTitle.PRETAX_INCOME);
+		for(AccountTitle builtinAccountTitle : builtinAccountTitles.values()) {
+			put(builtinAccountTitle.getDisplayName(), builtinAccountTitle);
+		}
 	}};
 
 	public AccountTitlesLoader(Path path) {
@@ -109,7 +120,10 @@ public class AccountTitlesLoader {
 			@SuppressWarnings("unchecked")
 			List<String> assets = (List<String>)obj2;
 			for(String displayName : assets) {
-				AccountTitle accountTitle = new AccountTitle(AccountType.Assets, displayName);
+				AccountTitle accountTitle = builtinAccountTitles.get(displayName);
+				if(accountTitle == null) {
+					accountTitle = new AccountTitle(AccountType.Assets, displayName);
+				}
 				accountTitles.add(accountTitle);
 				accountTitleByDisplayName.put(displayName, accountTitle);
 			}
@@ -123,7 +137,10 @@ public class AccountTitlesLoader {
 			@SuppressWarnings("unchecked")
 			List<String> liabilities = (List<String>)obj2;
 			for(String displayName : liabilities) {
-				AccountTitle accountTitle = new AccountTitle(AccountType.Liabilities, displayName);
+				AccountTitle accountTitle = builtinAccountTitles.get(displayName);
+				if(accountTitle == null) {
+					accountTitle = new AccountTitle(AccountType.Liabilities, displayName);
+				}
 				accountTitles.add(accountTitle);
 				accountTitleByDisplayName.put(displayName, accountTitle);
 			}
@@ -143,7 +160,10 @@ public class AccountTitlesLoader {
 			List<String> equity = (List<String>)obj2;
 			if(equity != null) {
 				for(String displayName : equity) {
-					AccountTitle accountTitle = new AccountTitle(AccountType.Equity, displayName);
+					AccountTitle accountTitle = builtinAccountTitles.get(displayName);
+					if(accountTitle == null) {
+						accountTitle = new AccountTitle(AccountType.Equity, displayName);
+					}
 					accountTitles.add(accountTitle);
 					accountTitleByDisplayName.put(displayName, accountTitle);
 				}
@@ -158,7 +178,10 @@ public class AccountTitlesLoader {
 			@SuppressWarnings("unchecked")
 			List<String> revenue = (List<String>)obj2;
 			for(String displayName : revenue) {
-				AccountTitle accountTitle = new AccountTitle(AccountType.Revenue, displayName);
+				AccountTitle accountTitle = builtinAccountTitles.get(displayName);
+				if(accountTitle == null) {
+					accountTitle = new AccountTitle(AccountType.Revenue, displayName);
+				}
 				accountTitles.add(accountTitle);
 				accountTitleByDisplayName.put(displayName, accountTitle);
 			}
@@ -172,7 +195,10 @@ public class AccountTitlesLoader {
 			@SuppressWarnings("unchecked")
 			List<String> expense = (List<String>)obj2;
 			for(String displayName : expense) {
-				AccountTitle accountTitle = new AccountTitle(AccountType.Expense, displayName);
+				AccountTitle accountTitle = builtinAccountTitles.get(displayName);
+				if(accountTitle == null) {
+					accountTitle = new AccountTitle(AccountType.Expense, displayName);
+				}
 				accountTitles.add(accountTitle);
 				accountTitleByDisplayName.put(displayName, accountTitle);
 			}
