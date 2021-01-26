@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -971,9 +972,17 @@ public class BalanceSheet {
 						StandardOpenOption.WRITE,
 						StandardOpenOption.SYNC);
 
-				Files.move(tmpFile, path,
-						StandardCopyOption.REPLACE_EXISTING,
-						StandardCopyOption.ATOMIC_MOVE);
+				try {
+					Files.move(tmpFile, path,
+							StandardCopyOption.REPLACE_EXISTING,
+							StandardCopyOption.ATOMIC_MOVE);
+				} catch(AtomicMoveNotSupportedException e) {
+					// 特定の環境において同一ドライブ・同一フォルダー内でのファイル移動であっても
+					// AtomicMoveNotSupportedException がスローされることがあるようです。
+					// AtomicMoveNotSupportedException がスローされた場合、ATOMIC_MOVE なしで移動を試みます。
+					Files.move(tmpFile, path,
+							StandardCopyOption.REPLACE_EXISTING);
+				}
 			} finally {
 				if(tmpFile != null) {
 					try { Files.deleteIfExists(tmpFile); } catch(Exception ignore) {}
@@ -1177,9 +1186,17 @@ public class BalanceSheet {
 						StandardOpenOption.WRITE,
 						StandardOpenOption.SYNC);
 
-				Files.move(tmpFile, path,
-						StandardCopyOption.REPLACE_EXISTING,
-						StandardCopyOption.ATOMIC_MOVE);
+				try {
+					Files.move(tmpFile, path,
+							StandardCopyOption.REPLACE_EXISTING,
+							StandardCopyOption.ATOMIC_MOVE);
+				} catch(AtomicMoveNotSupportedException e) {
+					// 特定の環境において同一ドライブ・同一フォルダー内でのファイル移動であっても
+					// AtomicMoveNotSupportedException がスローされることがあるようです。
+					// AtomicMoveNotSupportedException がスローされた場合、ATOMIC_MOVE なしで移動を試みます。
+					Files.move(tmpFile, path,
+							StandardCopyOption.REPLACE_EXISTING);
+				}
 			} finally {
 				if(tmpFile != null) {
 					try { Files.deleteIfExists(tmpFile); } catch(Exception ignore) {}
