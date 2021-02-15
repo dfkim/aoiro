@@ -661,19 +661,18 @@ public class AccountSettlement {
 	public static List<JournalEntry> getJournalEntriesByAccount(List<JournalEntry> journalEntries, AccountTitle accountTitle) {
 		List<JournalEntry> entriesByAccount = new ArrayList<JournalEntry>();
 		if(accountTitle != null) {
+			NEXT_JOURNAL_ENTRY:
 			for(JournalEntry entry : journalEntries) {
 				for(Debtor debtor : entry.getDebtors()) {
 					if(accountTitle.equals(debtor.getAccountTitle())) {
-						if(!entriesByAccount.contains(entry)) {
-							entriesByAccount.add(entry);
-						}
+						entriesByAccount.add(entry);
+						continue NEXT_JOURNAL_ENTRY;
 					}
 				}
 				for(Creditor creditor : entry.getCreditors()) {
 					if(accountTitle.equals(creditor.getAccountTitle())) {
-						if(!entriesByAccount.contains(entry)) {
-							entriesByAccount.add(entry);
-						}
+						entriesByAccount.add(entry);
+						continue NEXT_JOURNAL_ENTRY;
 					}
 				}
 			}
