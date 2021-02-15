@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /** 仕訳
  *
@@ -376,5 +377,21 @@ public class JournalEntry {
 		sb.append("], ");
 		sb.append(description);
 		return sb.toString();
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		JournalEntry that = (JournalEntry) o;
+		return Objects.equals(date, that.date)
+				&& Objects.equals(description, that.description)
+				&& Objects.equals(debtors, that.debtors)
+				&& Objects.equals(creditors, that.creditors);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(date);
 	}
 }

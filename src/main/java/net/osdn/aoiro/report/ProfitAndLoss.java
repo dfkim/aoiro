@@ -224,10 +224,19 @@ public class ProfitAndLoss {
 	protected List<Entry<String, Amount[]>> getMonthlyTotals(List<JournalEntry> journalEntries) {
 		Map<String, Amount[]> map = new LinkedHashMap<>();
 		if(this.openingDate != null) {
-			YearMonth ym = YearMonth.from(this.openingDate);
-			for(int i = 0; i < 12; i++) {
-				String month = ym.plusMonths(i).getMonthValue() + "月";
-				map.put(month, new Amount[2]);
+			if(isSoloProprietorship) {
+				// 個人の場合は仕訳の開始日に関わらず 1月～12月の順番で表示します。
+				for(int i = 0; i < 12; i++) {
+					String month = (i + 1) + "月";
+					map.put(month, new Amount[2]);
+				}
+			} else {
+				// 法人の場合は仕訳の開始日の月から順番に12ヶ月を表示します。（翌年同月の前の月までになります。）
+				YearMonth ym = YearMonth.from(this.openingDate);
+				for(int i = 0; i < 12; i++) {
+					String month = ym.plusMonths(i).getMonthValue() + "月";
+					map.put(month, new Amount[2]);
+				}
 			}
 		}
 		if(isSoloProprietorship) {

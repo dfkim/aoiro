@@ -1,7 +1,7 @@
 apply plugin: 'java'
 apply plugin: 'eclipse'
 
-version = '0.8.3'
+version = '0.8.4'
 
 tasks.withType(JavaCompile) {
 	sourceCompatibility = 11
