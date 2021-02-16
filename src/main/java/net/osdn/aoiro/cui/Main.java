@@ -2,9 +2,11 @@ package net.osdn.aoiro.cui;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -27,7 +29,6 @@ import net.osdn.aoiro.report.layout.BalanceSheetLayout;
 import net.osdn.aoiro.report.layout.ProfitAndLossLayout;
 import net.osdn.aoiro.report.layout.StatementOfChangesInEquityLayout;
 import net.osdn.pdf_brewer.FontLoader;
-import net.osdn.util.io.AutoDetectReader;
 
 import static net.osdn.aoiro.ErrorMessage.error;
 
@@ -219,7 +220,7 @@ public class Main {
 				System.out.println("繰越処理を実行しています . . .");
 
 				//次年度の開始仕訳
-				bs.createNextOpeningJournalEntriesCompat(outputDir.resolve("次年度の開始仕訳.yml"));
+				bs.createNextOpeningJournalEntriesCompat(new ArrayList<AccountTitle>(accountTitles), outputDir.resolve("次年度の開始仕訳.yml"));
 				System.out.println("  次年度の開始仕訳.yml を出力しました。");
 			}
 
@@ -276,7 +277,7 @@ public class Main {
 	 * @throws IOException
 	 */
 	public static boolean isSoloProprietorship(Path journalEntryPath) throws IOException {
-		String yaml = AutoDetectReader.readAll(journalEntryPath);
+		String yaml = Files.readString(journalEntryPath, StandardCharsets.UTF_8);
 		return yaml.contains("元入金");
 	}
 	

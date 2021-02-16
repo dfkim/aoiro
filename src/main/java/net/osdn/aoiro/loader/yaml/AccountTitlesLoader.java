@@ -29,7 +29,6 @@ import net.osdn.aoiro.model.NodeUtil;
 import net.osdn.aoiro.report.layout.BalanceSheetLayout;
 import net.osdn.aoiro.report.layout.ProfitAndLossLayout;
 import net.osdn.aoiro.report.layout.StatementOfChangesInEquityLayout;
-import net.osdn.util.io.AutoDetectReader;
 
 import static net.osdn.aoiro.ErrorMessage.error;
 
@@ -83,7 +82,7 @@ public class AccountTitlesLoader {
 
 		accountTitles = new LinkedHashSet<>();
 
-		String yaml = AutoDetectReader.readAll(path);
+		String yaml = Files.readString(path, StandardCharsets.UTF_8);
 		Object obj;
 
 		try {

@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
@@ -17,6 +16,7 @@ import java.time.LocalDate;
 import java.time.chrono.JapaneseChronology;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -787,7 +787,7 @@ public class BalanceSheet {
 	 * @return 次年度の開始仕訳のYAML文字列
 	 * @throws IOException 
 	 */
-	public String createNextOpeningJournalEntries(Path path) throws IOException {
+	public String createNextOpeningJournalEntries(List<AccountTitle> accountTitles, Path path) throws IOException {
 		List<Entry<AccountTitle, Amount>> debtors = new ArrayList<>();
 		long debtorsTotal = 0;
 		List<Entry<AccountTitle, Amount>> creditors = new ArrayList<>();
@@ -803,7 +803,12 @@ public class BalanceSheet {
 			//個人事業主の場合は、事業主貸（資産）、事業主借（負債）、所得金額（資本）が次期の元入金に加算されます。
 			//事業主貸、事業主借を除く資産と負債を集計して次期開始仕訳を作成します。
 			//相手勘定科目はすべて元入金になります。
-			for(Entry<AccountTitle, Amount> e : closingBalances.entrySet()) {
+
+			List<Entry<AccountTitle, Amount>> list = new ArrayList<>(closingBalances.entrySet());
+			Collections.sort(list, (o1, o2) -> {
+				return accountTitles.indexOf(o1.getKey()) - accountTitles.indexOf(o2.getKey());
+			});
+			for(Entry<AccountTitle, Amount> e : list) {
 				AccountTitle accountTitle = e.getKey();
 				Amount amount = e.getValue();
 				if(accountTitle.getDisplayName().equals("事業主貸") || accountTitle.getDisplayName().equals("事業主借")) {
@@ -865,7 +870,11 @@ public class BalanceSheet {
 			}
 		} else {
 			//法人の場合は資産、負債、純資産をすべて繰り越します。
-			for(Entry<AccountTitle, Amount> e : closingBalances.entrySet()) {
+			List<Entry<AccountTitle, Amount>> list = new ArrayList<>(closingBalances.entrySet());
+			Collections.sort(list, (o1, o2) -> {
+				return accountTitles.indexOf(o1.getKey()) - accountTitles.indexOf(o2.getKey());
+			});
+			for(Entry<AccountTitle, Amount> e : list) {
 				AccountTitle accountTitle = e.getKey();
 				Amount amount = e.getValue();
 				if(accountTitle.getType() == AccountType.Assets) {
@@ -1001,7 +1010,7 @@ public class BalanceSheet {
 	 * @return 次年度の次期開始仕訳のYAML文字列
 	 * @throws IOException
 	 */
-	public String createNextOpeningJournalEntriesCompat(Path path) throws IOException {
+	public String createNextOpeningJournalEntriesCompat(List<AccountTitle> accountTitles, Path path) throws IOException {
 		List<Entry<AccountTitle, Amount>> debtors = new ArrayList<>();
 		long debtorsTotal = 0;
 		List<Entry<AccountTitle, Amount>> creditors = new ArrayList<>();
@@ -1017,7 +1026,12 @@ public class BalanceSheet {
 			//個人事業主の場合は、事業主貸（資産）、事業主借（負債）、所得金額（資本）が次期の元入金に加算されます。
 			//事業主貸、事業主借を除く資産と負債を集計して次期開始仕訳を作成します。
 			//相手勘定科目はすべて元入金になります。
-			for(Entry<AccountTitle, Amount> e : closingBalances.entrySet()) {
+
+			List<Entry<AccountTitle, Amount>> list = new ArrayList<>(closingBalances.entrySet());
+			Collections.sort(list, (o1, o2) -> {
+				return accountTitles.indexOf(o1.getKey()) - accountTitles.indexOf(o2.getKey());
+			});
+			for(Entry<AccountTitle, Amount> e : list) {
 				AccountTitle accountTitle = e.getKey();
 				Amount amount = e.getValue();
 				if(accountTitle.getDisplayName().equals("事業主貸") || accountTitle.getDisplayName().equals("事業主借")) {
@@ -1079,7 +1093,11 @@ public class BalanceSheet {
 			}
 		} else {
 			//法人の場合は資産、負債、純資産をすべて繰り越します。
-			for(Entry<AccountTitle, Amount> e : closingBalances.entrySet()) {
+			List<Entry<AccountTitle, Amount>> list = new ArrayList<>(closingBalances.entrySet());
+			Collections.sort(list, (o1, o2) -> {
+				return accountTitles.indexOf(o1.getKey()) - accountTitles.indexOf(o2.getKey());
+			});
+			for(Entry<AccountTitle, Amount> e : list) {
 				AccountTitle accountTitle = e.getKey();
 				Amount amount = e.getValue();
 				if(accountTitle.getType() == AccountType.Assets) {
