@@ -24,7 +24,6 @@ import net.osdn.aoiro.model.AccountTitle;
 import net.osdn.aoiro.model.Creditor;
 import net.osdn.aoiro.model.Debtor;
 import net.osdn.aoiro.model.JournalEntry;
-import net.osdn.util.io.AutoDetectReader;
 
 import static net.osdn.aoiro.ErrorMessage.error;
 
@@ -105,7 +104,7 @@ public class JournalEntriesLoader {
 		private List<JournalEntry> journalEntries = new ArrayList<>();
 
 		public ItemReader(Path path, boolean ignoreWarnings, boolean skipErrors) throws IOException {
-			super(AutoDetectReader.readAll(path));
+			super(Files.readString(path, StandardCharsets.UTF_8));
 			this.path = path;
 			this.ignoreWarnings = ignoreWarnings;
 			this.skipErrors = skipErrors;

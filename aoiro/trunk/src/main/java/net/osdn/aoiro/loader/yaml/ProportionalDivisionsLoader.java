@@ -20,7 +20,6 @@ import com.esotericsoftware.yamlbeans.parser.Parser;
 import com.esotericsoftware.yamlbeans.tokenizer.Tokenizer;
 import net.osdn.aoiro.model.AccountTitle;
 import net.osdn.aoiro.model.ProportionalDivision;
-import net.osdn.util.io.AutoDetectReader;
 
 import static net.osdn.aoiro.ErrorMessage.error;
 
@@ -62,7 +61,7 @@ public class ProportionalDivisionsLoader {
 		private List<ProportionalDivision> proportionalDivisions = new ArrayList<>();
 
 		public ItemReader(Path path) throws IOException {
-			super(AutoDetectReader.readAll(path));
+			super(Files.readString(path, StandardCharsets.UTF_8));
 			this.path = path;
 		}
 
