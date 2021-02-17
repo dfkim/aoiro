@@ -41,12 +41,21 @@ public class ProportionalDivisionsLoader {
 	}
 
 	/** 家事按分リストを取得します。
+	 *
+	 * @return 家事按分リスト
+	 * @throws IOException
+	 */
+	public List<ProportionalDivision> getProportionalDivisions() throws IOException {
+		return getProportionalDivisions(false);
+	}
+
+	/** 家事按分リストを取得します。
 	 * 
 	 * @return 家事按分リスト
 	 */
-	public List<ProportionalDivision> getProportionalDivisions() throws IOException {
+	public List<ProportionalDivision> getProportionalDivisions(boolean skipErrors) throws IOException {
 		try {
-			ItemReader reader = new ItemReader(path);
+			ItemReader reader = new ItemReader(path, skipErrors);
 			reader.read();
 			return reader.proportionalDivisions;
 		} catch(YamlException e) {
@@ -58,11 +67,13 @@ public class ProportionalDivisionsLoader {
 	private class ItemReader extends YamlReader {
 
 		private Path path;
+		private boolean skipErrors;
 		private List<ProportionalDivision> proportionalDivisions = new ArrayList<>();
 
-		public ItemReader(Path path) throws IOException {
+		public ItemReader(Path path, boolean skipErrors) throws IOException {
 			super(Files.readString(path, StandardCharsets.UTF_8));
 			this.path = path;
+			this.skipErrors = skipErrors;
 		}
 
 		@SuppressWarnings("unchecked")
@@ -84,13 +95,22 @@ public class ProportionalDivisionsLoader {
 			if(obj instanceof Item) {
 				Item item = (Item)obj;
 				if(item.勘定科目 == null) {
+					if(skipErrors) {
+						return null;
+					}
 					throw error(" [エラー] " + path + " (" + line + "行目)\r\n 勘定科目が指定されていません。");
 				}
 				AccountTitle accountTitle =  accountTitleByDisplayName.get(item.勘定科目.trim());
 				if(accountTitle == null) {
+					if(skipErrors) {
+						return null;
+					}
 					throw error(" [エラー] " + path + " (" + line + "行目)\r\n 未定義の勘定科目が指定されました: " + item.勘定科目);
 				}
 				if(item.事業割合 == null) {
+					if(skipErrors) {
+						return null;
+					}
 					throw error(" [エラー] " + path + " (" + line + "行目)\r\n 事業割合が指定されていません。");
 				}
 				item.事業割合 = item.事業割合.trim();
@@ -98,9 +118,15 @@ public class ProportionalDivisionsLoader {
 				try {
 					businessRatio = Double.parseDouble(item.事業割合) / 100.0;
 				} catch(Exception e) {
+					if(skipErrors) {
+						return null;
+					}
 					throw error(" [エラー] " + path + " (" + line + "行目)\r\n 事業割合は数値で指定してください: " + item.事業割合);
 				}
 				if(businessRatio < 0.0 || businessRatio > 1.0) {
+					if(skipErrors) {
+						return null;
+					}
 					throw error(" [エラー] " + path + " (" + line + "行目)\r\n 事業割合は 0～100 の範囲で指定してください: " + item.事業割合);
 				}
 				ProportionalDivision proportionalDivision = new ProportionalDivision(accountTitle, businessRatio);
