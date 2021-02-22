@@ -89,6 +89,9 @@ public class GeneralJournal {
 			printData.add("\\media 195 297");
 		}
 
+		// 摘要が2行折り返しで印字されても枠内に収まるように行の高さを 1.15 に変更しています。（デフォルトは 1.8）
+		printData.add("\\line-height 1.15");
+
 		for(int i = 0; i < entries.size(); i++) {
 			JournalEntry entry = entries.get(i);
 			int month = entry.getDate().getMonthValue();
