@@ -692,14 +692,10 @@ public class BalanceSheet {
 			printData.add("\t\t\\align center left");
 			printData.add("\t\t\\text " + displayName);
 			printData.add("\t\t\\align center right");
-			if(openingAmount != null) {
-				printData.add("\t\t\\box " + String.format("35.5 %.2f %.2f %.2f", y, amountPrintWidth, ROW_HEIGHT));
-				printData.add("\t\t\\text " + formatMoney(openingAmount.getValue()));
-			}
-			if(closingAmount != null) {
-				printData.add("\t\t\\box " + String.format("61.5 %.2f %.2f %.2f", y, amountPrintWidth, ROW_HEIGHT));
-				printData.add("\t\t\\text " + formatMoney(closingAmount.getValue()));
-			}
+			printData.add("\t\t\\box " + String.format("35.5 %.2f %.2f %.2f", y, amountPrintWidth, ROW_HEIGHT));
+			printData.add("\t\t\\text " + formatMoney(openingAmount != null ? openingAmount.getValue() : 0));
+			printData.add("\t\t\\box " + String.format("61.5 %.2f %.2f %.2f", y, amountPrintWidth, ROW_HEIGHT));
+			printData.add("\t\t\\text " + formatMoney(closingAmount != null ? closingAmount.getValue() : 0));
 		}
 		if(liabilitiesList.size() > 0 || equityList.size() > 0) {
 			//合計（負債、資本）
