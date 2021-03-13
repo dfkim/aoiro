@@ -4,6 +4,8 @@ import java.io.PrintStream;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -53,7 +55,10 @@ public class AccountSettlement {
 		if(date == null) {
 			throw new IllegalStateException("決算日が指定されていません。");
 		}
-		
+
+		// 勘定科目を並べ替えるための順序リストです。
+		List<AccountTitle> order = new ArrayList<>(accountTitles);
+
 		//家事按分
 		if(proportionalDivisions != null) {
 			AccountTitle ownersDrawing = AccountTitle.getByDisplayName(accountTitles, "事業主貸");
@@ -92,6 +97,9 @@ public class AccountSettlement {
 					}
 				}
 				if(debtors.size() > 0) {
+					//ソート
+					Collections.sort(debtors, Comparator.comparingInt(o -> order.indexOf(o.getAccountTitle())));
+
 					long creditorTotal = 0;
 					for(Debtor debtor : debtors) {
 						creditorTotal += debtor.getAmount();
@@ -101,6 +109,9 @@ public class AccountSettlement {
 					journalEntries.add(entry);
 				}
 				if(creditors.size() > 0) {
+					//ソート
+					Collections.sort(creditors, Comparator.comparingInt(o -> order.indexOf(o.getAccountTitle())));
+
 					long debtorTotal = 0;
 					for(Creditor creditor : creditors) {
 						debtorTotal += creditor.getAmount();
@@ -282,6 +293,8 @@ public class AccountSettlement {
 			}
 			//損益勘定仕訳
 			if(debtors.size() > 0) {
+				//ソート
+				Collections.sort(debtors, Comparator.comparingInt(o -> order.indexOf(o.getAccountTitle())));
 				//貸方
 				Creditor creditor = new Creditor(AccountTitle.INCOME_SUMMARY, debtorsTotal);
 				//仕訳
@@ -289,6 +302,8 @@ public class AccountSettlement {
 				journalEntries.add(entry);
 			}
 			if(creditors.size() > 0) {
+				//ソート
+				Collections.sort(creditors, Comparator.comparingInt(o -> order.indexOf(o.getAccountTitle())));
 				//借方
 				Debtor debtor = new Debtor(AccountTitle.INCOME_SUMMARY, creditorsTotal);
 				//仕訳
@@ -337,6 +352,8 @@ public class AccountSettlement {
 			}
 			//損益勘定仕訳
 			if(creditors.size() > 0) {
+				//ソート
+				Collections.sort(creditors, Comparator.comparingInt(o -> order.indexOf(o.getAccountTitle())));
 				//借方
 				Debtor debtor = new Debtor(AccountTitle.INCOME_SUMMARY, creditorsTotal);
 				//仕訳
@@ -344,6 +361,8 @@ public class AccountSettlement {
 				journalEntries.add(entry);
 			}
 			if(debtors.size() > 0) {
+				//ソート
+				Collections.sort(debtors, Comparator.comparingInt(o -> order.indexOf(o.getAccountTitle())));
 				//貸方
 				Creditor creditor = new Creditor(AccountTitle.INCOME_SUMMARY, debtorsTotal);
 				//仕訳
@@ -449,6 +468,8 @@ public class AccountSettlement {
 			}
 			//残高勘定仕訳
 			if(creditors.size() > 0) {
+				//ソート
+				Collections.sort(creditors, Comparator.comparingInt(o -> order.indexOf(o.getAccountTitle())));
 				//借方
 				Debtor debtor = new Debtor(AccountTitle.BALANCE, creditorsTotal);
 				//仕訳
@@ -456,6 +477,8 @@ public class AccountSettlement {
 				journalEntries.add(entry);
 			}
 			if(debtors.size() > 0) {
+				//ソート
+				Collections.sort(debtors, Comparator.comparingInt(o -> order.indexOf(o.getAccountTitle())));
 				//貸方
 				Creditor creditor = new Creditor(AccountTitle.BALANCE, debtorsTotal);
 				//仕訳
@@ -503,6 +526,8 @@ public class AccountSettlement {
 			}
 			//残高勘定仕訳
 			if(debtors.size() > 0) {
+				//ソート
+				Collections.sort(debtors, Comparator.comparingInt(o -> order.indexOf(o.getAccountTitle())));
 				//貸方
 				Creditor creditor = new Creditor(AccountTitle.BALANCE, debtorsTotal);
 				//仕訳
@@ -510,6 +535,8 @@ public class AccountSettlement {
 				journalEntries.add(entry);
 			}
 			if(creditors.size() > 0) {
+				//ソート
+				Collections.sort(creditors, Comparator.comparingInt(o -> order.indexOf(o.getAccountTitle())));
 				//借方
 				Debtor debtor = new Debtor(AccountTitle.BALANCE, creditorsTotal);
 				//仕訳
@@ -574,6 +601,8 @@ public class AccountSettlement {
 				// 個人の場合は資本の残高振替、会社の場合は純資産の残高振替と表示します。
 				String description = isSoloProprietorship ? "資本の残高振替" : "純資産の残高振替";
 				if(debtors.size() > 0) {
+					//ソート
+					Collections.sort(debtors, Comparator.comparingInt(o -> order.indexOf(o.getAccountTitle())));
 					//貸方
 					Creditor creditor = new Creditor(AccountTitle.BALANCE, debtorsTotal);
 					//仕訳
@@ -581,6 +610,8 @@ public class AccountSettlement {
 					journalEntries.add(incomeSummaryEntry);
 				}
 				if(creditors.size() > 0) {
+					//ソート
+					Collections.sort(creditors, Comparator.comparingInt(o -> order.indexOf(o.getAccountTitle())));
 					//借方
 					Debtor debtor = new Debtor(AccountTitle.BALANCE, creditorsTotal);
 					//仕訳

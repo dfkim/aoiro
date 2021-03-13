@@ -25,6 +25,7 @@
 		\box 16 0 77 12
 		\text 摘　　　　　要
 		\box 93 0 8 12
+		\line-height 1.8
 		\text 元\n丁
 		\box 101 0 37 12
 		\text 借　　方
