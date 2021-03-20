@@ -35,7 +35,10 @@ public class GeneralLedger {
 	
 	private Set<AccountTitle> accountTitles;
 	private List<JournalEntry> entries;
+	private boolean isSoloProprietorship;
 	private boolean showMonthlyTotal;
+
+	private LocalDate openingDate;
 	int financialYear;
 	boolean isFromNewYearsDay;
 	
@@ -64,7 +67,10 @@ public class GeneralLedger {
 
 
 		this.entries = journalEntries;
+		this.isSoloProprietorship = isSoloProprietorship;
 		this.showMonthlyTotal = showMonthlyTotal;
+
+		this.openingDate = AccountSettlement.getOpeningDate(journalEntries, isSoloProprietorship);
 		
 		InputStream in = getClass().getResourceAsStream("/templates/総勘定元帳.pb");
 		BufferedReader r = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
@@ -131,13 +137,13 @@ public class GeneralLedger {
 				boolean isLastEntryInMonth = false;
 				if(showMonthlyTotal) {
 					// 開始仕訳は1月計に含めないようにするために0月として扱います。
-					monthlyTotalMonth = entry.isOpening() ? 0 : month;
+					monthlyTotalMonth = entry.isOpening(isSoloProprietorship, openingDate) ? 0 : month;
 					if(!entry.isClosing()) {
 						if(j + 1 == entries.size()) {
 							isLastEntryInMonth = true;
 						} else if(j + 1 < entries.size()) {
 							JournalEntry nextEntry = entries.get(j + 1);
-							int nextEntryMonth = nextEntry.isOpening() ? 0 : nextEntry.getDate().getMonthValue();
+							int nextEntryMonth = nextEntry.isOpening(isSoloProprietorship, openingDate) ? 0 : nextEntry.getDate().getMonthValue();
 							if(monthlyTotalMonth != nextEntryMonth) {
 								isLastEntryInMonth = true;
 							} else if(nextEntry.isClosing()) {
@@ -217,8 +223,8 @@ public class GeneralLedger {
 						printData.add("\t\t\\box " + String.format("17.5 %.2f 49.5 %.2f", currentRow * ROW_HEIGHT, ROW_HEIGHT));
 						printData.add("\t\t\\font serif 9");
 						printData.add("\t\t\\align center left");
-						if(entry.isOpening() && entry.getDescription().equals("前期繰越")) {
-							//開始仕訳の摘要が「前期繰越」となっている場合は相手勘定科目ではなく摘要を印字します。
+						if(!isSoloProprietorship && entry.isOpening(isSoloProprietorship, openingDate)) {
+							//法人かつ開始仕訳の場合、摘要のみを印字します。
 							printData.add("\t\t\\text " + entry.getDescription());
 						} else {
 							printData.add("\t\t\\text " + counterpartAccount.getAccountTitle().getDisplayName());
@@ -231,7 +237,7 @@ public class GeneralLedger {
 								printData.add("\t\t\\text  / " + entry.getDescription());
 							}
 						}
-						
+
 						//仕丁
 						if(account.getJournalPageNumber() >= 1) {
 							printData.add("\t\t\\box " + String.format("67 %.2f 8 %.2f", currentRow * ROW_HEIGHT, ROW_HEIGHT));

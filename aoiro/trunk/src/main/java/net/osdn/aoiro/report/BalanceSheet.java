@@ -85,7 +85,7 @@ public class BalanceSheet {
 		//期首残高(元入金)と期末残高の算出
 		for(JournalEntry entry : journalEntries) {
 			//期首残高(元入金)
-			if(entry.isOpening()) {
+			if(entry.isOpening(isSoloProprietorship, openingDate)) {
 				for(Debtor debtor : entry.getDebtors()) {
 					Amount amount = openingBalances.get(debtor.getAccountTitle());
 					if(amount == null) {
