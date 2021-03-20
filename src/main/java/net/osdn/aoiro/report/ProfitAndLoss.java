@@ -249,7 +249,7 @@ public class ProfitAndLoss {
 
 		for(JournalEntry entry : journalEntries) {
 			//開始仕訳と締切仕訳は集計に含めません。
-			if(entry.isOpening() || entry.isClosing()) {
+			if(entry.isOpening(isSoloProprietorship, openingDate) || entry.isClosing()) {
 				continue;
 			}
 			String month = entry.getDate().getMonthValue() + "月";

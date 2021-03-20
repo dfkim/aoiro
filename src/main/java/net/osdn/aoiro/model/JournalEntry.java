@@ -115,31 +115,38 @@ public class JournalEntry {
 	 * 
 	 * @return 開始仕訳の場合は true、そうでなければ false を返します。
 	 */
-	public boolean isOpening() {
+	public boolean isOpening(boolean isSoloProprietorship, LocalDate openingDate) {
 		//はじめに締切仕訳でないことを確認します。
 		//開始仕訳の判断する勘定科目(元入金)は残高振替仕訳にも含まれるため、
 		//締切仕訳の元入金が誤って開始仕訳と判断されないようにするためです。
 		if(isClosing()) {
 			return false;
 		}
-		//個人事業主の場合は貸方に元入金を含む仕訳を開始仕訳として扱います。
-		for(Debtor debtor : debtors) {
-			String displayName = debtor.getAccountTitle().getDisplayName();
-			if(displayName.equals("元入金")) {
+
+		//この仕訳の日付(date)が、すべての仕訳の最初の日付(openingDate)と一致しない場合、開始仕訳として扱いません。
+		if(!Objects.equals(date, openingDate)) {
+			return false;
+		}
+
+		if(isSoloProprietorship) {
+			//個人事業主の場合は貸方に元入金を含む仕訳を開始仕訳として扱います。
+			for(Debtor debtor : debtors) {
+				String displayName = debtor.getAccountTitle().getDisplayName();
+				if(displayName.equals("元入金")) {
+					return true;
+				}
+			}
+			for(Creditor creditor : creditors) {
+				String displayName = creditor.getAccountTitle().getDisplayName();
+				if(displayName.equals("元入金")) {
+					return true;
+				}
+			}
+		} else {
+			//法人の場合、摘要が「前期繰越」「開始残高」「期首残高」「資本金」のいずれかとなっていれば開始仕訳として扱います。
+			if(description.equals("前期繰越") || description.equals("開始残高") || description.equals("期首残高") || description.equals("資本金")) {
 				return true;
 			}
-		}
-		for(Creditor creditor : creditors) {
-			String displayName = creditor.getAccountTitle().getDisplayName();
-			if(displayName.equals("元入金")) {
-				return true;
-			}
-		}
-		
-		//摘要が「前期繰越」「開始残高」「資本金」となっている場合は開始仕訳として扱います。
-		//個人事業主、法人いずれの場合も開始仕訳として認識されます。
-		if(description.equals("前期繰越") || description.equals("開始残高") || description.equals("資本金")) {
-			return true;
 		}
 
 		return false;

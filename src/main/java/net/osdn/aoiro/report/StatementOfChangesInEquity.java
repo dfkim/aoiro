@@ -85,7 +85,7 @@ public class StatementOfChangesInEquity {
 		r.close();
 		
 		for(JournalEntry entry : journalEntries) {
-			if(entry.isOpening()) { //当期首残高
+			if(entry.isOpening(false, openingDate)) { //当期首残高
 				for(Debtor debtor : entry.getDebtors()) {
 					if(debtor.getAccountTitle().getType() == AccountType.Equity) {
 						Amount amount = openingBalances.get(debtor.getAccountTitle());
