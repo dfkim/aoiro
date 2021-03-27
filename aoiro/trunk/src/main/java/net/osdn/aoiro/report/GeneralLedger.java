@@ -223,7 +223,18 @@ public class GeneralLedger {
 						printData.add("\t\t\\box " + String.format("17.5 %.2f 49.5 %.2f", currentRow * ROW_HEIGHT, ROW_HEIGHT));
 						printData.add("\t\t\\font serif 9");
 						printData.add("\t\t\\align center left");
-						if(!isSoloProprietorship && entry.isOpening(isSoloProprietorship, openingDate)) {
+						if(isSoloProprietorship && entry.isOpening(isSoloProprietorship, openingDate) && !account.getAccountTitle().getDisplayName().equals("元入金")) {
+							//個人事業主かつ開始仕訳、さらに表題の勘定科目が元入金ではない場合、
+							//つまり、表題が元入金の相手勘定科目の場合、摘要の相手勘定科目を「元入金」とします。
+							printData.add("\t\t\\text 元入金");
+							//摘要欄に勘定科目だけではなく仕訳摘要も印字します。ただし、締切仕訳や仕訳摘要と勘定科目が同じ場合は印字しません。
+							if(!entry.isClosing()
+									&& !entry.getDescription().isBlank()
+									&& !entry.getDescription().equals("元入金")) {
+								printData.add("\t\t\\font serif 6");
+								printData.add("\t\t\\text  / " + entry.getDescription());
+							}
+						} else if(!isSoloProprietorship && entry.isOpening(isSoloProprietorship, openingDate)) {
 							//法人かつ開始仕訳の場合、摘要のみを印字します。
 							printData.add("\t\t\\text " + entry.getDescription());
 						} else {
@@ -245,37 +256,71 @@ public class GeneralLedger {
 							printData.add("\t\t\\align center");
 							printData.add("\t\t\\text " + account.getJournalPageNumber());
 						}
-						
-						//借方
-						if(account instanceof Debtor) {
-							printData.add("\t\t\\box " + String.format("75 %.2f 25 %.2f", currentRow * ROW_HEIGHT, ROW_HEIGHT));
-							printData.add("\t\t\\font serif 10");
-							printData.add("\t\t\\align center right");
-							printData.add("\t\t\\text " + String.format("%,d", counterpartAccount.getAmount()));
-							//資産、費用の場合は増加、負債、資本（純資産）、収益の場合は減少
-							if(account.getAccountTitle().getType().getNormalBalance() == Debtor.class) {
-								accountTitleTotal += counterpartAccount.getAmount();
-							} else {
-								accountTitleTotal -= counterpartAccount.getAmount();
+
+						if(account.getAccountTitle().getDisplayName().equals("元入金")) {
+							//元入金の場合のみ、相手勘定科目を基準に借方・貸方金額を印字していきます。
+							//相手勘定科目が貸方の場合、元入金の借方に金額を印字します。（逆になることに注意！）
+							if(counterpartAccount instanceof Creditor) {
+								printData.add("\t\t\\box " + String.format("75 %.2f 25 %.2f", currentRow * ROW_HEIGHT, ROW_HEIGHT));
+								printData.add("\t\t\\font serif 10");
+								printData.add("\t\t\\align center right");
+								printData.add("\t\t\\text " + String.format("%,d", counterpartAccount.getAmount()));
+								//資産、費用の場合は増加、負債、資本（純資産）、収益の場合は減少
+								if(account.getAccountTitle().getType().getNormalBalance() == Debtor.class) {
+									accountTitleTotal += counterpartAccount.getAmount();
+								} else {
+									accountTitleTotal -= counterpartAccount.getAmount();
+								}
+								debtorTotal += counterpartAccount.getAmount();
 							}
-							debtorTotal += counterpartAccount.getAmount();
-						}
-						
-						//貸方
-						if(account instanceof Creditor) {
-							printData.add("\t\t\\box " + String.format("105 %.2f 25 %.2f", currentRow * ROW_HEIGHT, ROW_HEIGHT));
-							printData.add("\t\t\\font serif 10");
-							printData.add("\t\t\\align center right");
-							printData.add("\t\t\\text " + String.format("%,d", counterpartAccount.getAmount()));
-							//負債、資本（純資産）、収益の場合は増加、資産、費用の場合は減少
-							if(account.getAccountTitle().getType().getNormalBalance() == Creditor.class) {
-								accountTitleTotal += counterpartAccount.getAmount();
-							} else {
-								accountTitleTotal -= counterpartAccount.getAmount();
+							//相手勘定科目が借方の場合、元入金の貸方に金額を印字します。（逆になることに注意！）
+							if(counterpartAccount instanceof Debtor) {
+								printData.add("\t\t\\box " + String.format("105 %.2f 25 %.2f", currentRow * ROW_HEIGHT, ROW_HEIGHT));
+								printData.add("\t\t\\font serif 10");
+								printData.add("\t\t\\align center right");
+								printData.add("\t\t\\text " + String.format("%,d", counterpartAccount.getAmount()));
+								//負債、資本（純資産）、収益の場合は増加、資産、費用の場合は減少
+								if(account.getAccountTitle().getType().getNormalBalance() == Creditor.class) {
+									accountTitleTotal += counterpartAccount.getAmount();
+								} else {
+									accountTitleTotal -= counterpartAccount.getAmount();
+								}
+								creditorTotal += counterpartAccount.getAmount();
 							}
-							creditorTotal += counterpartAccount.getAmount();
+						} else {
+							//元入金以外の場合
+
+							//借方
+							if(account instanceof Debtor) {
+								printData.add("\t\t\\box " + String.format("75 %.2f 25 %.2f", currentRow * ROW_HEIGHT, ROW_HEIGHT));
+								printData.add("\t\t\\font serif 10");
+								printData.add("\t\t\\align center right");
+								printData.add("\t\t\\text " + String.format("%,d", counterpartAccount.getAmount()));
+								//資産、費用の場合は増加、負債、資本（純資産）、収益の場合は減少
+								if(account.getAccountTitle().getType().getNormalBalance() == Debtor.class) {
+									accountTitleTotal += counterpartAccount.getAmount();
+								} else {
+									accountTitleTotal -= counterpartAccount.getAmount();
+								}
+								debtorTotal += counterpartAccount.getAmount();
+							}
+
+							//貸方
+							if(account instanceof Creditor) {
+								printData.add("\t\t\\box " + String.format("105 %.2f 25 %.2f", currentRow * ROW_HEIGHT, ROW_HEIGHT));
+								printData.add("\t\t\\font serif 10");
+								printData.add("\t\t\\align center right");
+								printData.add("\t\t\\text " + String.format("%,d", counterpartAccount.getAmount()));
+								//負債、資本（純資産）、収益の場合は増加、資産、費用の場合は減少
+								if(account.getAccountTitle().getType().getNormalBalance() == Creditor.class) {
+									accountTitleTotal += counterpartAccount.getAmount();
+								} else {
+									accountTitleTotal -= counterpartAccount.getAmount();
+								}
+								creditorTotal += counterpartAccount.getAmount();
+							}
 						}
-						
+
 						//借または貸
 						AccountType type = account.getAccountTitle().getType();
 						if(type.getNormalBalance() == Debtor.class) {
@@ -578,21 +623,19 @@ public class GeneralLedger {
 			}
 		} else if(account.getAccountTitle().getDisplayName().equals("元入金")) {
 			// 元入金の場合は相手勘定科目を「諸口」とせずに、相手勘定科目を個別に出力します。
-			// ただし、元入金側の勘定科目が2件以上ある場合は金額を算出できないので「諸口」とします。
-			// 元入金側の勘定科目が1件の場合は、元入金の金額と相手勘定科目の合計金額が一致しますが、
-			// 元入金側の勘定科目が2件以上ある場合は元入金の金額と相手勘定科目の合計金額は一致しないためです。
-			if(account instanceof Debtor) {
-				if(entry.getDebtors().size() == 1) {
-					counterpartAccounts.addAll(entry.getCreditors());
-				} else {
-					counterpartAccounts.add(new Creditor(AccountTitle.SUNDRIES, account.getAmount()));
+			// 2021-03-27 元入金側の勘定科目が2件以上ある場合も「諸口」とならないようにしました。
+			// 元入金の場合のみ、相手勘定科目に借方・貸方が混在することがあります。
+			for(Debtor debtor : entry.getDebtors()) {
+				if(debtor.getAccountTitle().getDisplayName().equals("元入金")) {
+					continue;
 				}
-			} else if(account instanceof Creditor) {
-				if(entry.getCreditors().size() == 1) {
-					counterpartAccounts.addAll(entry.getDebtors());
-				} else {
-					counterpartAccounts.add(new Debtor(AccountTitle.SUNDRIES, account.getAmount()));
+				counterpartAccounts.add(debtor);
+			}
+			for(Creditor creditor : entry.getCreditors()) {
+				if(creditor.getAccountTitle().getDisplayName().equals("元入金")) {
+					continue;
 				}
+				counterpartAccounts.add(creditor);
 			}
 		} else if(account.getAccountTitle().isClosing()) {
 			//決算勘定の場合は相手勘定科目を諸口としてまとめずにすべて出力します。
