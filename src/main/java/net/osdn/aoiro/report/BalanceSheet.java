@@ -18,6 +18,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -807,7 +808,12 @@ public class BalanceSheet {
 			for(Entry<AccountTitle, Amount> e : list) {
 				AccountTitle accountTitle = e.getKey();
 				Amount amount = e.getValue();
-				if(accountTitle.getDisplayName().equals("事業主貸") || accountTitle.getDisplayName().equals("事業主借")) {
+				// 事業主貸・事業主借・元入金 は繰り越しません。
+				if(accountTitle.getDisplayName().equals("事業主貸") || accountTitle.getDisplayName().equals("事業主借") || accountTitle.getDisplayName().equals("元入金")) {
+					continue;
+				}
+				// 控除前の所得金額 は繰り越しません。
+				if(accountTitle.equals(AccountTitle.PRETAX_INCOME)) {
 					continue;
 				}
 				if(accountTitle.getType() == AccountType.Assets) {
@@ -820,7 +826,7 @@ public class BalanceSheet {
 						creditors.add(e);
 						creditorsTotal -= amount.getValue();
 					}
-				} else if(accountTitle.getType() == AccountType.Liabilities) {
+				} else if(accountTitle.getType() == AccountType.Liabilities || accountTitle.getType() == AccountType.Equity) {
 					if(amount.getValue() == 0) {
 						continue;
 					} else if(amount.getValue() > 0) {
@@ -832,7 +838,16 @@ public class BalanceSheet {
 					}
 				}
 			}
-			if(debtors.size() > 0) {
+			AccountTitle capital = AccountTitle.getByDisplayName(new HashSet<>(accountTitles), "元入金");
+			if(capital != null) {
+				Map.Entry<AccountTitle, Amount> e = Map.entry(capital, new Amount(Creditor.class, (debtorsTotal - creditorsTotal)));
+				if(debtorsTotal >= creditorsTotal) {
+					creditors.add(e);
+				} else {
+					debtors.add(e);
+				}
+			}
+			if(debtors.size() > 0 && creditors.size() > 0) {
 				sb.append("- \"日付\" : \"" + nextOpeningDate + "\"\r\n");
 				sb.append("  \"摘要\" : \"元入金\"\r\n");
 				sb.append("  \"借方\" : [ ");
@@ -845,13 +860,6 @@ public class BalanceSheet {
 					}
 				}
 				sb.append(" ]\r\n");
-				sb.append("  \"貸方\" : [ { \"勘定科目\" : \"元入金\", \"金額\" : " + debtorsTotal + " } ]\r\n");
-				sb.append("\r\n");
-			}
-			if(creditors.size() > 0) {
-				sb.append("- \"日付\" : \"" + nextOpeningDate + "\"\r\n");
-				sb.append("  \"摘要\" : \"元入金\"\r\n");
-				sb.append("  \"借方\" : [ { \"勘定科目\" : \"元入金\", \"金額\" : " + creditorsTotal + " } ]\r\n");
 				sb.append("  \"貸方\" : [ ");
 				for(int i = 0; i < creditors.size(); i++) {
 					AccountTitle accountTitle = creditors.get(i).getKey();
@@ -1030,7 +1038,12 @@ public class BalanceSheet {
 			for(Entry<AccountTitle, Amount> e : list) {
 				AccountTitle accountTitle = e.getKey();
 				Amount amount = e.getValue();
-				if(accountTitle.getDisplayName().equals("事業主貸") || accountTitle.getDisplayName().equals("事業主借")) {
+				// 事業主貸・事業主借・元入金 は繰り越しません。
+				if(accountTitle.getDisplayName().equals("事業主貸") || accountTitle.getDisplayName().equals("事業主借") || accountTitle.getDisplayName().equals("元入金")) {
+					continue;
+				}
+				// 控除前の所得金額 は繰り越しません。
+				if(accountTitle.equals(AccountTitle.PRETAX_INCOME)) {
 					continue;
 				}
 				if(accountTitle.getType() == AccountType.Assets) {
@@ -1043,7 +1056,7 @@ public class BalanceSheet {
 						creditors.add(e);
 						creditorsTotal -= amount.getValue();
 					}
-				} else if(accountTitle.getType() == AccountType.Liabilities) {
+				} else if(accountTitle.getType() == AccountType.Liabilities || accountTitle.getType() == AccountType.Equity) {
 					if(amount.getValue() == 0) {
 						continue;
 					} else if(amount.getValue() > 0) {
@@ -1055,7 +1068,16 @@ public class BalanceSheet {
 					}
 				}
 			}
-			if(debtors.size() > 0) {
+			AccountTitle capital = AccountTitle.getByDisplayName(new HashSet<>(accountTitles), "元入金");
+			if(capital != null) {
+				Map.Entry<AccountTitle, Amount> e = Map.entry(capital, new Amount(Creditor.class, (debtorsTotal - creditorsTotal)));
+				if(debtorsTotal >= creditorsTotal) {
+					creditors.add(e);
+				} else {
+					debtors.add(e);
+				}
+			}
+			if(debtors.size() > 0 && creditors.size() > 0) {
 				sb.append("- 日付: " + nextOpeningDate + "\r\n");
 				sb.append("  摘要: 元入金\r\n");
 				sb.append("  借方: [ ");
@@ -1068,13 +1090,6 @@ public class BalanceSheet {
 					}
 				}
 				sb.append(" ]\r\n");
-				sb.append("  貸方: [ {勘定科目: 元入金, 金額: " + debtorsTotal + "} ]\r\n");
-				sb.append("\r\n");
-			}
-			if(creditors.size() > 0) {
-				sb.append("- 日付: " + nextOpeningDate + "\r\n");
-				sb.append("  摘要: 元入金\r\n");
-				sb.append("  借方: [ {勘定科目: 元入金, 金額: " + creditorsTotal + "} ]\r\n");
 				sb.append("  貸方: [ ");
 				for(int i = 0; i < creditors.size(); i++) {
 					AccountTitle accountTitle = creditors.get(i).getKey();

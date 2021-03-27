@@ -636,8 +636,11 @@ public class AccountSettlement {
 		for(JournalEntry entry : journalEntries) {
 			if(date == null) {
 				date = entry.getDate();
-			} else if(entry.getDate().isBefore(date)) {
-				date = entry.getDate();
+			} else {
+				LocalDate date2 = entry.getDate();
+				if(date2 != null && date2.isBefore(date)) {
+					date = date2;
+				}
 			}
 		}
 		
@@ -655,8 +658,12 @@ public class AccountSettlement {
 		if(isSoloProprietorship) {
 			//個人事業主の場合、仕訳から年を求めて、その年の12/31を決算日とします。
 			if(journalEntries.size() > 0) {
-				JournalEntry entry = journalEntries.get(0);
-				date = LocalDate.of(entry.getDate().getYear(), 12, 31);
+				for(JournalEntry entry : journalEntries) {
+					if(entry.getDate() != null) {
+						date = LocalDate.of(entry.getDate().getYear(), 12, 31);
+						break;
+					}
+				}
 			}
 		} else {
 			//法人の場合は仕訳データ内の最小日付から決算日を求めます。
@@ -665,20 +672,18 @@ public class AccountSettlement {
 			for(JournalEntry entry : journalEntries) {
 				if(opening == null) {
 					opening = entry.getDate();
-				} else if(entry.getDate().isBefore(opening)) {
-					opening = entry.getDate();
+				} else {
+					LocalDate opening2 = entry.getDate();
+					if(opening2 != null && opening2.isBefore(opening2)) {
+						opening = opening2;
+					}
 				}
-				/*
-				if(closing == null) {
-					closing = entry.getDate();
-				} else if(entry.getDate().isAfter(closing)) {
-					closing = entry.getDate();
-				}
-				*/
 			}
-			// 最小日付の 1年後の前月の末日
-			date = opening.plusYears(1).minusMonths(1);
-			date = date.withDayOfMonth(date.lengthOfMonth());
+			if(opening != null) {
+				// 最小日付の 1年後の前月の末日
+				date = opening.plusYears(1).minusMonths(1);
+				date = date.withDayOfMonth(date.lengthOfMonth());
+			}
 		}
 		return date;
 	}
