@@ -579,16 +579,40 @@ public class GeneralLedger {
 	 */
 	public List<Account> getAccountsByAccountTitle(JournalEntry entry, AccountTitle accountTitle) {
 		List<Account> accounts = new ArrayList<>();
-		for(int k = 0; k < entry.getDebtors().size(); k++) {
-			Debtor debtor = entry.getDebtors().get(k);
-			if(debtor.getAccountTitle().equals(accountTitle)) {
-				accounts.add(debtor);
+
+		// 元入金の場合は、1つの仕訳内に複数の元入金勘定があっても1つの元入金勘定にまとめます。
+		boolean isCapital = accountTitle.getDisplayName().equals("元入金");
+		if(isCapital) {
+			long capitalAmount = 0;
+			for(int k = 0; k < entry.getDebtors().size(); k++) {
+				Debtor debtor = entry.getDebtors().get(k);
+				if(debtor.getAccountTitle().equals(accountTitle)) {
+					capitalAmount -= debtor.getAmount();
+				}
 			}
-		}
-		for(int k = 0; k < entry.getCreditors().size(); k++) {
-			Creditor creditor = entry.getCreditors().get(k);
-			if(creditor.getAccountTitle().equals(accountTitle)) {
-				accounts.add(creditor);
+			for(int k = 0; k < entry.getCreditors().size(); k++) {
+				Creditor creditor = entry.getCreditors().get(k);
+				if(creditor.getAccountTitle().equals(accountTitle)) {
+					capitalAmount += creditor.getAmount();
+				}
+			}
+			if(capitalAmount >= 0) {
+				accounts.add(new Creditor(accountTitle, capitalAmount));
+			} else {
+				accounts.add(new Debtor(accountTitle, -capitalAmount));
+			}
+		} else {
+			for(int k = 0; k < entry.getDebtors().size(); k++) {
+				Debtor debtor = entry.getDebtors().get(k);
+				if(debtor.getAccountTitle().equals(accountTitle)) {
+					accounts.add(debtor);
+				}
+			}
+			for(int k = 0; k < entry.getCreditors().size(); k++) {
+				Creditor creditor = entry.getCreditors().get(k);
+				if(creditor.getAccountTitle().equals(accountTitle)) {
+					accounts.add(creditor);
+				}
 			}
 		}
 		return accounts;
