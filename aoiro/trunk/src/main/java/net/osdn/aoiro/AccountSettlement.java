@@ -83,14 +83,14 @@ public class AccountSettlement {
 						}
 					}
 					if(debtorTotal > creditorTotal) {
-						double total = (debtorTotal - creditorTotal) * (1.0 - proportionalDivision.getBusinessRatio());
-						long longTotal = (long)Math.floor(total);
+						double total = (debtorTotal - creditorTotal) * (1.0d - proportionalDivision.getBusinessRatio());
+						long longTotal = Math.round(total);
 						if(longTotal != 0) {
 							creditors.add(new Creditor(proportionalDivision.getAccountTitle(), longTotal));
 						}
 					} else if(creditorTotal > debtorTotal) {
-						double total = (creditorTotal - debtorTotal) * (1.0 - proportionalDivision.getBusinessRatio());
-						long longTotal = (long)Math.floor(total);
+						double total = (creditorTotal - debtorTotal) * (1.0d - proportionalDivision.getBusinessRatio());
+						long longTotal = Math.round(total);
 						if(longTotal != 0) {
 							debtors.add(new Debtor(proportionalDivision.getAccountTitle(), longTotal));
 						}
