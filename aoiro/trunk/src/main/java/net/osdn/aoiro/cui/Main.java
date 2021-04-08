@@ -63,7 +63,11 @@ public class Main {
 			}
 
 			if(filename == null) {
-				System.out.println("Usage: aoiro.exe <options> <仕訳データファイル>");
+				if(System.getProperty("java.application.name") != null) {
+					System.out.println("Usage: aoiro.exe <options> <仕訳データファイル>");
+				} else {
+					System.out.println("Usage: java -jar aoiro.jar <options> <仕訳データファイル>");
+				}
 				System.out.println("Options:");
 				System.out.println("  -o    決算処理をせずに仕訳帳と総勘定元帳を出力します。");
 				System.out.println("  -m    総勘定元帳に月計を印字します。");
