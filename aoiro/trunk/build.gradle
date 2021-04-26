@@ -1,7 +1,6 @@
 apply plugin: 'java'
-apply plugin: 'eclipse'
 
-version = '0.9.8'
+version = '0.9.9'
 
 tasks.withType(JavaCompile) {
 	sourceCompatibility = 11
@@ -10,7 +9,7 @@ tasks.withType(JavaCompile) {
 }
 
 repositories {
-    jcenter()
+	mavenCentral()
 }
 
 dependencies {
@@ -77,7 +76,7 @@ task exewrap(type: Exec, dependsOn: 'jar') {
 		"-o", "${buildDir}/package/${archivesBaseName}.exe",
 		"-p", "aoiro",
 		"-d", "aoiro",
-		"-c", "(C) 2017-2020 HIRUKAWA Ryo",
+		"-c", "(C) 2017-2021 HIRUKAWA Ryo",
 		"-V", "${version}",
 		"-v", "${version}"
 }

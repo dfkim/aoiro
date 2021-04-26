@@ -56,12 +56,3 @@
 
   EsotericSoftware/yamlbeans is licensed under the MIT License
   https://github.com/EsotericSoftware/yamlbeans/blob/master/LICENSE
-
-
-* juniversalchardet
-  https://code.google.com/archive/p/juniversalchardet/
-
-  Contributor: Kohei TAKETA <k-tak@void.in> (Java port)
-
-  juniversalchardet is licensed under the Mozilla Public License 1.1
-  https://www.mozilla.org/en-US/MPL/
