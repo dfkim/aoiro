@@ -71,6 +71,8 @@ public class AccountTitlesLoader {
 		}
 	}};
 
+	private Set<AccountTitle> unusedAccountTitles;
+
 	public AccountTitlesLoader(Path path) {
 		this.path = path;
 	}
@@ -636,7 +638,7 @@ public class AccountTitlesLoader {
 	 * @param node 損益計算書または貸借対照表のツリーノード
 	 * @return 収集した勘定科目のセット
 	 */
-	private <V> Set<AccountTitle> retrieve(Node<Map.Entry<List<AccountTitle>, V>> node) {
+	private static <V> Set<AccountTitle> retrieve(Node<Map.Entry<List<AccountTitle>, V>> node) {
 		Set<AccountTitle> accountTitles = new HashSet<AccountTitle>();
 		for(AccountTitle accountTitle : node.getValue().getKey()) {
 			accountTitles.add(accountTitle);
@@ -647,42 +649,61 @@ public class AccountTitlesLoader {
 		return accountTitles;
 	}
 
+	/** 勘定科目を検証します。
+	 *
+	 * @return
+	 */
 	public boolean validate() {
-		boolean valid = true;
-
-		Set<AccountTitle> plAccountTitles = retrieve(plLayout.getRoot());
-		for(AccountTitle accountTitle : accountTitles) {
-			if(accountTitle.getType() == AccountType.Revenue && !plAccountTitles.contains(accountTitle)) {
-				System.out.println(" [警告] 損益計算書に「" + accountTitle.getDisplayName() + "」が含まれていません。");
-				valid = false;
-			}
-			if(accountTitle.getType() == AccountType.Expense && !plAccountTitles.contains(accountTitle)) {
-				System.out.println(" [警告] 損益計算書に「" + accountTitle.getDisplayName() + "」が含まれていません。");
-				valid = false;
-			}
-		}
-
-		Set<AccountTitle> bsAccountTitles = retrieve(bsLayout.getRoot());
-		for(AccountTitle accountTitle : accountTitles) {
-			if(accountTitle.getType() == AccountType.Assets && !bsAccountTitles.contains(accountTitle)) {
-				System.out.println(" [警告] 貸借対照表に「" + accountTitle.getDisplayName() + "」が含まれていません。");
-				valid = false;
-			}
-			if(accountTitle.getType() == AccountType.Liabilities && !bsAccountTitles.contains(accountTitle)) {
-				System.out.println(" [警告] 貸借対照表に「" + accountTitle.getDisplayName() + "」が含まれていません。");
-				valid = false;
-			}
-			if(accountTitle.getType() == AccountType.Equity && !bsAccountTitles.contains(accountTitle)) {
-				System.out.println(" [警告] 貸借対照表に「" + accountTitle.getDisplayName() + "」が含まれていません。");
-				valid = false;
-			}
-		}
-
+		Set<AccountTitle> unusedAccountTitles = getUnusedAccountTitles();
+		boolean valid = unusedAccountTitles.size() == 0;
 		if(!valid) {
+			for(AccountTitle accountTitle : unusedAccountTitles) {
+				AccountType type = accountTitle.getType();
+				if(type == AccountType.Revenue || type == AccountType.Expense) {
+					System.out.println(" [警告] 損益計算書に「" + accountTitle.getDisplayName() + "」が含まれていません。");
+				} else if(type == AccountType.Assets || type == AccountType.Liabilities || type == AccountType.Equity) {
+					System.out.println(" [警告] 貸借対照表に「" + accountTitle.getDisplayName() + "」が含まれていません。");
+				}
+			}
 			System.out.println();
 		}
-
 		return valid;
+	}
+
+	/** 損益計算書・貸借対照表で使用されていない勘定科目を取得します。
+	 *
+	 * @return 未使用の勘定科目のセット
+	 */
+	public Set<AccountTitle> getUnusedAccountTitles() {
+		if(unusedAccountTitles == null) {
+			unusedAccountTitles = getUnusedAccountTitles(accountTitles, plLayout, bsLayout);
+		}
+		return unusedAccountTitles;
+	}
+
+	/** 損益計算書・貸借対照表で使用されていない勘定科目を取得します。
+	 *
+	 * @param accountTitles 勘定科目のセット
+	 * @param plLayout 損益計算書のレイアウト
+	 * @param bsLayout 貸借対照表のレイアウト
+	 * @return 未使用の勘定科目のセット
+	 */
+	public static Set<AccountTitle> getUnusedAccountTitles(Set<AccountTitle> accountTitles, ProfitAndLossLayout plLayout, BalanceSheetLayout bsLayout) {
+		Set<AccountTitle> unusedAccountTitles = new LinkedHashSet<>();
+
+		Set<AccountTitle> plAccountTitles = retrieve(plLayout.getRoot());
+		Set<AccountTitle> bsAccountTitles = retrieve(bsLayout.getRoot());
+		for(AccountTitle accountTitle : accountTitles) {
+			AccountType type = accountTitle.getType();
+			if((type == AccountType.Revenue || type == AccountType.Expense) && !plAccountTitles.contains(accountTitle)) {
+				unusedAccountTitles.add(accountTitle);
+			}
+			if((type == AccountType.Assets || type == AccountType.Liabilities || type == AccountType.Equity) && !bsAccountTitles.contains(accountTitle)) {
+				unusedAccountTitles.add(accountTitle);
+			}
+		}
+
+		return unusedAccountTitles;
 	}
 
 	/** 勘定科目のセットを取得します。
