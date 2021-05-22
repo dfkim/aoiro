@@ -184,7 +184,7 @@ public class GeneralJournal {
 				if(isFromNewYearsDay) {
 					printData.add("\t\\box 0 25 14.5 6");
 					printData.add("\t\\align center right");
-					printData.add("\t\\font serif 8");
+					printData.add("\t\\font sans-serif 8");
 					printData.add("\t\\text 年");
 					printData.add("\t\\box 0 25 10.5 6");
 					printData.add("\t\\font serif 10");
@@ -193,7 +193,7 @@ public class GeneralJournal {
 				} else {
 					printData.add("\t\\box 0 25 14.7 6");
 					printData.add("\t\\align center right");
-					printData.add("\t\\font serif 8");
+					printData.add("\t\\font sans-serif 8");
 					printData.add("\t\\text 年度");
 					printData.add("\t\\box 0 25 8.6 6");
 					printData.add("\t\\font serif 10");
