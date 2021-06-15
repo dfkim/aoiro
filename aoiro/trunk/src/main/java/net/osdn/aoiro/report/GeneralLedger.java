@@ -348,7 +348,7 @@ public class GeneralLedger {
 						restOfRows -= rowsRequired;
 
 						//月計印字有効 + 月末最後の仕訳 + 相手勘定科目の末尾 のときに月計を印字します。
-						if(showMonthlyTotal && isLastEntryInMonth && (l + 1) == counterpartAccounts.size()) {
+						if(showMonthlyTotal && isLastEntryInMonth && (k + 1) == accounts.size() && (l + 1) == counterpartAccounts.size()) {
 							int emptyRows = (ROWS - 1) - currentRow - (isLastInAccountTitle ? 0 : 1);
 							if(emptyRows < 0) {
 								emptyRows = 0;
@@ -414,7 +414,6 @@ public class GeneralLedger {
 							currentRow += rowsRequired;
 							restOfRows -= rowsRequired;
 						}
-
 					}
 				}
 			}
