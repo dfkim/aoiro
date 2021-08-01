@@ -155,6 +155,14 @@ public class GeneralLedger {
 
 				//この勘定科目を含む勘定のリストを取得します。
 				List<Account> accounts = getAccountsByAccountTitle(entry, accountTitle);
+				List<Account> capitals = null;
+				//勘定科目が「元入金」の場合はリストの要素数を1にします。
+				//元入金の場合は相手勘定科目をすべて出力するため、1つの仕訳に「元入金」が複数含まれていても繰り返し処理する必要がないためです。
+				//2つ目以降の「元入金」は capitals に保持して、1つ目の要素と一緒に pageNumber を設定していきます。
+				if(accountTitle.getDisplayName().equals("元入金") && accounts.size() >= 2) {
+					capitals = accounts.subList(1, accounts.size());
+					accounts = accounts.subList(0, 1);
+				}
 				
 				for(int k = 0; k < accounts.size(); k++) {
 					Account account = accounts.get(k);
@@ -207,6 +215,11 @@ public class GeneralLedger {
 						//仕訳帳に記載する総勘定元帳ページ(元丁)を設定します。
 						if(account.getLedgerPageNumber() <= 0) {
 							account.setLedgerPageNumber(pageNumber);
+							if(capitals != null) {
+								for(Account capital : capitals) {
+									capital.setLedgerPageNumber(pageNumber);
+								}
+							}
 						}
 
 						//日付
@@ -578,6 +591,24 @@ public class GeneralLedger {
 	 */
 	public List<Account> getAccountsByAccountTitle(JournalEntry entry, AccountTitle accountTitle) {
 		List<Account> accounts = new ArrayList<>();
+		for(int k = 0; k < entry.getDebtors().size(); k++) {
+			Debtor debtor = entry.getDebtors().get(k);
+			if(debtor.getAccountTitle().equals(accountTitle)) {
+				accounts.add(debtor);
+			}
+		}
+		for(int k = 0; k < entry.getCreditors().size(); k++) {
+			Creditor creditor = entry.getCreditors().get(k);
+			if(creditor.getAccountTitle().equals(accountTitle)) {
+				accounts.add(creditor);
+			}
+		}
+		return accounts;
+	}
+
+	/*
+	public List<Account> getAccountsByAccountTitle(JournalEntry entry, AccountTitle accountTitle) {
+		List<Account> accounts = new ArrayList<>();
 
 		// 元入金の場合は、1つの仕訳内に複数の元入金勘定があっても1つの元入金勘定にまとめます。
 		boolean isCapital = accountTitle.getDisplayName().equals("元入金");
@@ -616,8 +647,8 @@ public class GeneralLedger {
 		}
 		return accounts;
 	}
+	*/
 
-	
 	/** 指定した仕訳と勘定から相手勘定リストを取得します。
 	 * 
 	 * @param entry 仕訳
